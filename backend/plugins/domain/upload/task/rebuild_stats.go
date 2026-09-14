@@ -1,0 +1,80 @@
+// Copyright 2026 Arctel.net
+// SPDX-License-Identifier: Apache-2.0
+
+package task
+
+import (
+	"Wavelet/core/contracts"
+	"Wavelet/pkg/logger"
+	"Wavelet/plugins/domain/upload/models"
+	"Wavelet/plugins/domain/upload/shared"
+	"context"
+	"errors"
+	"fmt"
+
+	uploadstats "Wavelet/plugins/domain/upload/stats"
+)
+
+const (
+	// RebuildUploadStatsTask is the Asynq task name for rebuilding upload stats.
+	RebuildUploadStatsTask = "upload:rebuild_stats"
+	// TaskTypeRebuildUploadStats is the admin-dispatchable task type.
+	TaskTypeRebuildUploadStats = "rebuild_upload_stats"
+)
+
+// RebuildUploadStatsMeta describes the upload stats rebuild task.
+var RebuildUploadStatsMeta = contracts.TaskMetaDTO{
+	Type:         TaskTypeRebuildUploadStats,
+	AsynqTask:    RebuildUploadStatsTask,
+	Name:         "重算文件存储统计",
+	DisplayName:  "重算文件存储统计",
+	Description:  "根据当前 w_uploads 活跃记录全量重建 w_upload_stats（总量、类型、分类、趋势）",
+	Category:     taskCategoryUpload,
+	SupportsTime: false,
+	MaxRetry:     2,
+	Queue:        taskQueueDefault,
+	Retryable:    true,
+}
+
+// RebuildUploadStatsHandler rebuilds incremental upload stats from active upload records.
+type RebuildUploadStatsHandler struct{}
+
+// Execute scans active uploads and rebuilds all upload stat dimensions.
+func (h *RebuildUploadStatsHandler) Execute(ctx context.Context, _ []byte) (*contracts.TaskResultDTO, error) {
+	db := shared.GetDB(ctx)
+	if db == nil {
+		return nil, errors.New("database service not available")
+	}
+
+	var activeCount int64
+	if err := db.
+		Model(&models.Upload{}).
+		Where("status != ?", models.UploadStatusDeleted).
+		Count(&activeCount).Error; err != nil {
+		logger.ErrorF(ctx, "统计活跃上传记录失败: %v", err)
+		return nil, fmt.Errorf("count active uploads: %w", err)
+	}
+
+	logger.InfoF(ctx, "开始重算文件存储统计，活跃记录数: %d", activeCount)
+
+	if err := uploadstats.RebuildUploadStats(ctx); err != nil {
+		logger.ErrorF(ctx, "重算文件存储统计失败: %v", err)
+		return nil, fmt.Errorf("rebuild upload stats: %w", err)
+	}
+
+	var totalStat models.UploadStat
+	if err := db.
+		Where("dimension = ? AND stat_key = ?", models.UploadStatDimensionTotal, "").
+		First(&totalStat).Error; err != nil {
+		logger.ErrorF(ctx, "读取总量统计失败: %v", err)
+		return nil, fmt.Errorf("read total upload stat: %w", err)
+	}
+
+	msg := fmt.Sprintf(
+		"文件存储统计重算完成，活跃文件: %d 个，总大小: %d 字节",
+		totalStat.FileCount,
+		totalStat.FileSize,
+	)
+	logger.InfoF(ctx, "%s", msg)
+	return &contracts.TaskResultDTO{Message: msg}, nil
+}

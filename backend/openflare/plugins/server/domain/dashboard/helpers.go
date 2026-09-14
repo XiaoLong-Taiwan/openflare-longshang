@@ -1,0 +1,63 @@
+// Copyright 2026 Arctel.net
+// SPDX-License-Identifier: Apache-2.0
+
+// Package dashboard provides helper utilities for dashboard API handlers.
+package dashboard
+
+import (
+	"strings"
+	"time"
+
+	ofws "Wavelet/openflare/plugins/server/domain/fleet/websocket"
+	"Wavelet/openflare/plugins/server/kernel/model"
+)
+
+const (
+	nodeStatusOnline  = "online"
+	nodeStatusOffline = "offline"
+	nodeStatusPending = "pending"
+
+	dashboardDistributionLimit       = 8
+	dashboardOverviewSnapshotLimit   = 500
+	highCPUUsagePercentThreshold     = 80
+	highMemoryUsagePercentThreshold  = 85
+	highStorageUsagePercentThreshold = 85
+)
+
+func computeNodeStatus(node *model.OpenFlareNode) string {
+	if node == nil {
+		return nodeStatusOffline
+	}
+	if node.LastSeenAt == nil || node.LastSeenAt.IsZero() {
+		return nodeStatusPending
+	}
+	// 默认离线阈值 60 秒（与 node_offline_threshold 默认一致）
+	threshold := 60 * time.Second
+	if time.Since(*node.LastSeenAt) > threshold {
+		return nodeStatusOffline
+	}
+	return nodeStatusOnline
+}
+
+func nodeViewLastSeenAt(node *model.OpenFlareNode) any {
+	if node == nil {
+		return time.Time{}
+	}
+	nodeType := strings.TrimSpace(node.NodeType)
+	if nodeType == "" {
+		nodeType = "edge_node"
+	}
+	if nodeType == "tunnel_relay" && ofws.IsRelayConnected(node.NodeID) {
+		return ofws.RelayWSConnectedLastSeenValue
+	}
+	if nodeType == "tunnel_client" && ofws.IsFlaredConnected(node.NodeID) {
+		return ofws.FlaredWSConnectedLastSeenValue
+	}
+	if ofws.IsAgentConnected(node.NodeID) {
+		return ofws.AgentWSConnectedLastSeenValue
+	}
+	if node.LastSeenAt == nil {
+		return time.Time{}
+	}
+	return *node.LastSeenAt
+}

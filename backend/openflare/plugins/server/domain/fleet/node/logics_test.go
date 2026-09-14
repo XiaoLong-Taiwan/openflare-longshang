@@ -1,0 +1,384 @@
+// Copyright 2026 Arctel.net
+// SPDX-License-Identifier: Apache-2.0
+
+package node
+
+import (
+	"context"
+	"io"
+	"net/http"
+	"strings"
+	"testing"
+	"time"
+
+	cf "Wavelet/openflare/plugins/server/domain/cloudflare"
+	"Wavelet/openflare/plugins/server/kernel/model"
+	"Wavelet/openflare/plugins/server/kernel/repository"
+	"Wavelet/openflare/plugins/server/kernel/testhelper"
+
+	"github.com/glebarez/sqlite"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
+)
+
+func setReleaseHTTPClientForTest(client *http.Client) *http.Client {
+	previous := releaseHTTPClient
+	releaseHTTPClient = client
+	return previous
+}
+
+func setupNodeTestDB(t *testing.T) func() {
+	t.Helper()
+
+	sqliteDB, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+	})
+	require.NoError(t, err)
+	require.NoError(t, sqliteDB.AutoMigrate(
+		&model.OpenFlareNode{},
+		&model.SystemConfig{},
+		&model.OpenFlareApplyLog{},
+		&model.OpenFlareNodeSystemProfile{},
+		&model.OpenFlareHealthEvent{},
+	))
+
+	repository.SetDBForTest(sqliteDB)
+	testhelper.SetupLogStoresForTest(t)
+
+	return func() {
+		repository.SetDBForTest(nil)
+	}
+}
+
+func TestCreateEdgeNode(t *testing.T) {
+	cleanup := setupNodeTestDB(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	view, err := CreateNode(ctx, Input{
+		Name:              "edge-1",
+		IP:                "10.0.0.1",
+		AutoUpdateEnabled: true,
+	})
+	require.NoError(t, err)
+	assert.NotZero(t, view.ID)
+	assert.True(t, strings.HasPrefix(view.NodeID, "node-"))
+	assert.Len(t, view.AccessToken, 32)
+	assert.Equal(t, "edge_node", view.NodeType)
+	assert.Equal(t, nodeStatusPending, view.Status)
+	assert.True(t, view.AutoUpdateEnabled)
+}
+
+func TestCreateTunnelRelayNode(t *testing.T) {
+	cleanup := setupNodeTestDB(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	view, err := CreateNode(ctx, Input{
+		Name:     "relay-1",
+		NodeType: "tunnel_relay",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "tunnel_relay", view.NodeType)
+	assert.Equal(t, 7000, view.RelayBindPort)
+	assert.Equal(t, 8080, view.RelayVhostHTTPPort)
+
+	stored, err := repository.GetOpenFlareNodeByID(ctx, view.ID)
+	require.NoError(t, err)
+	assert.NotEmpty(t, stored.RelayAuthToken)
+}
+
+func TestCreateTunnelClientNode(t *testing.T) {
+	cleanup := setupNodeTestDB(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	view, err := CreateNode(ctx, Input{
+		Name:     "client-1",
+		NodeType: "tunnel_client",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "tunnel_client", view.NodeType)
+}
+
+func TestCreateNodeRequiresName(t *testing.T) {
+	cleanup := setupNodeTestDB(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	_, err := CreateNode(ctx, Input{IP: "10.0.0.2"})
+	require.Error(t, err)
+	assert.Equal(t, errNodeNameRequired, err.Error())
+}
+
+func TestUpdateNode(t *testing.T) {
+	cleanup := setupNodeTestDB(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	created, err := CreateNode(ctx, Input{Name: "edge-update"})
+	require.NoError(t, err)
+
+	updated, err := UpdateNode(ctx, created.ID, Input{
+		Name:              "edge-updated",
+		IP:                "192.168.1.10",
+		AutoUpdateEnabled: true,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "edge-updated", updated.Name)
+	assert.Equal(t, "192.168.1.10", updated.IP)
+	assert.True(t, updated.AutoUpdateEnabled)
+}
+
+func TestUpdateNodeDispatchesCloudflareSyncWhenIPChanges(t *testing.T) {
+	cleanup := setupNodeTestDB(t)
+	defer cleanup()
+	ctx := context.Background()
+	created, err := CreateNode(ctx, Input{Name: "edge-update", IP: "192.0.2.10"})
+	require.NoError(t, err)
+
+	var dispatchedNodeID uint
+	restore := cf.SetDispatchTaskForTest(func(_ context.Context, taskType string, payload []byte, _ string) (string, error) {
+		assert.Equal(t, cf.TaskTypeSyncByNode, taskType)
+		assert.Contains(t, string(payload), `"node_id":`)
+		dispatchedNodeID = created.ID
+		return "task-1", nil
+	})
+	defer restore()
+
+	_, err = UpdateNode(ctx, created.ID, Input{Name: "edge-update", IP: "192.0.2.11"})
+	require.NoError(t, err)
+	assert.Equal(t, created.ID, dispatchedNodeID)
+}
+
+func TestDeleteNode(t *testing.T) {
+	cleanup := setupNodeTestDB(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	created, err := CreateNode(ctx, Input{Name: "edge-delete"})
+	require.NoError(t, err)
+
+	require.NoError(t, DeleteNode(ctx, created.ID))
+	_, err = repository.GetOpenFlareNodeByID(ctx, created.ID)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+}
+
+func TestListNodesWithApplyLogMetadata(t *testing.T) {
+	cleanup := setupNodeTestDB(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	created, err := CreateNode(ctx, Input{Name: "edge-list"})
+	require.NoError(t, err)
+
+	applyAt := time.Now().UTC().Truncate(time.Second)
+	require.NoError(t, repository.DB(ctx).Create(&model.OpenFlareApplyLog{
+		NodeID:              created.NodeID,
+		Version:             "20260618-001",
+		Result:              "success",
+		Message:             "ok",
+		Checksum:            "checksum-1",
+		MainConfigChecksum:  "main-1",
+		RouteConfigChecksum: "route-1",
+		SupportFileCount:    3,
+		CreatedAt:           applyAt,
+	}).Error)
+
+	views, err := ListNodes(ctx)
+	require.NoError(t, err)
+	require.Len(t, views, 1)
+	assert.Equal(t, "success", views[0].LatestApplyResult)
+	assert.Equal(t, "checksum-1", views[0].LatestApplyChecksum)
+	assert.Equal(t, 3, views[0].LatestSupportFileCount)
+	require.NotNil(t, views[0].LatestApplyAt)
+	assert.Equal(t, applyAt, views[0].LatestApplyAt.UTC())
+}
+
+func TestBootstrapTokenLifecycle(t *testing.T) {
+	cleanup := setupNodeTestDB(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	first, err := GetBootstrapToken(ctx)
+	require.NoError(t, err)
+	assert.Len(t, first.DiscoveryToken, 32)
+
+	second, err := GetBootstrapToken(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, first.DiscoveryToken, second.DiscoveryToken)
+
+	rotated, err := RotateBootstrapToken(ctx)
+	require.NoError(t, err)
+	assert.NotEqual(t, first.DiscoveryToken, rotated.DiscoveryToken)
+	// 验证令牌已保存到 SystemConfig
+	savedToken, err := repository.GetSystemConfigByKey(ctx, model.ConfigKeyAgentDiscoveryToken)
+	require.NoError(t, err)
+	assert.Equal(t, rotated.DiscoveryToken, savedToken.Value)
+}
+
+func TestValidateDiscoveryToken(t *testing.T) {
+	cleanup := setupNodeTestDB(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	bootstrap, err := GetBootstrapToken(ctx)
+	require.NoError(t, err)
+
+	require.NoError(t, ValidateDiscoveryToken(ctx, bootstrap.DiscoveryToken))
+	require.Error(t, ValidateDiscoveryToken(ctx, "invalid-token"))
+	require.Error(t, ValidateDiscoveryToken(ctx, ""))
+	require.Error(t, ValidateDiscoveryToken(ctx, bootstrap.DiscoveryToken[:len(bootstrap.DiscoveryToken)-1]+"x"))
+}
+
+func TestRequestAgentUpdateWithPreviewTag(t *testing.T) {
+	cleanup := setupNodeTestDB(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	created, err := CreateNode(ctx, Input{Name: "edge-update-agent"})
+	require.NoError(t, err)
+
+	originalClient := setReleaseHTTPClientForTest(&http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			expected := "https://api.github.com/repos/XiaoLong-Taiwan/openflare-longshang/releases/tags/v0.5.0-rc.1"
+			require.Equal(t, expected, req.URL.String())
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     make(http.Header),
+				Body:       io.NopCloser(strings.NewReader(`{"tag_name":"v0.5.0-rc.1","prerelease":true}`)),
+			}, nil
+		}),
+	})
+	t.Cleanup(func() {
+		setReleaseHTTPClientForTest(originalClient)
+	})
+
+	updated, err := RequestAgentUpdate(ctx, created.ID, AgentUpdateInput{
+		Channel: "preview",
+		TagName: "v0.5.0-rc.1",
+	})
+	require.NoError(t, err)
+	assert.True(t, updated.UpdateRequested)
+	assert.Equal(t, "preview", updated.UpdateChannel)
+	assert.Equal(t, "v0.5.0-rc.1", updated.UpdateTag)
+}
+
+func TestRequestOpenrestyRestart(t *testing.T) {
+	cleanup := setupNodeTestDB(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	created, err := CreateNode(ctx, Input{Name: "edge-restart"})
+	require.NoError(t, err)
+
+	updated, err := RequestOpenrestyRestart(ctx, created.ID)
+	require.NoError(t, err)
+	assert.True(t, updated.RestartOpenrestyRequested)
+}
+
+func seedActiveConfigVersion(t *testing.T, ctx context.Context) {
+	t.Helper()
+	conn := repository.DB(ctx)
+	require.NotNil(t, conn)
+	require.NoError(t, conn.AutoMigrate(&model.ConfigVersion{}))
+	require.NoError(t, conn.Create(&model.ConfigVersion{
+		Version:        "20260618-001",
+		SnapshotJSON:   `{}`,
+		RenderedConfig: `server {}`,
+		Checksum:       "abc123",
+		IsActive:       true,
+		CreatedBy:      "test",
+	}).Error)
+}
+
+func TestRequestForceSyncRequiresWebSocket(t *testing.T) {
+	cleanup := setupNodeTestDB(t)
+	defer cleanup()
+	ctx := context.Background()
+	seedActiveConfigVersion(t, ctx)
+
+	created, err := CreateNode(ctx, Input{Name: "edge-sync"})
+	require.NoError(t, err)
+
+	_, err = RequestForceSync(ctx, created.ID)
+	require.Error(t, err)
+	assert.Equal(t, errNodeForceSyncFailed, err.Error())
+}
+
+func TestRequestForceSyncRequiresActiveConfig(t *testing.T) {
+	cleanup := setupNodeTestDB(t)
+	defer cleanup()
+	ctx := context.Background()
+	conn := repository.DB(ctx)
+	require.NotNil(t, conn)
+	require.NoError(t, conn.AutoMigrate(&model.ConfigVersion{}))
+
+	created, err := CreateNode(ctx, Input{Name: "edge-sync-active"})
+	require.NoError(t, err)
+
+	_, err = RequestForceSync(ctx, created.ID)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), errNoActiveConfigVersion)
+}
+
+func TestGetObservabilityStub(t *testing.T) {
+	cleanup := setupNodeTestDB(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	created, err := CreateNode(ctx, Input{Name: "edge-obs"})
+	require.NoError(t, err)
+
+	view, err := GetObservability(ctx, created.ID, ObservabilityQuery{Hours: 24, Limit: 50})
+	require.NoError(t, err)
+	assert.Equal(t, created.NodeID, view.NodeID)
+	assert.Empty(t, view.MetricSnapshots)
+}
+
+func TestComputeNodeStatus(t *testing.T) {
+	now := time.Now()
+	pending := &model.OpenFlareNode{}
+	assert.Equal(t, nodeStatusPending, computeNodeStatus(pending))
+
+	online := &model.OpenFlareNode{LastSeenAt: &now}
+	assert.Equal(t, nodeStatusOnline, computeNodeStatus(online))
+
+	// computeNodeStatus 使用默认阈值 60 秒
+	offlineAt := now.Add(-61 * time.Second)
+	offline := &model.OpenFlareNode{LastSeenAt: &offlineAt}
+	assert.Equal(t, nodeStatusOffline, computeNodeStatus(offline))
+}
+
+type roundTripFunc func(req *http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
+func TestCompareVersions(t *testing.T) {
+	tests := []struct {
+		local    string
+		remote   string
+		expected int
+	}{
+		{"v3.0.0-beta", "v3.0.0-beta.1", -1},
+		{"v3.0.0-beta", "v3.0.0", -1},
+		{"v3.0.0-beta.1", "v3.0.0", -1},
+		{"dev", "v3.0.0", -1},
+		{"v3.0.0", "v3.0.0", 0},
+		{"v3.0.0", "v2.9.9", 1},
+		{"v3.0.0", "v3.0.1", -1},
+		{"v3.0.0-beta.1", "v3.0.0-beta.2", -1},
+		{"v3.0.0-beta.11", "v3.0.0-beta.2", 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.local+"_vs_"+tt.remote, func(t *testing.T) {
+			res := compareVersions(tt.local, tt.remote)
+			assert.Equal(t, tt.expected, res)
+		})
+	}
+}

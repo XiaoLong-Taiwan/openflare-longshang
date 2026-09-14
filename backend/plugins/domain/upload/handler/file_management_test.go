@@ -1,0 +1,65 @@
+// Copyright 2026 Arctel.net
+// SPDX-License-Identifier: Apache-2.0
+
+package handler
+
+import (
+	"Wavelet/core/contracts"
+	"Wavelet/plugins/domain/upload/models"
+	"Wavelet/plugins/domain/upload/shared"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/gin-gonic/gin"
+)
+
+func TestGetDistinctUploadTypes(t *testing.T) {
+	dbConn, cleanup := shared.SetupTestEnv(t)
+	defer cleanup()
+
+	user := contracts.UserDTO{ID: 2222, Username: "test_user_2"}
+	dbConn.Table("w_users").Create(&user)
+
+	customUpload := models.Upload{
+		ID:        9001,
+		UserID:    user.ID,
+		FileName:  "custom.txt",
+		FilePath:  "uploads/custom.txt",
+		FileSize:  10,
+		MimeType:  "text/plain",
+		Extension: "txt",
+		Type:      "custom_type_xyz",
+		Status:    models.UploadStatusUsed,
+	}
+	dbConn.Create(&customUpload)
+
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.GET("/api/v1/admin/uploads/types", GetDistinctUploadTypes)
+
+	req, _ := http.NewRequest("GET", "/api/v1/admin/uploads/types", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	var resp struct {
+		ErrorMsg string   `json:"error_msg"`
+		Data     []string `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to parse JSON: %v", err)
+	}
+
+	if resp.ErrorMsg != "" {
+		t.Fatalf("unexpected error: %s", resp.ErrorMsg)
+	}
+
+	if len(resp.Data) != 1 || resp.Data[0] != "custom_type_xyz" {
+		t.Fatalf("expected ['custom_type_xyz'], got %v", resp.Data)
+	}
+}

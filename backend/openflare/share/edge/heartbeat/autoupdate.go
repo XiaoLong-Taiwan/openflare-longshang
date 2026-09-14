@@ -1,0 +1,47 @@
+// Copyright 2026 Arctel.net
+// SPDX-License-Identifier: Apache-2.0
+
+// Package heartbeat handles periodic heartbeat and update checks.
+package heartbeat
+
+import (
+	"context"
+	"log/slog"
+	"strings"
+
+	edgeupdater "Wavelet/openflare/share/edge/updater"
+)
+
+// AutoUpdateSettings defines the settings for automatic edge updates.
+type AutoUpdateSettings struct {
+	AutoUpdate    bool
+	UpdateNow     bool
+	UpdateRepo    string
+	UpdateChannel string
+	UpdateTag     string
+}
+
+// TryAutoUpdate attempts to check and apply auto updates for the edge service.
+func TryAutoUpdate(ctx context.Context, updater *edgeupdater.Service, settings *AutoUpdateSettings, logLabel string) {
+	if settings == nil || updater == nil {
+		return
+	}
+	force := settings.UpdateNow
+	shouldCheck := settings.AutoUpdate || force
+	if !shouldCheck || strings.TrimSpace(settings.UpdateRepo) == "" {
+		return
+	}
+	channel := "stable"
+	if force && strings.TrimSpace(settings.UpdateChannel) != "" {
+		channel = settings.UpdateChannel
+	}
+	slog.Info("checking for "+logLabel+" updates", "repo", settings.UpdateRepo, "channel", channel, "force", force)
+	err := updater.CheckAndUpdate(ctx, settings.UpdateRepo, edgeupdater.UpdateOptions{
+		Channel: channel,
+		TagName: settings.UpdateTag,
+		Force:   force,
+	})
+	if err != nil {
+		slog.Error(logLabel+" update check failed", "error", err)
+	}
+}

@@ -1,0 +1,477 @@
+'use client';
+
+import * as React from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { APP_BUILD_DATE, APP_VERSION } from '@/lib/app-info';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
+import { AnimateIcon } from '@/components/animate-ui/icons/icon';
+import { ChevronLeft } from '@/components/animate-ui/icons/chevron-left';
+import { ChevronRight } from '@/components/animate-ui/icons/chevron-right';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { getCurrentTheme } from '@/components/layout/avater-style/registry';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from '@/components/ui/sidebar';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  ArrowUpRight,
+  Bell,
+  ChevronDown,
+  Database,
+  FileQuestionMark,
+  FileText,
+  FolderOpen,
+  Layers,
+  LogOut,
+  Settings,
+  ShieldCheck,
+  UserRound,
+} from 'lucide-react';
+
+import { useTranslations } from 'next-intl';
+import { useUser } from '@/contexts/user-context';
+import { usePublicConfig } from '@/hooks/use-public-config';
+import { OpenFlareSidebarMenu } from '@/components/layout/openflare-sidebar-menu';
+import { openflareSidebarNav } from '@/lib/navigation/openflare-nav';
+
+type NavItem = {
+  titleKey: string;
+  url: string;
+  icon: React.ComponentType;
+  external?: boolean;
+};
+
+const adminItems: NavItem[] = [
+  { titleKey: 'users', url: '/admin/users', icon: UserRound },
+  { titleKey: 'tasks', url: '/admin/tasks', icon: Layers },
+  { titleKey: 'storage', url: '/admin/files', icon: FolderOpen },
+  { titleKey: 'database', url: '/admin/database', icon: Database },
+  { titleKey: 'push', url: '/admin/push', icon: Bell },
+  // { titleKey: 'logs', url: '/admin/logs', icon: Terminal },
+  { titleKey: 'system', url: '/admin/system', icon: ShieldCheck },
+  { titleKey: 'adminSettings', url: '/admin/settings', icon: Settings },
+];
+
+const documentItems: NavItem[] = [
+  {
+    titleKey: 'usageDocs',
+    url: 'https://openflare.fyrn.link/',
+    icon: FileText,
+    external: true,
+  },
+];
+
+function parseMenuDisplayConfig(
+  raw: string | undefined,
+): Record<string, boolean> {
+  if (!raw) return {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
+      return {};
+
+    return Object.entries(parsed).reduce<Record<string, boolean>>(
+      (result, [key, value]) => {
+        if (typeof value === 'boolean') {
+          result[key] = value;
+        }
+        return result;
+      },
+      {},
+    );
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * 应用侧边栏组件
+ * 显示应用侧边栏
+ *
+ * @example
+ * ```tsx
+ * <AppSidebar />
+ * ```
+ * @returns {React.ReactNode} 应用侧边栏组件
+ */
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { toggleSidebar, state, isMobile, setOpenMobile } = useSidebar();
+  const { user, logout, loading: userLoading } = useUser();
+  const { config } = usePublicConfig();
+  const t = useTranslations('layout');
+  const tCommon = useTranslations('common');
+  const [showLogoutDialog, setShowLogoutDialog] = React.useState(false);
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const currentTheme = getCurrentTheme();
+  const {
+    MainDecoration,
+    InteractionDecoration,
+    BackgroundEffect,
+    smallMainDecorationConfig,
+    largeMainDecorationConfig,
+    interactionDecorationConfig,
+  } = currentTheme;
+  const hasAvatarDecoration = currentTheme.key !== 'none';
+
+  const [showEffect, setShowEffect] = React.useState(false);
+  const [userMenuOpen, setUserMenuOpen] = React.useState(false);
+  const userMenuLastToggle = React.useRef(0);
+
+  const handleUserMenuOpenChange = React.useCallback((open: boolean) => {
+    const now = Date.now();
+    if (now - userMenuLastToggle.current < 65) return;
+    userMenuLastToggle.current = now;
+    setUserMenuOpen(open);
+  }, []);
+
+  const handleCloseSidebar = React.useCallback(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }, [isMobile, setOpenMobile]);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      setShowLogoutDialog(false);
+    } catch (error) {
+      toast.error(t('logoutDialog.failed'), {
+        description:
+          error instanceof Error
+            ? error.message
+            : t('logoutDialog.failedDescription'),
+      });
+      setIsLoggingOut(false);
+    }
+  };
+
+  const adminFiltered = React.useMemo(() => {
+    const displayConfig = parseMenuDisplayConfig(config?.menu_display_config);
+    return adminItems.filter((item) => displayConfig[item.url] !== false);
+  }, [config]);
+
+  const documentFiltered = React.useMemo(() => {
+    const displayConfig = parseMenuDisplayConfig(config?.menu_display_config);
+    return documentItems.filter((item) => displayConfig[item.url] !== false);
+  }, [config]);
+
+  return (
+    <>
+      {hasAvatarDecoration && showEffect && BackgroundEffect && (
+        <BackgroundEffect />
+      )}
+      <Sidebar
+        collapsible='icon'
+        {...props}
+        role='navigation'
+        aria-label={t('mainNavigation')}
+        className='px-2 relative border-r border-border/40 group-data-[collapsible=icon]'
+      >
+        <Button
+          onClick={toggleSidebar}
+          variant='ghost'
+          size='icon'
+          aria-label={t('toggleSidebar')}
+          className='absolute top-1/2 -right-6 w-2 h-4 text-muted-foreground hover:bg-background hidden md:flex'
+        >
+          {state === 'expanded' ? (
+            <AnimateIcon animateOnHover>
+              <ChevronLeft className='size-6' />
+            </AnimateIcon>
+          ) : (
+            <AnimateIcon animateOnHover>
+              <ChevronRight className='size-6' />
+            </AnimateIcon>
+          )}
+        </Button>
+
+        <SidebarHeader className='py-4 md:-ml-2'>
+          <DropdownMenu
+            open={userMenuOpen}
+            onOpenChange={handleUserMenuOpenChange}
+          >
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant='ghost'
+                className='flex h-12 hover:bg-accent group-data-[collapsible=icon]:ml-2'
+                suppressHydrationWarning
+              >
+                <div className='relative overflow-visible'>
+                  {hasAvatarDecoration && (
+                    <MainDecoration
+                      className={smallMainDecorationConfig?.className}
+                    />
+                  )}
+                  <Avatar className='size-6 rounded relative z-10'>
+                    <AvatarImage src={user?.avatar_url} alt={user?.nickname} />
+                    <AvatarFallback className='rounded bg-muted text-sm'>
+                      {user?.nickname?.charAt(0)?.toUpperCase() || 'L'}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+                <div className='flex flex-col items-start flex-1 text-left group-data-[collapsible=icon]:hidden'>
+                  <span className='text-xs font-medium truncate w-full text-left ml-2'>
+                    {user?.nickname || user?.username || t('user.unknownUser')}
+                  </span>
+                  <span className='text-[11px] font-medium text-muted-foreground/100 truncate w-full text-left ml-2'>
+                    {user?.is_admin ? t('user.adminRole') : t('user.userRole')}
+                  </span>
+                </div>
+                <ChevronDown className='size-4 text-muted-foreground ml-auto group-data-[collapsible=icon]:hidden' />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              className={
+                isMobile || state === 'collapsed'
+                  ? 'ml-1 w-68 z-[200]'
+                  : 'w-64 z-[200]'
+              }
+              align='start'
+              side={isMobile || state === 'collapsed' ? 'bottom' : 'right'}
+              sideOffset={4}
+            >
+              <DropdownMenuLabel>
+                <div className='flex flex-col items-center mb-4 gap-1 pt-4'>
+                  <div
+                    className={`relative w-32 h-16 flex items-center justify-center overflow-visible select-none transition-transform ${hasAvatarDecoration ? 'cursor-pointer active:scale-95' : ''}`}
+                    onClick={
+                      hasAvatarDecoration
+                        ? () => setShowEffect(!showEffect)
+                        : undefined
+                    }
+                  >
+                    {hasAvatarDecoration && (
+                      <InteractionDecoration
+                        show={showEffect}
+                        className={interactionDecorationConfig?.className}
+                      />
+                    )}
+                    <div className='relative z-10'>
+                      {hasAvatarDecoration && (
+                        <MainDecoration
+                          className={largeMainDecorationConfig?.className}
+                        />
+                      )}
+                      <Avatar className='size-14 rounded-full pointer-events-none'>
+                        <AvatarImage
+                          src={user?.avatar_url}
+                          alt={user?.nickname}
+                        />
+                        <AvatarFallback className='rounded-full bg-transparent text-lg'>
+                          {user?.nickname?.charAt(0)?.toUpperCase() || 'L'}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                  </div>
+                  <span className='text-base font-semibold truncate mt-2'>
+                    {userLoading
+                      ? tCommon('loading')
+                      : user?.nickname ||
+                        user?.username ||
+                        t('user.notLoggedIn')}
+                  </span>
+                  <span className='text-xs font-base text-muted-foreground'>
+                    {userLoading
+                      ? t('user.syncing')
+                      : user?.is_admin
+                        ? t('user.adminRole')
+                        : t('user.userRole')}
+                  </span>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => {
+                  router.push('/settings/profile');
+                  handleCloseSidebar();
+                }}
+              >
+                <UserRound className='mr-2 size-4' />
+                <span>{t('user.profile')}</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  router.push('/settings');
+                  handleCloseSidebar();
+                }}
+              >
+                <Settings className='mr-2 size-4' />
+                <span>{t('user.settings')}</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className='my-2' />
+              <DropdownMenuItem
+                onClick={() => {
+                  window.open(
+                    'https://openflare.fyrn.link/',
+                    '_blank',
+                    'noopener,noreferrer',
+                  );
+                  handleCloseSidebar();
+                }}
+              >
+                <FileQuestionMark className='mr-2 size-4' />
+                <span>{t('user.help')}</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className='text-destructive hover:bg-destructive/50'
+                onClick={() => setShowLogoutDialog(true)}
+              >
+                <LogOut className='mr-2 size-4 text-destructive' />
+                <span>{t('user.logout')}</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </SidebarHeader>
+        <SidebarContent className='group-data-[collapsible=icon]'>
+          {openflareSidebarNav.length > 0 && (
+            <SidebarGroup className='py-0'>
+              <SidebarGroupContent className='py-1'>
+                <OpenFlareSidebarMenu onNavigate={handleCloseSidebar} />
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
+
+          {user?.is_admin && adminFiltered.length > 0 && (
+            <SidebarGroup className='py-0 pt-4'>
+              <SidebarGroupLabel className='text-xs font-normal text-muted-foreground'>
+                {t('groups.admin')}
+              </SidebarGroupLabel>
+              <SidebarGroupContent className='py-1'>
+                <SidebarMenu className='gap-1'>
+                  {adminFiltered.map((item) => {
+                    const title = t(`nav.${item.titleKey}`);
+                    return (
+                      <SidebarMenuItem key={item.url}>
+                        <SidebarMenuButton
+                          tooltip={title}
+                          isActive={
+                            pathname === item.url ||
+                            pathname.startsWith(`${item.url}/`)
+                          }
+                          asChild
+                        >
+                          <Link href={item.url} onClick={handleCloseSidebar}>
+                            {item.icon && <item.icon />}
+                            <span>{title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
+
+          {documentFiltered.length > 0 && (
+            <SidebarGroup className='py-0 pt-4'>
+              <SidebarGroupLabel className='text-xs font-normal text-muted-foreground'>
+                {t('groups.docs')}
+              </SidebarGroupLabel>
+              <SidebarGroupContent className='py-1'>
+                <SidebarMenu className='gap-1'>
+                  {documentFiltered.map((item) => {
+                    const title = t(`nav.${item.titleKey}`);
+                    return (
+                      <SidebarMenuItem key={item.url}>
+                        <SidebarMenuButton
+                          tooltip={title}
+                          isActive={pathname === item.url}
+                          asChild
+                        >
+                          {item.external ? (
+                            <Link
+                              href={item.url}
+                              target='_blank'
+                              rel='noopener noreferrer'
+                              onClick={handleCloseSidebar}
+                            >
+                              {item.icon && <item.icon />}
+                              <span className='flex-1'>{title}</span>
+                              <ArrowUpRight className='size-3 text-muted-foreground' />
+                            </Link>
+                          ) : (
+                            <Link href={item.url} onClick={handleCloseSidebar}>
+                              {item.icon && <item.icon />}
+                              <span className='flex-1'>{title}</span>
+                            </Link>
+                          )}
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
+        </SidebarContent>
+        <SidebarFooter className='mt-auto px-3 py-3 group-data-[collapsible=icon]:hidden'>
+          <div className='border-t border-border/60 pt-3 text-[11px] leading-5 text-muted-foreground'>
+            <div>Version {APP_VERSION}</div>
+            {APP_BUILD_DATE && <div>Build At {APP_BUILD_DATE}</div>}
+          </div>
+        </SidebarFooter>
+      </Sidebar>
+
+      <AlertDialog
+        open={showLogoutDialog}
+        onOpenChange={(open) => !isLoggingOut && setShowLogoutDialog(open)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('logoutDialog.title')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {isLoggingOut
+                ? t('logoutDialog.loggingOut')
+                : t('logoutDialog.description')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLoggingOut}>
+              {tCommon('cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogout} disabled={isLoggingOut}>
+              {isLoggingOut && <Spinner className='mr-2' />}
+              {isLoggingOut
+                ? t('logoutDialog.inProgress')
+                : t('logoutDialog.confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}

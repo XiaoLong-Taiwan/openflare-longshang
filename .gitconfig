@@ -1,0 +1,10 @@
+# Repo-local Git settings. Git does not load this file automatically.
+# From the clone (or worktree) root:
+#   git config include.path ../.gitconfig
+# Worktree-safe:
+#   git config include.path "$(git rev-parse --show-toplevel)/.gitconfig"
+# Relative include.path is resolved against .git/config, so ../.gitconfig
+# is the repo root when .git is a directory (non-worktree clone).
+
+[merge "ours"]
+	driver = true

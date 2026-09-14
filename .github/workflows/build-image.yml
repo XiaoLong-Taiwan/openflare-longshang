@@ -1,0 +1,22 @@
+name: Build Image (Wavelet upstream — isolated)
+
+# Isolated: OpenFlare publishes images via build-image-openflare.yml
+# (IMAGE_NAME: openflare). This Wavelet workflow is kept under the same
+# path so `git merge wavelet/main` cannot restore a canary wavelet image.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Disabled on OpenFlare. Use build-image-openflare.yml."
+        required: true
+
+jobs:
+  isolated:
+    name: Isolated
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refuse Wavelet image publish
+        run: |
+          echo "This Wavelet image workflow is isolated on OpenFlare."
+          echo "Use .github/workflows/build-image-openflare.yml"
+          exit 1

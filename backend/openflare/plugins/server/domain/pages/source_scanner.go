@@ -1,0 +1,441 @@
+// Copyright 2026 Arctel.net
+// SPDX-License-Identifier: Apache-2.0
+
+package pages
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"time"
+
+	"Wavelet/openflare/plugins/server/kernel/model"
+	"Wavelet/openflare/plugins/server/kernel/repository"
+	"Wavelet/openflare/plugins/server/kernel/task"
+	"Wavelet/pkg/logger"
+)
+
+const (
+	// PagesSourceScanTask is the private Asynq task type for the periodic scanner.
+	PagesSourceScanTask = "openflare:pages_source_scan"
+	// TaskTypePagesSourceScan is the internal task meta type seeded in w_schedules.
+	TaskTypePagesSourceScan = "of_pages_source_scan"
+
+	pagesSourceScanBatchSize = 20
+)
+
+// PagesSourceScanMeta describes the periodic Pages source scanner schedule.
+var PagesSourceScanMeta = task.TaskMeta{
+	Type:         TaskTypePagesSourceScan,
+	AsynqTask:    PagesSourceScanTask,
+	Name:         "OpenFlare Pages 部署源扫描",
+	Description:  "补偿孤儿部署包、恢复过期执行权并串行检查到期的 GitHub latest 部署源",
+	SupportsTime: false,
+	MaxRetry:     0,
+	Queue:        task.QueueDefault,
+	Retryable:    false,
+}
+
+type pagesSourceScanPayload struct{}
+
+type pagesSourceScanSummary struct {
+	ExpiredCandidates int                          `json:"expired_candidates"`
+	RecoveredLeases   int                          `json:"recovered_leases"`
+	OrphanCleanup     PagesOrphanCleanupSummary    `json:"orphan_cleanup"`
+	DueSources        int                          `json:"due_sources"`
+	SelectedSources   int                          `json:"selected_sources"`
+	CheckedSources    int                          `json:"checked_sources"`
+	UpdatesFound      int                          `json:"updates_found"`
+	AttentionSources  int                          `json:"attention_sources"`
+	DispatchedSyncs   int                          `json:"dispatched_syncs"`
+	FailedDispatches  int                          `json:"failed_dispatches"`
+	BusySources       int                          `json:"busy_sources"`
+	StaleSources      int                          `json:"stale_sources"`
+	FailedSources     int                          `json:"failed_sources"`
+	Backlog           int                          `json:"backlog"`
+	ProviderBackoffs  []pagesSourceProviderBackoff `json:"provider_backoffs,omitempty"`
+}
+
+type pagesSourceProviderBackoff struct {
+	SourceID   uint   `json:"source_id"`
+	StatusCode int    `json:"status_code"`
+	RetryAt    string `json:"retry_at"`
+}
+
+var (
+	pagesSourceScanNow          = time.Now
+	reconcilePagesSourceOrphans = ReconcilePagesOrphanUploads
+	dispatchPagesSourceAutoSync = func(
+		ctx context.Context,
+		source model.PagesProjectSource,
+		targetRevision string,
+	) (*SourceActionReceipt, error) {
+		return dispatchSourceActionSnapshotWithTrigger(
+			ctx,
+			source,
+			sourceActionSync,
+			pagesSourceCreatedBySystem,
+			pagesSourceTriggerScheduledAutoUpdate,
+			targetRevision,
+			"",
+			"system",
+		)
+	}
+)
+
+// SourceScanHandler serializes provider checks inside one scheduled task. A
+// source-level lease still permits overlapping scanner executions safely.
+type SourceScanHandler struct{}
+
+// ValidatePayload accepts only an empty object; the scanner has no user input.
+func (handler *SourceScanHandler) ValidatePayload(payload []byte) ([]byte, error) {
+	if len(bytes.TrimSpace(payload)) == 0 {
+		payload = []byte("{}")
+	}
+	var input pagesSourceScanPayload
+	decoder := json.NewDecoder(bytes.NewReader(payload))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&input); err != nil {
+		return nil, errors.New(errPagesSourceActionInvalid)
+	}
+	if err := ensureJSONEOF(decoder); err != nil {
+		return nil, errors.New(errPagesSourceActionInvalid)
+	}
+	return []byte("{}"), nil
+}
+
+// Execute recovers expired leases and checks at most 20 due latest sources in
+// stable order. Provider and dispatch failures are isolated per source.
+func (handler *SourceScanHandler) Execute(ctx context.Context, payload []byte) (*task.TaskResult, error) {
+	if _, err := handler.ValidatePayload(payload); err != nil {
+		return nil, task.PermanentError(errPagesSourceActionInvalid)
+	}
+
+	now := pagesSourceScanNow()
+	summary := pagesSourceScanSummary{}
+	if err := recoverExpiredPagesSourceLeases(ctx, now, &summary); err != nil {
+		return nil, err
+	}
+	orphanSummary, err := reconcilePagesSourceOrphans(ctx, now)
+	if err != nil {
+		return nil, err
+	}
+	summary.OrphanCleanup = orphanSummary
+	task.AppendLog(
+		ctx,
+		"[cleanup] orphan 候选=%d，已补偿=%d，仍被引用=%d，lease busy=%d，非法 marker=%d，跳过=%d，失败=%d",
+		orphanSummary.Candidates,
+		orphanSummary.Reconciled,
+		orphanSummary.Referenced,
+		orphanSummary.LeaseBusy,
+		orphanSummary.InvalidMarker,
+		orphanSummary.Skipped,
+		orphanSummary.Failed,
+	)
+	if err := scanDueGitHubSources(ctx, now, &summary); err != nil {
+		return nil, err
+	}
+
+	detail, err := json.Marshal(summary)
+	if err != nil {
+		return nil, err
+	}
+	message := fmt.Sprintf(
+		"Pages 部署源扫描完成：恢复 %d 个租约，补偿 %d 个孤儿记录，检查 %d 个来源，投递 %d 个自动更新，积压 %d 个",
+		summary.RecoveredLeases,
+		summary.OrphanCleanup.Reconciled,
+		summary.CheckedSources,
+		summary.DispatchedSyncs,
+		summary.Backlog,
+	)
+	return &task.TaskResult{Message: message, Detail: string(detail)}, nil
+}
+
+func recoverExpiredPagesSourceLeases(
+	ctx context.Context,
+	now time.Time,
+	summary *pagesSourceScanSummary,
+) error {
+	candidates, err := repository.ListExpiredPagesSourceLeaseCandidates(
+		ctx,
+		now,
+		[]string{pagesSourceStatusChecking, pagesSourceStatusSyncing},
+	)
+	if err != nil {
+		return err
+	}
+	summary.ExpiredCandidates = len(candidates)
+	for _, candidate := range candidates {
+		var nextCheckAt *time.Time
+		if candidate.SourceType == PagesSourceTypeGitHubRelease &&
+			candidate.ReleaseSelector == githubReleaseSelectorLatest {
+			next := nextGitHubCheckAt(now, candidate.SourceID, minimumCheckInterval)
+			nextCheckAt = &next
+		}
+		recovered, recoverErr := recoverExpiredSourceLease(
+			ctx,
+			candidate.SourceID,
+			candidate.LeaseToken,
+			candidate.LeaseExpiresAt,
+			candidate.SyncStatus,
+			now,
+			nextCheckAt,
+		)
+		if recoverErr != nil {
+			summary.FailedSources++
+			logger.WarnF(
+				ctx,
+				"[PagesSourceScan] recover expired lease failed: source_id=%d error=%v",
+				candidate.SourceID,
+				recoverErr,
+			)
+			continue
+		}
+		if recovered {
+			summary.RecoveredLeases++
+			task.AppendLog(ctx, "[recover] 已恢复过期来源租约：source_id=%d", candidate.SourceID)
+		}
+	}
+	return nil
+}
+
+func scanDueGitHubSources(
+	ctx context.Context,
+	now time.Time,
+	summary *pagesSourceScanSummary,
+) error {
+	dueCount, err := repository.CountDueGitHubPagesSourceChecks(
+		ctx, now, PagesSourceTypeGitHubRelease, githubReleaseSelectorLatest,
+	)
+	if err != nil {
+		return err
+	}
+	summary.DueSources = int(dueCount)
+
+	candidates, err := repository.ListDueGitHubPagesSourceChecks(
+		ctx, now, PagesSourceTypeGitHubRelease, githubReleaseSelectorLatest, pagesSourceScanBatchSize,
+	)
+	if err != nil {
+		return err
+	}
+	summary.SelectedSources = len(candidates)
+	task.AppendLog(
+		ctx,
+		"[scan] 到期来源=%d，本批=%d",
+		summary.DueSources,
+		summary.SelectedSources,
+	)
+
+	for _, candidate := range candidates {
+		scanOneDueGitHubSource(ctx, candidate, summary)
+	}
+	remainingDue, err := repository.CountDueGitHubPagesSourceChecks(
+		ctx, now, PagesSourceTypeGitHubRelease, githubReleaseSelectorLatest,
+	)
+	if err != nil {
+		return err
+	}
+	summary.Backlog = int(remainingDue)
+	task.AppendLog(ctx, "[scan] 本批处理后仍到期来源=%d", summary.Backlog)
+	return nil
+}
+
+func scanOneDueGitHubSource(
+	ctx context.Context,
+	candidate model.PagesDueGitHubSourceCandidate,
+	summary *pagesSourceScanSummary,
+) {
+	snapshot, outcome, err := acquireSourceLease(
+		ctx,
+		candidate.SourceID,
+		candidate.ConfigVersion,
+		sourceActionCheck,
+	)
+	if err != nil {
+		summary.FailedSources++
+		logger.WarnF(ctx, "[PagesSourceScan] acquire check lease failed: source_id=%d error=%v", candidate.SourceID, err)
+		return
+	}
+	switch outcome {
+	case sourceLeaseBusy:
+		summary.BusySources++
+		task.AppendLog(ctx, "[check] 来源正在执行其它任务，跳过：source_id=%d", candidate.SourceID)
+		return
+	case sourceLeaseStale:
+		summary.StaleSources++
+		return
+	case sourceLeaseAcquired:
+		// 获取执行权成功，继续执行扫描。
+	}
+	if snapshot == nil || snapshot.SourceType != PagesSourceTypeGitHubRelease ||
+		snapshot.ReleaseSelector != githubReleaseSelectorLatest {
+		summary.StaleSources++
+		if snapshot != nil {
+			if finalizeErr := failSourceLease(ctx, snapshot, errPagesSourceActionStale); finalizeErr != nil {
+				logger.WarnF(
+					ctx,
+					"[PagesSourceScan] finalize stale source failed: source_id=%d error=%v",
+					snapshot.SourceID,
+					finalizeErr,
+				)
+			}
+		}
+		return
+	}
+
+	checkResult, checkErr := checkGitHubSource(ctx, snapshot)
+	if checkErr != nil {
+		summary.FailedSources++
+		recordPagesSourceProviderBackoff(ctx, candidate.SourceID, checkErr, summary)
+		logger.WarnF(
+			ctx,
+			"[PagesSourceScan] source check failed: source_id=%d error=%s",
+			candidate.SourceID,
+			safeGitHubSourceError(checkErr),
+		)
+		return
+	}
+	if checkResult == nil || checkResult.Stale {
+		summary.StaleSources++
+		return
+	}
+	handleCheckedGitHubSource(ctx, snapshot, checkResult, summary)
+}
+
+func recordPagesSourceProviderBackoff(
+	ctx context.Context,
+	sourceID uint,
+	checkErr error,
+	summary *pagesSourceScanSummary,
+) {
+	var domainError *githubSourceProviderDomainError
+	if !errors.As(checkErr, &domainError) ||
+		(domainError.statusCode != 403 && domainError.statusCode != 429) {
+		return
+	}
+
+	retryAt := domainError.retryAt
+	runtime, err := repository.GetPagesProjectSourceRuntimeBySourceID(ctx, sourceID)
+	if err != nil {
+		logger.WarnF(ctx, "[PagesSourceScan] load provider backoff deadline failed: source_id=%d error=%v", sourceID, err)
+	} else if runtime.NextCheckAt != nil {
+		retryAt = runtime.NextCheckAt
+	}
+
+	retryAtText := "unknown"
+	if retryAt != nil {
+		retryAtText = retryAt.UTC().Format(time.RFC3339)
+	}
+	summary.ProviderBackoffs = append(summary.ProviderBackoffs, pagesSourceProviderBackoff{
+		SourceID: sourceID, StatusCode: domainError.statusCode, RetryAt: retryAtText,
+	})
+	task.AppendLog(
+		ctx,
+		"[check] GitHub provider 退避：source_id=%d status=%d retry_at=%s",
+		sourceID,
+		domainError.statusCode,
+		retryAtText,
+	)
+}
+
+func handleCheckedGitHubSource(
+	ctx context.Context,
+	snapshot *sourceExecutionSnapshot,
+	checkResult *githubCheckTaskResult,
+	summary *pagesSourceScanSummary,
+) {
+	summary.CheckedSources++
+	switch checkResult.Status {
+	case pagesSourceStatusUpdateAvailable:
+		summary.UpdatesFound++
+	case pagesSourceStatusAttention:
+		summary.AttentionSources++
+	}
+	if !snapshot.AutoUpdateEnabled || checkResult.Status != pagesSourceStatusUpdateAvailable ||
+		!validOptionalSourceRevision(checkResult.Revision) || checkResult.Revision == "" {
+		return
+	}
+
+	source := model.PagesProjectSource{
+		ID:            snapshot.SourceID,
+		ProjectID:     snapshot.ProjectID,
+		ConfigVersion: snapshot.SourceConfigVersion,
+	}
+	receipt, dispatchErr := dispatchPagesSourceAutoSync(ctx, source, checkResult.Revision)
+	if dispatchErr == nil {
+		summary.DispatchedSyncs++
+		if receipt != nil {
+			task.AppendLog(
+				ctx,
+				"[dispatch] 已投递自动更新：source_id=%d execution_id=%s revision=%s",
+				snapshot.SourceID,
+				receipt.ExecutionID,
+				checkResult.Revision,
+			)
+		}
+		return
+	}
+
+	summary.FailedSources++
+	summary.FailedDispatches++
+	logger.WarnF(
+		ctx,
+		"[PagesSourceScan] dispatch auto sync failed: source_id=%d revision=%s error=%v",
+		snapshot.SourceID,
+		checkResult.Revision,
+		dispatchErr,
+	)
+	updated, recordErr := recordPagesSourceAutoDispatchFailure(
+		ctx,
+		snapshot,
+		checkResult.Revision,
+		checkResult.RetryAt,
+	)
+	if recordErr != nil {
+		logger.WarnF(
+			ctx,
+			"[PagesSourceScan] record auto sync dispatch failure failed: source_id=%d error=%v",
+			snapshot.SourceID,
+			recordErr,
+		)
+	} else if !updated {
+		summary.StaleSources++
+	}
+}
+
+func recordPagesSourceAutoDispatchFailure(
+	ctx context.Context,
+	snapshot *sourceExecutionSnapshot,
+	revision string,
+	retryAt *time.Time,
+) (bool, error) {
+	if snapshot == nil || revision == "" {
+		return false, nil
+	}
+	now := pagesSourceScanNow()
+	next := nextGitHubCheckAt(now, snapshot.SourceID, minimumCheckInterval)
+	if retryAt != nil && retryAt.After(next) {
+		next = retryAt.In(now.Location())
+	}
+	rows, err := repository.RecordPagesSourceAutoDispatchFailure(
+		ctx,
+		snapshot.SourceID,
+		snapshot.SourceConfigVersion,
+		PagesSourceTypeGitHubRelease,
+		githubReleaseSelectorLatest,
+		revision,
+		pagesSourceStatusUpdateAvailable,
+		now,
+		map[string]any{
+			sourceRuntimeColumnSyncStatus:  pagesSourceStatusUpdateAvailable,
+			sourceRuntimeColumnLastError:   errPagesSourceTaskDispatchFailed,
+			sourceRuntimeColumnNextCheckAt: &next,
+		},
+	)
+	if err != nil {
+		return false, err
+	}
+	return rows == 1, nil
+}

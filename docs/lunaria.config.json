@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/@lunariajs/core/config.schema.json",
+  "repository": {
+    "name": "XiaoLong-Taiwan/openflare-longshang",
+    "rootDir": "docs"
+  },
+  "files": [
+    {
+      "location": "**/config.ts",
+      "pattern": "@lang/@path",
+      "type": "universal"
+    },
+    {
+      "location": "**/*.md",
+      "pattern": "@lang/@path",
+      "type": "universal"
+    }
+  ],
+  "defaultLocale": {
+    "label": "简体中文",
+    "lang": "zh"
+  },
+  "locales": [
+    {
+      "label": "English",
+      "lang": "en"
+    }
+  ],
+  "outDir": ".vitepress/dist/_translations",
+  "ignoreKeywords": ["lunaria-ignore"]
+}

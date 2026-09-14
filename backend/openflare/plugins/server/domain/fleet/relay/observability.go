@@ -1,0 +1,60 @@
+// Copyright 2026 Arctel.net
+// SPDX-License-Identifier: Apache-2.0
+
+package relay
+
+import (
+	"context"
+	"time"
+
+	"Wavelet/openflare/plugins/server/kernel/repository"
+
+	"Wavelet/openflare/plugins/server/domain/fleet/agent"
+	"Wavelet/openflare/plugins/server/kernel/model"
+
+	"go.uber.org/zap"
+)
+
+const relayFrpsUnhealthyEventType = "frps_unhealthy"
+
+func reconcileRelayHealthEvents(ctx context.Context, nodeID string, relayStatus string, reportedAt time.Time) error {
+	if relayStatus == "unknown" {
+		return nil
+	}
+	managedTypes := map[string]struct{}{
+		relayFrpsUnhealthyEventType: {},
+	}
+	events := []agent.NodeHealthEvent{}
+	if relayStatus == relayStatusUnhealthy {
+		events = append(events, agent.NodeHealthEvent{
+			EventType:       relayFrpsUnhealthyEventType,
+			Severity:        "critical",
+			Message:         "frps runtime is not healthy",
+			TriggeredAtUnix: reportedAt.Unix(),
+			Metadata: map[string]string{
+				"relay_status": relayStatus,
+			},
+		})
+	}
+	return agent.ReconcileScopedNodeHealthEvents(ctx, nodeID, events, reportedAt, managedTypes)
+}
+
+func persistRelayHeartbeatObservability(ctx context.Context, nodeID string, payload HeartbeatPayload, reportedAt time.Time) {
+	agent.PersistHeartbeatObservability(ctx, nodeID, agent.NodePayload{
+		Profile:      payload.Profile,
+		HostMetrics:  payload.Snapshot,
+		HealthEvents: payload.HealthEvents,
+	}, reportedAt)
+
+	frpsObs := &model.OpenFlareNodeObservationFrps{
+		NodeID:          nodeID,
+		CapturedAt:      reportedAt,
+		FrpsConnections: payload.FrpsConnCount,
+		FrpsProxyCount:  payload.FrpsProxyCount,
+		FrpsClientCount: payload.FrpsClientCount,
+		FrpsProxies:     agent.MarshalJSON(payload.FrpsProxies),
+	}
+	if err := repository.InsertOpenFlareNodeObservationFrps(ctx, frpsObs); err != nil {
+		zap.L().Error("persist relay frps observation failed", zap.String("node_id", nodeID), zap.Error(err))
+	}
+}

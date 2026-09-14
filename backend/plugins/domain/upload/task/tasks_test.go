@@ -1,0 +1,288 @@
+// Copyright 2026 Arctel.net
+// SPDX-License-Identifier: Apache-2.0
+
+package task
+
+import (
+	"Wavelet/plugins/domain/upload/filesrv"
+	"Wavelet/plugins/domain/upload/models"
+	"Wavelet/plugins/domain/upload/shared"
+
+	"bytes"
+	"context"
+	"encoding/json"
+	"image"
+	"image/color"
+	"image/png"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestSystemCleanupHandler_Execute(t *testing.T) {
+	_, cleanup := shared.SetupTestEnv(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	db := shared.GetDB(ctx)
+
+	// 准备测试数据：创建一些上传记录
+	now := time.Now()
+	twoHoursAgo := now.Add(-2 * time.Hour)
+
+	records := []*models.Upload{
+		// 超过1小时且状态为 pending 的记录 —— 应被清理
+		{
+			UserID: 1001, FileName: "old_file_1.jpg", FilePath: "uploads/old_1.jpg",
+			FileSize: 1024, MimeType: "image/jpeg", Extension: "jpg", Hash: "hash1",
+			Type: "attachment", Status: models.UploadStatusPending,
+			CreatedAt: twoHoursAgo,
+		},
+		{
+			UserID: 1001, FileName: "old_file_2.png", FilePath: "uploads/old_2.png",
+			FileSize: 2048, MimeType: "image/png", Extension: "png", Hash: "hash2",
+			Type: "attachment", Status: models.UploadStatusPending,
+			CreatedAt: twoHoursAgo,
+		},
+		// 状态为 used 的记录 —— 不应被清理
+		{
+			UserID: 1001, FileName: "used_file.jpg", FilePath: "uploads/used.jpg",
+			FileSize: 512, MimeType: "image/jpeg", Extension: "jpg", Hash: "hash3",
+			Type: "attachment", Status: models.UploadStatusUsed,
+			CreatedAt: twoHoursAgo,
+		},
+		// 不到1小时的 pending 记录 —— 不应被清理
+		{
+			UserID: 1001, FileName: "recent_file.jpg", FilePath: "uploads/recent.jpg",
+			FileSize: 256, MimeType: "image/jpeg", Extension: "jpg", Hash: "hash4",
+			Type: "attachment", Status: models.UploadStatusPending,
+			CreatedAt: now.Add(-10 * time.Minute),
+		},
+	}
+	for _, r := range records {
+		err := db.Create(r).Error
+		require.NoError(t, err)
+	}
+
+	// 执行 handler
+	handler := &SystemCleanupHandler{}
+	result, err := handler.Execute(ctx, nil)
+
+	// 验证结果
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Contains(t, result.Message, "系统垃圾清理完成")
+
+	// 验证数据库状态：pending 且超过1小时的已被清理
+	var pendingCount int64
+	db.Model(&models.Upload{}).Where("status = ?", models.UploadStatusPending).Count(&pendingCount)
+	assert.Equal(t, int64(1), pendingCount, "应只剩1条 pending 记录（最近的文件）")
+
+	var usedCount int64
+	db.Model(&models.Upload{}).Where("status = ?", models.UploadStatusUsed).Count(&usedCount)
+	assert.Equal(t, int64(1), usedCount, "used 状态的文件不应受影响")
+}
+
+func TestSystemCleanupHandler_ExecuteNoFiles(t *testing.T) {
+	_, cleanup := shared.SetupTestEnv(t)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	// 没有任何上传记录
+	handler := &SystemCleanupHandler{}
+	result, err := handler.Execute(ctx, nil)
+
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Contains(t, result.Message, "系统垃圾清理完成")
+}
+
+func TestWarmImageCacheHandlerValidatePayload(t *testing.T) {
+	tests := []struct {
+		name        string
+		payload     []byte
+		wantQuality string
+		wantErr     bool
+	}{
+		{
+			name:        "normalizes quality",
+			payload:     []byte(`{"quality":" HIGH "}`),
+			wantQuality: shared.ImageQualityHigh,
+		},
+		{
+			name:    "empty payload",
+			wantErr: true,
+		},
+		{
+			name:    "invalid json",
+			payload: []byte(`{`),
+			wantErr: true,
+		},
+		{
+			name:    "origin is not a compressed quality",
+			payload: []byte(`{"quality":"origin"}`),
+			wantErr: true,
+		},
+		{
+			name:    "unsupported quality",
+			payload: []byte(`{"quality":"maximum"}`),
+			wantErr: true,
+		},
+	}
+
+	handler := &WarmImageCacheHandler{}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotPayload, err := handler.ValidatePayload(tt.payload)
+			if gotErr := err != nil; gotErr != tt.wantErr {
+				t.Fatalf("ValidatePayload(%s) error = %v, want error presence = %t", tt.payload, err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
+			}
+
+			var got WarmImageCachePayload
+			if err := json.Unmarshal(gotPayload, &got); err != nil {
+				t.Fatalf("json.Unmarshal(%s) returned error: %v", gotPayload, err)
+			}
+			if got.Quality != tt.wantQuality {
+				t.Errorf("ValidatePayload(%s).Quality = %q, want %q", tt.payload, got.Quality, tt.wantQuality)
+			}
+		})
+	}
+}
+
+func TestWarmImageCacheHandlerExecute(t *testing.T) {
+	dbConn, cleanup := shared.SetupTestEnv(t)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	firstPath := "uploads/first.png"
+	secondPath := "uploads/second.jpg"
+	firstData := writeTaskTestPNG(t, color.RGBA{R: 255, A: 255})
+	secondData := writeTaskTestPNG(t, color.RGBA{G: 255, A: 255})
+
+	storageSvc, ok := shared.GetStorage(ctx).(*shared.MockStorageService)
+	if !ok {
+		t.Fatalf("shared.GetStorage(%T) returned %T, want *shared.MockStorageService", ctx, storageSvc)
+	}
+	storageSvc.PutRaw(firstPath, firstData)
+	storageSvc.PutRaw(secondPath, secondData)
+
+	records := []models.Upload{
+		{
+			ID:        4101,
+			UserID:    1001,
+			FileName:  "first.png",
+			FilePath:  firstPath,
+			FileSize:  int64(len(firstData)),
+			MimeType:  "image/png",
+			Extension: "png",
+			Hash:      "hash1",
+			Type:      "attachment",
+			Status:    models.UploadStatusUsed,
+		},
+		{
+			ID:        4102,
+			UserID:    1001,
+			FileName:  "second.jpg",
+			FilePath:  secondPath,
+			FileSize:  int64(len(secondData)),
+			MimeType:  "application/octet-stream",
+			Extension: "jpg",
+			Hash:      "hash2",
+			Type:      "attachment",
+			Status:    models.UploadStatusPending,
+		},
+		{
+			ID:        4103,
+			UserID:    1001,
+			FileName:  "notes.txt",
+			FilePath:  "uploads/notes.txt",
+			FileSize:  123,
+			MimeType:  "text/plain",
+			Extension: "txt",
+			Hash:      "hash3",
+			Type:      "attachment",
+			Status:    models.UploadStatusUsed,
+		},
+		{
+			ID:        4104,
+			UserID:    1001,
+			FileName:  "deleted.png",
+			FilePath:  firstPath,
+			FileSize:  int64(len(firstData)),
+			MimeType:  "image/png",
+			Extension: "png",
+			Hash:      "hash4",
+			Type:      "attachment",
+			Status:    models.UploadStatusDeleted,
+		},
+	}
+
+	for i := range records {
+		if err := dbConn.Create(&records[i]).Error; err != nil {
+			t.Fatalf("failed to create upload %d: %v", records[i].ID, err)
+		}
+	}
+
+	handler := &WarmImageCacheHandler{}
+	payload := []byte(`{"quality":"low"}`)
+
+	result, err := handler.Execute(ctx, payload)
+	if err != nil {
+		t.Fatalf("Execute(%s) returned error: %v", payload, err)
+	}
+	if result == nil {
+		t.Fatal("Execute() result = nil, want non-nil")
+	}
+	if result.Message != "图片缓存预热完成，共处理 2 张，生成 2 张，命中 0 张，失败 0 张" {
+		t.Errorf("Execute() message = %q, want generated summary", result.Message)
+	}
+
+	for i := range records[:2] {
+		key := filesrv.ImageCompressionCacheKey(&records[i], shared.ImageQualityLow)
+		got, hit, err := filesrv.EnsureCompressedImageCache(context.Background(), &records[i], shared.ImageQualityLow)
+		if err != nil {
+			t.Errorf("EnsureCompressedImageCache(%q) returned error: %v", key, err)
+			continue
+		}
+		if !hit {
+			t.Errorf("expected cache hit for %q", key)
+		}
+		if len(got) == 0 {
+			t.Errorf("EnsureCompressedImageCache(%q) returned empty WebP data", key)
+		}
+	}
+
+	secondResult, err := handler.Execute(ctx, payload)
+	if err != nil {
+		t.Fatalf("second Execute(%s) returned error: %v", payload, err)
+	}
+	if secondResult.Message != "图片缓存预热完成，共处理 2 张，生成 0 张，命中 2 张，失败 0 张" {
+		t.Errorf("second Execute() message = %q, want cache-hit summary", secondResult.Message)
+	}
+
+}
+
+func writeTaskTestPNG(t *testing.T, fill color.RGBA) []byte {
+	t.Helper()
+
+	img := image.NewRGBA(image.Rect(0, 0, 2, 2))
+	for y := 0; y < 2; y++ {
+		for x := 0; x < 2; x++ {
+			img.Set(x, y, fill)
+		}
+	}
+
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		t.Fatalf("png.Encode() returned error: %v", err)
+	}
+
+	return buf.Bytes()
+}

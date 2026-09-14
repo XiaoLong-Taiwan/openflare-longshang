@@ -1,0 +1,323 @@
+// Copyright 2026 Arctel.net
+// SPDX-License-Identifier: Apache-2.0
+
+package observability
+
+import (
+	"errors"
+	"net/http"
+	"strconv"
+
+	"Wavelet/openflare/plugins/server/kernel/apiutil"
+	"Wavelet/pkg/response"
+
+	"github.com/gin-gonic/gin"
+)
+
+// GetAccessLogOverviewHandler 获取访问日志概览。
+// @Summary 获取访问日志概览
+// @Description 返回访问日志汇总指标、趋势与 Top 排行，需要管理员权限
+// @Tags openflare-observability
+// @Produce json
+// @Security SessionCookie
+// @Param node_id query string false "节点 ID"
+// @Param host query string false "请求 Host（单域名）"
+// @Param hosts query []string false "请求 Host 列表（多域名精确匹配）"
+// @Param hours query int false "统计时间范围（小时）"
+// @Param bucket_minutes query int false "趋势桶分钟数（1、3、5 或 60，默认 60）"
+// @Success 200 {object} response.Any{data=observability.AccessLogOverview} "访问日志概览"
+// @Failure 400 {object} response.Any "参数错误"
+// @Failure 401 {object} response.Any "未登录"
+// @Failure 404 {object} response.Any "无权限或不存在"
+// @Failure 500 {object} response.Any "内部错误"
+// @Router /api/v1/d/access-logs/overview [get]
+func GetAccessLogOverviewHandler(c *gin.Context) {
+	result, err := GetAccessLogOverview(c.Request.Context(), AccessLogOverviewQuery{
+		NodeID:        c.Query("node_id"),
+		Host:          c.Query("host"),
+		Hosts:         readQueryStringArray(c, "hosts"),
+		Hours:         readQueryInt(c, "hours"),
+		BucketMinutes: readQueryInt(c, "bucket_minutes"),
+	})
+	if response.AbortBadRequestOnError(c, err) {
+		return
+	}
+	c.JSON(http.StatusOK, response.OK(result))
+}
+
+// GetAccessLogsHandler 分页列出访问日志。
+// @Summary 列出访问日志
+// @Description 分页返回 OpenFlare 访问日志，支持按节点、IP、主机、路径与状态码筛选，需要管理员权限
+// @Tags openflare-observability
+// @Produce json
+// @Security SessionCookie
+// @Param node_id query string false "节点 ID"
+// @Param remote_addr query string false "客户端 IP"
+// @Param host query string false "请求 Host"
+// @Param path query string false "请求路径"
+// @Param status_code query int false "HTTP 状态码（100-599）"
+// @Param since query string false "起始时间（RFC3339，需与 until 成对提供）"
+// @Param until query string false "结束时间（RFC3339，需与 since 成对提供）"
+// @Param p query int false "页码"
+// @Param page_size query int false "每页条数"
+// @Param sort_by query string false "排序字段"
+// @Param sort_order query string false "排序方向"
+// @Success 200 {object} response.Any{data=observability.AccessLogList} "访问日志列表"
+// @Failure 400 {object} response.Any "参数错误"
+// @Failure 401 {object} response.Any "未登录"
+// @Failure 404 {object} response.Any "无权限或不存在"
+// @Failure 500 {object} response.Any "内部错误"
+// @Router /api/v1/d/access-logs [get]
+func GetAccessLogsHandler(c *gin.Context) {
+	query, err := readAccessLogQuery(c)
+	if response.AbortBadRequestOnError(c, err) {
+		return
+	}
+	logs, err := ListAccessLogs(c.Request.Context(), query)
+	if response.AbortBadRequestOnError(c, err) {
+		return
+	}
+	c.JSON(http.StatusOK, response.OK(logs))
+}
+
+// GetFoldedAccessLogsHandler 分页列出折叠访问日志。
+// @Summary 列出折叠访问日志
+// @Description 按时间桶聚合访问日志并分页返回，需要管理员权限
+// @Tags openflare-observability
+// @Produce json
+// @Security SessionCookie
+// @Param node_id query string false "节点 ID"
+// @Param remote_addr query string false "客户端 IP"
+// @Param host query string false "请求 Host"
+// @Param path query string false "请求路径"
+// @Param fold_minutes query int false "折叠时间窗口（分钟）"
+// @Param p query int false "页码"
+// @Param page_size query int false "每页条数"
+// @Param sort_by query string false "排序字段"
+// @Param sort_order query string false "排序方向"
+// @Success 200 {object} response.Any{data=observability.FoldedAccessLogList} "折叠访问日志列表"
+// @Failure 400 {object} response.Any "参数错误"
+// @Failure 401 {object} response.Any "未登录"
+// @Failure 404 {object} response.Any "无权限或不存在"
+// @Failure 500 {object} response.Any "内部错误"
+// @Router /api/v1/d/access-logs/folds [get]
+func GetFoldedAccessLogsHandler(c *gin.Context) {
+	query, err := readAccessLogQuery(c)
+	if response.AbortBadRequestOnError(c, err) {
+		return
+	}
+	query.FoldMinutes = readQueryInt(c, "fold_minutes")
+	logs, err := ListFoldedAccessLogs(c.Request.Context(), query)
+	if response.AbortBadRequestOnError(c, err) {
+		return
+	}
+	c.JSON(http.StatusOK, response.OK(logs))
+}
+
+// GetFoldedAccessLogIPsHandler 列出折叠桶内的 IP 汇总。
+// @Summary 列出折叠访问日志 IP 汇总
+// @Description 在指定时间桶内按 IP 聚合访问统计，需要管理员权限
+// @Tags openflare-observability
+// @Produce json
+// @Security SessionCookie
+// @Param node_id query string false "节点 ID"
+// @Param remote_addr query string false "客户端 IP"
+// @Param host query string false "请求 Host"
+// @Param path query string false "请求路径"
+// @Param bucket_started_at query string false "时间桶起始时间"
+// @Param fold_minutes query int false "折叠时间窗口（分钟）"
+// @Param p query int false "页码"
+// @Param page_size query int false "每页条数"
+// @Param sort_by query string false "排序字段"
+// @Param sort_order query string false "排序方向"
+// @Success 200 {object} response.Any{data=observability.FoldedAccessLogIPList} "折叠 IP 汇总列表"
+// @Failure 400 {object} response.Any "参数错误"
+// @Failure 401 {object} response.Any "未登录"
+// @Failure 404 {object} response.Any "无权限或不存在"
+// @Failure 500 {object} response.Any "内部错误"
+// @Router /api/v1/d/access-logs/folds/ip-summary [get]
+func GetFoldedAccessLogIPsHandler(c *gin.Context) {
+	result, err := ListFoldedAccessLogIPs(c.Request.Context(), FoldedAccessLogIPQuery{
+		NodeID:          c.Query("node_id"),
+		RemoteAddr:      c.Query("remote_addr"),
+		Host:            c.Query("host"),
+		Path:            c.Query("path"),
+		BucketStartedAt: c.Query("bucket_started_at"),
+		FoldMinutes:     readQueryInt(c, "fold_minutes"),
+		Page:            readQueryInt(c, "p"),
+		PageSize:        readQueryInt(c, "page_size"),
+		SortBy:          c.Query("sort_by"),
+		SortOrder:       c.Query("sort_order"),
+	})
+	if response.AbortBadRequestOnError(c, err) {
+		return
+	}
+	c.JSON(http.StatusOK, response.OK(result))
+}
+
+// GetAccessLogIPSummariesHandler 列出访问日志 IP 汇总。
+// @Summary 列出访问日志 IP 汇总
+// @Description 按 IP 聚合访问日志统计并分页返回；支持 hours 或 since/until 时间窗，需要管理员权限
+// @Tags openflare-observability
+// @Produce json
+// @Security SessionCookie
+// @Param node_id query string false "节点 ID"
+// @Param remote_addr query string false "客户端 IP"
+// @Param host query string false "请求 Host"
+// @Param hours query int false "统计时间范围（小时，1-720，默认 168）"
+// @Param since query string false "开始时间 RFC3339（与 until 同时提供时优先于 hours）"
+// @Param until query string false "结束时间 RFC3339"
+// @Param p query int false "页码"
+// @Param page_size query int false "每页条数"
+// @Param sort_by query string false "排序字段 total_requests|request_length|bytes_sent|success_ratio|last_seen_at|remote_addr"
+// @Param sort_order query string false "排序方向"
+// @Success 200 {object} response.Any{data=observability.AccessLogIPSummaryList} "IP 汇总列表"
+// @Failure 400 {object} response.Any "参数错误"
+// @Failure 401 {object} response.Any "未登录"
+// @Failure 404 {object} response.Any "无权限或不存在"
+// @Failure 500 {object} response.Any "内部错误"
+// @Router /api/v1/d/access-logs/ip-summary [get]
+func GetAccessLogIPSummariesHandler(c *gin.Context) {
+	result, err := ListAccessLogIPSummaries(c.Request.Context(), AccessLogIPSummaryQuery{
+		NodeID:     c.Query("node_id"),
+		RemoteAddr: c.Query("remote_addr"),
+		Host:       c.Query("host"),
+		Hours:      readQueryInt(c, "hours"),
+		Since:      c.Query("since"),
+		Until:      c.Query("until"),
+		Page:       readQueryInt(c, "p"),
+		PageSize:   readQueryInt(c, "page_size"),
+		SortBy:     c.Query("sort_by"),
+		SortOrder:  c.Query("sort_order"),
+	})
+	if response.AbortBadRequestOnError(c, err) {
+		return
+	}
+	c.JSON(http.StatusOK, response.OK(result))
+}
+
+// GetAccessLogIPTrendHandler 获取 IP 访问趋势。
+// @Summary 获取访问日志 IP 趋势
+// @Description 返回指定 IP 在时间范围内的访问趋势数据，需要管理员权限
+// @Tags openflare-observability
+// @Produce json
+// @Security SessionCookie
+// @Param node_id query string false "节点 ID"
+// @Param remote_addr query string false "客户端 IP"
+// @Param host query string false "请求 Host"
+// @Param hours query int false "统计时间范围（小时）"
+// @Param bucket_minutes query int false "时间桶粒度（分钟）"
+// @Success 200 {object} response.Any{data=observability.AccessLogIPTrendView} "IP 访问趋势"
+// @Failure 400 {object} response.Any "参数错误"
+// @Failure 401 {object} response.Any "未登录"
+// @Failure 404 {object} response.Any "无权限或不存在"
+// @Failure 500 {object} response.Any "内部错误"
+// @Router /api/v1/d/access-logs/ip-summary/trend [get]
+func GetAccessLogIPTrendHandler(c *gin.Context) {
+	result, err := GetAccessLogIPTrend(c.Request.Context(), AccessLogIPTrendQuery{
+		NodeID:        c.Query("node_id"),
+		RemoteAddr:    c.Query("remote_addr"),
+		Host:          c.Query("host"),
+		Hours:         readQueryInt(c, "hours"),
+		BucketMinutes: readQueryInt(c, "bucket_minutes"),
+	})
+	if response.AbortBadRequestOnError(c, err) {
+		return
+	}
+	c.JSON(http.StatusOK, response.OK(result))
+}
+
+// GetAccessLogIPAnalysisHandler 获取单 IP 访问分析。
+// @Summary 获取访问日志 IP 分析
+// @Description 返回指定 IP 的汇总指标与 Top 分布，需要管理员权限
+// @Tags openflare-observability
+// @Produce json
+// @Security SessionCookie
+// @Param node_id query string false "节点 ID"
+// @Param remote_addr query string false "客户端 IP"
+// @Param host query string false "请求 Host"
+// @Param hours query int false "统计时间范围（小时）"
+// @Success 200 {object} response.Any{data=observability.AccessLogIPAnalysisView} "IP 访问分析"
+// @Failure 400 {object} response.Any "参数错误"
+// @Failure 401 {object} response.Any "未登录"
+// @Failure 404 {object} response.Any "无权限或不存在"
+// @Failure 500 {object} response.Any "内部错误"
+// @Router /api/v1/d/access-logs/ip-summary/analysis [get]
+func GetAccessLogIPAnalysisHandler(c *gin.Context) {
+	result, err := GetAccessLogIPAnalysis(c.Request.Context(), AccessLogIPAnalysisQuery{
+		NodeID:     c.Query("node_id"),
+		RemoteAddr: c.Query("remote_addr"),
+		Host:       c.Query("host"),
+		Hours:      readQueryInt(c, "hours"),
+	})
+	if response.AbortBadRequestOnError(c, err) {
+		return
+	}
+	c.JSON(http.StatusOK, response.OK(result))
+}
+
+// CleanupAccessLogsHandler 清理过期访问日志。
+// @Summary 清理访问日志
+// @Description 按保留天数清理过期访问日志记录，需要管理员权限
+// @Tags openflare-observability
+// @Accept json
+// @Produce json
+// @Security SessionCookie
+// @Param request body observability.AccessLogCleanupInput true "清理参数"
+// @Success 200 {object} response.Any{data=observability.AccessLogCleanupResult} "清理结果"
+// @Failure 400 {object} response.Any "参数错误"
+// @Failure 401 {object} response.Any "未登录"
+// @Failure 404 {object} response.Any "无权限或不存在"
+// @Failure 500 {object} response.Any "内部错误"
+// @Router /api/v1/d/access-logs/cleanup [post]
+func CleanupAccessLogsHandler(c *gin.Context) {
+	var input AccessLogCleanupInput
+	if !apiutil.BindJSON(c, &input) {
+		return
+	}
+	result, err := CleanupAccessLogs(c.Request.Context(), input)
+	if response.AbortBadRequestOnError(c, err) {
+		return
+	}
+	c.JSON(http.StatusOK, response.OK(result))
+}
+
+func readAccessLogQuery(c *gin.Context) (AccessLogQuery, error) {
+	query := AccessLogQuery{
+		NodeID:     c.Query("node_id"),
+		RemoteAddr: c.Query("remote_addr"),
+		Host:       c.Query("host"),
+		Path:       c.Query("path"),
+		Since:      c.Query("since"),
+		Until:      c.Query("until"),
+		Page:       readQueryInt(c, "p"),
+		PageSize:   readQueryInt(c, "page_size"),
+		SortBy:     c.Query("sort_by"),
+		SortOrder:  c.Query("sort_order"),
+	}
+	if raw := c.Query("status_code"); raw != "" {
+		code, err := strconv.Atoi(raw)
+		if err != nil || code < 100 || code > 599 {
+			return AccessLogQuery{}, errors.New(errInvalidStatusCode)
+		}
+		query.StatusCode = code
+	}
+	return query, nil
+}
+
+func readQueryInt(c *gin.Context, key string) int {
+	value, _ := strconv.Atoi(c.DefaultQuery(key, "0"))
+	return value
+}
+
+// readQueryStringArray reads repeated query values for key, and also accepts
+// the Axios/jQuery bracket form key[] / key%5B%5D which Gin does not map to key.
+func readQueryStringArray(c *gin.Context, key string) []string {
+	if values := c.QueryArray(key); len(values) > 0 {
+		return values
+	}
+	if values := c.QueryArray(key + "[]"); len(values) > 0 {
+		return values
+	}
+	return nil
+}

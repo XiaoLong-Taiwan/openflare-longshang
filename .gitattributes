@@ -1,0 +1,8 @@
+* -text
+backend/openflare/**    merge=ours
+frontend/**             merge=ours
+docs/changelog/**       merge=ours
+docs/superpowers/**     merge=ours
+.github/workflows/build-image.yml merge=ours
+docker-compose.yml      merge=ours
+.gitconfig              merge=ours

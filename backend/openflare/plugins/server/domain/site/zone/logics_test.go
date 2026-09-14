@@ -1,0 +1,127 @@
+// Copyright 2026 Arctel.net
+// SPDX-License-Identifier: Apache-2.0
+
+package zone
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"Wavelet/openflare/plugins/server/kernel/repository"
+	"Wavelet/openflare/plugins/server/kernel/testhelper"
+
+	"Wavelet/openflare/plugins/server/kernel/model"
+
+	"github.com/glebarez/sqlite"
+	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
+)
+
+func setupZoneDB(t *testing.T) context.Context {
+	t.Helper()
+	conn, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{DisableForeignKeyConstraintWhenMigrating: true})
+	require.NoError(t, err)
+	require.NoError(t, conn.AutoMigrate(&model.Zone{}, &model.ZoneDomain{}, &model.TLSCertificate{}, &model.CFPointingGroup{}, &model.CFPointingMember{}))
+	repository.SetDBForTest(conn)
+	t.Cleanup(func() { repository.SetDBForTest(nil) })
+	return context.Background()
+}
+
+func TestCreateZoneDomainRejectsWildcard(t *testing.T) {
+	ctx := setupZoneDB(t)
+	zone, err := Create(ctx, Input{Domain: "example.com"})
+	require.NoError(t, err)
+	_, err = CreateDomain(ctx, zone.ID, DomainInput{Domain: "*.example.com"})
+	require.EqualError(t, err, errDomainWildcardUnsupported)
+}
+
+func TestDeleteDomainRejectsBoundRoute(t *testing.T) {
+	ctx := setupZoneDB(t)
+	zone, err := Create(ctx, Input{Domain: "example.com"})
+	require.NoError(t, err)
+	item, err := CreateDomain(ctx, zone.ID, DomainInput{Domain: "api.example.com"})
+	require.NoError(t, err)
+	routeID := uint(9)
+	item.ProxyRouteID = &routeID
+	require.NoError(t, repository.SaveZoneDomain(ctx, item))
+
+	err = DeleteDomain(ctx, zone.ID, item.ID)
+	require.EqualError(t, err, errDomainBoundToRoute)
+
+	item.ProxyRouteID = nil
+	require.NoError(t, repository.SaveZoneDomain(ctx, item))
+	require.NoError(t, DeleteDomain(ctx, zone.ID, item.ID))
+}
+
+func TestDeleteDomainCleansUpCloudflareMember(t *testing.T) {
+	ctx := setupZoneDB(t)
+	zone, err := Create(ctx, Input{Domain: "example.com"})
+	require.NoError(t, err)
+	domain, err := CreateDomain(ctx, zone.ID, DomainInput{Domain: "api.example.com"})
+	require.NoError(t, err)
+
+	member := model.CFPointingMember{GroupID: 1, ZoneDomainID: domain.ID}
+	require.NoError(t, repository.CreateCFPointingMember(ctx, &member))
+
+	require.NoError(t, DeleteDomain(ctx, zone.ID, domain.ID))
+
+	_, err = repository.GetCFPointingMemberByZoneDomainID(ctx, domain.ID)
+	require.Error(t, err)
+}
+
+func TestLegacyImportUsesEffectiveTLDPlusOne(t *testing.T) {
+	root, err := zoneRoot("api.example.co.uk")
+	require.NoError(t, err)
+	require.Equal(t, "example.co.uk", root)
+}
+
+func TestGetStatsAggregatesZoneHosts(t *testing.T) {
+	ctx := setupZoneDB(t)
+	testhelper.SetupLogStoresForTest(t)
+
+	zone, err := Create(ctx, Input{Domain: "example.com"})
+	require.NoError(t, err)
+	_, err = CreateDomain(ctx, zone.ID, DomainInput{Domain: "api.example.com"})
+	require.NoError(t, err)
+	_, err = CreateDomain(ctx, zone.ID, DomainInput{Domain: "www.example.com"})
+	require.NoError(t, err)
+
+	now := time.Now().UTC()
+	require.NoError(t, repository.InsertOpenFlareAccessLogsBatch(ctx, []*model.OpenFlareAccessLog{
+		{NodeID: "n1", LoggedAt: now.Add(-1 * time.Hour), RemoteAddr: "1.1.1.1", Host: "api.example.com", Path: "/", StatusCode: 200, BytesSent: 1000},
+		{NodeID: "n1", LoggedAt: now.Add(-2 * time.Hour), RemoteAddr: "1.1.1.1", Host: "www.example.com", Path: "/", StatusCode: 200, BytesSent: 500},
+		{NodeID: "n1", LoggedAt: now.Add(-3 * time.Hour), RemoteAddr: "2.2.2.2", Host: "api.example.com", Path: "/x", StatusCode: 404, BytesSent: 200},
+		{NodeID: "n1", LoggedAt: now.Add(-3 * time.Hour), RemoteAddr: "3.3.3.3", Host: "other.com", Path: "/", StatusCode: 200, BytesSent: 100},
+		{NodeID: "n1", LoggedAt: now.Add(-48 * time.Hour), RemoteAddr: "4.4.4.4", Host: "api.example.com", Path: "/", StatusCode: 200, BytesSent: 800},
+	}))
+
+	stats, err := GetStats(ctx, zone.ID, "24h")
+	require.NoError(t, err)
+	require.Equal(t, StatsRange24h, stats.Range)
+	require.Equal(t, int64(3), stats.RequestCount)
+	require.Equal(t, int64(2), stats.UniqueVisitors)
+	require.Equal(t, int64(1700), stats.BytesSent)
+	require.Equal(t, 2, stats.DomainCount)
+	require.True(t, stats.Available)
+	require.NotEmpty(t, stats.Series)
+	require.Equal(t, 60, stats.BucketMinutes)
+	var seriesRequests int64
+	var seriesBytes int64
+	for _, point := range stats.Series {
+		seriesRequests += point.RequestCount
+		seriesBytes += point.BytesSent
+	}
+	require.Equal(t, int64(3), seriesRequests)
+	require.Equal(t, int64(1700), seriesBytes)
+
+	stats7d, err := GetStats(ctx, zone.ID, "7d")
+	require.NoError(t, err)
+	require.Equal(t, int64(4), stats7d.RequestCount)
+	require.Equal(t, int64(3), stats7d.UniqueVisitors)
+	require.Equal(t, int64(2500), stats7d.BytesSent)
+	require.NotEmpty(t, stats7d.Series)
+
+	_, err = GetStats(ctx, zone.ID, "1h")
+	require.EqualError(t, err, errStatsRangeInvalid)
+}
