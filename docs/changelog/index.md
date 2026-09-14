@@ -10,6 +10,8 @@ sidebar: false
 
 ## [Unreleased]
 
+- 修復 Agent Docker 映像建置時無法找到 GeoIP 資料下載腳本的問題。
+
 ### 🛠 修复
 
 - 完成 OpenFlare 正式仓库、容器镜像、安装脚本、前端、Swagger 与配置默认值的链接迁移，统一指向 `XiaoLong-Taiwan/openflare-longshang` 与 `ghcr.io/xiaolong-taiwan`。
