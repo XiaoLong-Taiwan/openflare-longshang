@@ -27,14 +27,14 @@ OpenFlare 是开源 CDN 编排与边缘安全平台。它支持反向代理、�
 
 ## 文档
 
-**https://openflare.fyrn.link**
+**https://xiaolong-taiwan.github.io/openflare-longshang/**
 
 常用入口：
 
-* [快速开始](https://openflare.fyrn.link/guide/quick-start)
-* [部署说明](https://openflare.fyrn.link/deployment/deployment)
-* [配置项参考](https://openflare.fyrn.link/reference/configuration)
-* [系统设计](https://openflare.fyrn.link/design/)
+* [快速开始](https://xiaolong-taiwan.github.io/openflare-longshang/guide/quick-start)
+* [部署说明](https://xiaolong-taiwan.github.io/openflare-longshang/deployment/deployment)
+* [配置项参考](https://xiaolong-taiwan.github.io/openflare-longshang/reference/configuration)
+* [系统设计](https://xiaolong-taiwan.github.io/openflare-longshang/design/)
 
 ## 核心能力
 

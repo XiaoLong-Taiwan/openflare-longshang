@@ -1,9 +1,11 @@
 import { defineConfig, type HeadConfig, resolveSiteDataByRoute } from 'vitepress'
 import llmstxt from 'vitepress-plugin-llms'
 
-const prod = !!process.env.NETLIFY
+const prod = !!process.env.NETLIFY || !!process.env.GITHUB_PAGES
+const base = process.env.GITHUB_PAGES ? '/openflare-longshang/' : '/'
 
 export default defineConfig({
+  base,
   title: 'OpenFlare',
   lastUpdated: true,
   cleanUrls: true,
@@ -23,14 +25,14 @@ export default defineConfig({
   },
 
   sitemap: {
-    hostname: 'https://openflare.io'
+    hostname: 'https://xiaolong-taiwan.github.io/openflare-longshang/'
   },
 
   head: [
     ['meta', { name: 'theme-color', content: '#10b981' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:site_name', content: 'OpenFlare' }],
-    ['meta', { property: 'og:url', content: 'https://openflare.io/' }],
+    ['meta', { property: 'og:url', content: 'https://xiaolong-taiwan.github.io/openflare-longshang/' }],
     ['script', { async: '', src: 'https://www.googletagmanager.com/gtag/js?id=G-TBZPQFMLFH' }],
     [
       'script',

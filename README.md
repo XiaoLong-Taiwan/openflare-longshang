@@ -27,14 +27,14 @@ OpenFlare is an open-source CDN orchestration and edge security platform. It sup
 
 ## Documentation
 
-**https://openflare.fyrn.link**
+**https://xiaolong-taiwan.github.io/openflare-longshang/**
 
 Common entry points:
 
-* [Quick Start](https://openflare.fyrn.link/guide/quick-start)
-* [Deployment Guide](https://openflare.fyrn.link/deployment/deployment)
-* [Configuration Reference](https://openflare.fyrn.link/reference/configuration)
-* [System Design](https://openflare.fyrn.link/design/)
+* [Quick Start](https://xiaolong-taiwan.github.io/openflare-longshang/guide/quick-start)
+* [Deployment Guide](https://xiaolong-taiwan.github.io/openflare-longshang/deployment/deployment)
+* [Configuration Reference](https://xiaolong-taiwan.github.io/openflare-longshang/reference/configuration)
+* [System Design](https://xiaolong-taiwan.github.io/openflare-longshang/design/)
 
 ## Core Capabilities
 
