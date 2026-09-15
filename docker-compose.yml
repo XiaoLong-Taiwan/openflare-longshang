@@ -2,12 +2,7 @@
 # The Wavelet upstream stack is in docker-compose.wavelet.yml and is not used here.
 services:
   openflare:
-    build:
-      context: .
-      dockerfile: manifest/docker/Dockerfile
-      args:
-        VERSION: v0.9.9
-    #    image: ghcr.io/XiaoLong-Taiwan/openflare-longshang:latest
+    image: ghcr.io/xiaolong-taiwan/openflare:latest
     restart: unless-stopped
     env_file: .env
     environment:
@@ -99,9 +94,7 @@ services:
       start_period: 15s
 
   agent:
-    build:
-      context: .
-      dockerfile: manifest/docker/Dockerfile.agent
+    image: ghcr.io/xiaolong-taiwan/openflare-agent:latest
     container_name: openflare-agent
     restart: unless-stopped
     ports:
@@ -118,9 +111,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   relay:
-    build:
-      context: .
-      dockerfile: manifest/docker/Dockerfile.relay
+    image: ghcr.io/xiaolong-taiwan/openflare-relay:latest
     container_name: openflare-relay
     network_mode: host
     restart: unless-stopped
@@ -134,9 +125,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   flared:
-    build:
-      context: .
-      dockerfile: manifest/docker/Dockerfile.flared
+    image: ghcr.io/xiaolong-taiwan/openflared:latest
     container_name: openflare-flared
     network_mode: "host"
     restart: unless-stopped
