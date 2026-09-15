@@ -123,15 +123,14 @@ jobs:
         include:
           - arch: amd64
             platform: linux/amd64
-            runner: ubuntu-latest
+            runner: ubuntu-24.04
           - arch: arm64
             platform: linux/arm64
-            # No ubuntu-latest-arm alias from GitHub; 24.04-arm is the current stable arm64 image.
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
           persist-credentials: false
@@ -160,7 +159,7 @@ jobs:
           context: .
           file: ${{ env.DOCKERFILE }}
           platforms: ${{ matrix.platform }}
-          outputs: type=image,"name=${{ needs.prepare.outputs.image_names }}",push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=${{ needs.prepare.outputs.image }},push-by-digest=true,name-canonical=true,push=true
           build-args: |
             VERSION=${{ needs.prepare.outputs.version }}
             BUILD_DATE=${{ needs.prepare.outputs.build_date }}
