@@ -11,6 +11,7 @@ sidebar: false
 ## [Unreleased]
 
 - 修復 Agent Docker 映像建置時無法找到 GeoIP 資料下載腳本的問題。
+- 修復 PostgreSQL 排程與推送事件資料表缺少自動主鍵生成，導致啟動遷移因 `id` 為空而失敗的問題。
 
 ### 🛠 修复
 
