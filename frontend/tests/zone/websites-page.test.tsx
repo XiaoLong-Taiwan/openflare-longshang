@@ -7,6 +7,8 @@ import { ZoneService } from '@/lib/services/openflare';
 import { NextIntlClientProvider } from 'next-intl';
 import zhCN from '@/messages/zh-CN.json';
 
+const pushMock = vi.fn();
+
 vi.mock('next/link', () => ({
   default: ({
     children,
@@ -18,7 +20,7 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: pushMock }),
 }));
 
 vi.mock('@/lib/services/openflare', async (importOriginal) => {
@@ -45,7 +47,7 @@ function renderPage() {
 }
 
 describe('WebsitesPage', () => {
-  it('filters zones, shows domain counts, and links to stable ID routes', async () => {
+  it('filters zones, shows domain counts, and links every zone to the fixed detail route', async () => {
     vi.mocked(ZoneService.list).mockResolvedValue([
       {
         id: 42,
@@ -69,13 +71,26 @@ describe('WebsitesPage', () => {
     expect(screen.getByText('3')).toBeVisible();
     expect(screen.getByText('0')).toBeVisible();
     expect(screen.getByRole('columnheader', { name: '根域' })).toBeVisible();
+    expect(screen.getAllByRole('link', { name: '管理' })[0]).toHaveAttribute(
+      'href',
+      '/websites/zone?id=42',
+    );
+    expect(screen.getAllByRole('link', { name: '管理' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: '管理' })[1]).toHaveAttribute(
+      'href',
+      '/websites/zone?id=43',
+    );
+    fireEvent.click(screen.getByText('another.com'));
+    expect(pushMock).toHaveBeenLastCalledWith('/websites/zone?id=43');
+    fireEvent.click(screen.getByText('example.com'));
+    expect(pushMock).toHaveBeenLastCalledWith('/websites/zone?id=42');
 
     fireEvent.change(screen.getByPlaceholderText('搜索 Zone 根域'), {
       target: { value: 'example' },
     });
     expect(screen.getByRole('link', { name: '管理' })).toHaveAttribute(
       'href',
-      '/websites/42',
+      '/websites/zone?id=42',
     );
     expect(screen.queryByText('another.com')).not.toBeInTheDocument();
   });

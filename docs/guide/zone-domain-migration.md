@@ -34,7 +34,7 @@ pg_dump "$DATABASE_URL" > openflare-pre-zone-$(date +%Y%m%d).sql
 ### 3. 升级后检查
 
 1. 管理端 **网站** `/websites`：Zone 根域与域名计数是否合理。
-2. Zone 详情：域名、证书、关联路由 ID。
+2. Zone 详情使用固定地址 `/websites/zone?id=<Zone ID>`，由客户端按查询参数加载域名、证书与关联路由 ID。静态导出部署后，请分别点击列表第一笔与第二笔、直接刷新详情页，并确认切换页签后仍保留正确的 `id`。
 3. **反代路由**：域名绑定来自 Zone 域名，而非旧手写字段。
 
 ### 4. 配置预览与发布

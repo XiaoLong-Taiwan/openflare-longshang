@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Globe, Pencil, Trash2 } from 'lucide-react';
@@ -43,11 +43,6 @@ function getZonePageTab(value: string | null | undefined): ZonePageTab {
     : 'overview';
 }
 
-function getZoneIdFromPathname(pathname: string | null): number {
-  const match = pathname?.match(/^\/websites\/([^/]+)$/);
-  return Number(match?.[1]);
-}
-
 export function ZonePageClient() {
   const t = useTranslations('websites');
   const tc = useTranslations('common');
@@ -57,9 +52,8 @@ export function ZonePageClient() {
   }, []);
 
   const router = useRouter();
-  const pathname = usePathname();
-  const zoneId = useMemo(() => getZoneIdFromPathname(pathname), [pathname]);
   const searchParams = useSearchParams();
+  const zoneId = Number(searchParams.get('id'));
   const queryClient = useQueryClient();
   const activeTab = useMemo(
     () => getZonePageTab(searchParams.get('tab')),
@@ -78,11 +72,11 @@ export function ZonePageClient() {
         params.set('tab', next);
       }
       const query = params.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, {
+      router.replace(query ? `/websites/zone?${query}` : '/websites/zone', {
         scroll: false,
       });
     },
-    [pathname, router, searchParams],
+    [router, searchParams],
   );
 
   const overviewQuery = useQuery({

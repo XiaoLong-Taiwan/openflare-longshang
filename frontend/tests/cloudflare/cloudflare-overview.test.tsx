@@ -125,7 +125,7 @@ describe('Cloudflare overview', () => {
     expect(await screen.findByText('生产节点')).toBeVisible();
     expect(screen.getByRole('link', { name: '管理' })).toHaveAttribute(
       'href',
-      '/cloudflare/groups/7',
+      '/cloudflare/group?id=7',
     );
     expect(await screen.findByText('同步任务')).toBeVisible();
   });

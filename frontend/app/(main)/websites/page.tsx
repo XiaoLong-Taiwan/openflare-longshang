@@ -128,7 +128,7 @@ export default function WebsitesPage() {
                   <TableRow
                     key={zone.id}
                     className='group cursor-pointer border-dashed hover:bg-muted/30'
-                    onClick={() => router.push(`/websites/${zone.id}`)}
+                    onClick={() => router.push(`/websites/zone?id=${zone.id}`)}
                   >
                     <TableCell className='py-1 font-mono text-[11px] text-muted-foreground'>
                       {zone.id}
@@ -158,7 +158,7 @@ export default function WebsitesPage() {
                               className='h-6 w-6 text-muted-foreground hover:text-foreground'
                               asChild
                             >
-                              <Link href={`/websites/${zone.id}`}>
+                              <Link href={`/websites/zone?id=${zone.id}`}>
                                 <Eye className='size-3' />
                                 <span className='sr-only'>{t('manage')}</span>
                               </Link>

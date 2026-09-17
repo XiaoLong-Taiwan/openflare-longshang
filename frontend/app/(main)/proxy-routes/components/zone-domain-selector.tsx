@@ -172,7 +172,7 @@ export function ZoneDomainSelector({
                   <span className='flex items-center gap-1 text-xs text-muted-foreground'>
                     {zoneRoot ? (
                       <Link
-                        href={`/websites/${domain.zone_id}`}
+                        href={`/websites/zone?id=${domain.zone_id}`}
                         className='inline-flex items-center gap-0.5 hover:text-foreground'
                         onClick={(event) => event.stopPropagation()}
                       >

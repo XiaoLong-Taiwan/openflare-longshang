@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ZonePageClient } from '@/app/(main)/websites/[zoneId]/page-client';
@@ -19,8 +20,7 @@ class ResizeObserverMock {
 
 vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
-let mockZoneId = '42';
-let mockParamZoneId = '42';
+let mockSearchParams = 'id=42';
 
 const replaceMock = vi.fn();
 
@@ -36,9 +36,7 @@ vi.mock('next/link', () => ({
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: replaceMock, back: vi.fn() }),
-  usePathname: () => `/websites/${mockZoneId}`,
-  useSearchParams: () => new URLSearchParams(),
-  useParams: () => ({ zoneId: mockParamZoneId }),
+  useSearchParams: () => new URLSearchParams(mockSearchParams),
 }));
 
 vi.mock('@/lib/services/openflare', async (importOriginal) => {
@@ -61,9 +59,15 @@ vi.mock('@/lib/services/openflare', async (importOriginal) => {
   };
 });
 
-function renderPage(zoneId: number, paramZoneId = zoneId) {
-  mockZoneId = String(zoneId);
-  mockParamZoneId = String(paramZoneId);
+function renderPage(zoneId: number | string | null, tab?: string) {
+  const params = new URLSearchParams();
+  if (zoneId !== null) {
+    params.set('id', String(zoneId));
+  }
+  if (tab) {
+    params.set('tab', tab);
+  }
+  mockSearchParams = params.toString();
   const client = new QueryClient({
     defaultOptions: {
       queries: { retry: false, gcTime: 0 },
@@ -84,7 +88,7 @@ function renderPage(zoneId: number, paramZoneId = zoneId) {
 
 describe('ZonePageClient', () => {
   beforeEach(() => {
-    mockParamZoneId = mockZoneId;
+    replaceMock.mockReset();
     vi.mocked(ZoneService.getOverview).mockReset();
     vi.mocked(ZoneService.getStats).mockReset();
     vi.mocked(ZoneService.getStats).mockResolvedValue({
@@ -130,19 +134,41 @@ describe('ZonePageClient', () => {
     expect(screen.getByRole('tab', { name: '设置' })).toBeVisible();
   });
 
-  it('uses the browser pathname ID when serving a static-export fallback shell', async () => {
+  it('loads the second zone from the query ID on the fixed detail page', async () => {
     vi.mocked(ZoneService.getOverview).mockImplementation(async () => ({
-      zone: { id: 42, domain: 'example.com', created_at: '', updated_at: '' },
+      zone: { id: 43, domain: 'another.com', created_at: '', updated_at: '' },
       domains: [],
     }));
 
-    renderPage(42, 1);
+    renderPage(43);
 
     await waitFor(() => {
-      expect(ZoneService.getOverview).toHaveBeenCalledWith(42);
+      expect(ZoneService.getOverview).toHaveBeenCalledWith(43);
     });
+    expect(
+      await screen.findByRole('heading', { name: 'another.com' }),
+    ).toBeVisible();
     expect(ZoneService.getOverview).not.toHaveBeenCalledWith(1);
   });
+
+  it.each([
+    [undefined, '设置', '/websites/zone?id=43&tab=settings'],
+    ['settings', '概览', '/websites/zone?id=43'],
+  ])(
+    'preserves the query ID when changing tabs from %s',
+    async (tab, name, url) => {
+      const user = userEvent.setup();
+      vi.mocked(ZoneService.getOverview).mockResolvedValue({
+        zone: { id: 43, domain: 'another.com', created_at: '', updated_at: '' },
+        domains: [],
+      });
+
+      renderPage(43, tab);
+
+      await user.click(await screen.findByRole('tab', { name }));
+      expect(replaceMock).toHaveBeenCalledWith(url, { scroll: false });
+    },
+  );
 
   it('renders a not-found state for a missing Zone', async () => {
     vi.mocked(ZoneService.getOverview).mockRejectedValue(
@@ -156,11 +182,14 @@ describe('ZonePageClient', () => {
     ).toBeVisible();
   });
 
-  it('renders invalid ID empty state without calling the API', async () => {
-    renderPage(0);
-    expect(
-      await screen.findByText('无效的网站 ID，请从网站列表进入详情页。'),
-    ).toBeVisible();
-    expect(ZoneService.getOverview).not.toHaveBeenCalled();
-  });
+  it.each([null, '', 0, -1, 'abc', '1.5'])(
+    'rejects invalid query ID %s without calling the API',
+    async (id) => {
+      renderPage(id);
+      expect(
+        await screen.findByText('无效的网站 ID，请从网站列表进入详情页。'),
+      ).toBeVisible();
+      expect(ZoneService.getOverview).not.toHaveBeenCalled();
+    },
+  );
 });
