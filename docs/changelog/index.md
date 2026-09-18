@@ -8,6 +8,12 @@ sidebar: false
 
 格式基于 [Keep a Changelog](http://keepachangelog.com/)，版本号遵循 [语义化版本](http://semver.org/)。
 
+## [v0.0.6] - 2026-09-18
+
+### 🛠 修復
+
+- 修復 OpenResty reload 遇到空 PID 時無法恢復啟動，並避免回滾時刪除原本不存在的主配置，確保 fallback 可重建 nginx.conf。
+
 ## [v0.0.5] - 2026-09-18
 
 ### ✨ 新功能
@@ -17,7 +23,7 @@ sidebar: false
 
 ### 🛠 修復
 
-- 修復 OpenResty reload 遇到無效 PID 時誤啟動第二個實例，避免服務埠被重複佔用。
+- 修復 OpenResty reload 遇到空 PID 時無法恢復啟動，並避免回滾時刪除原本不存在的主配置，確保 fallback 可重建 nginx.conf。
 - 修復網站域名編輯後設定版本差異未正確反映支援檔案變更的問題。
 
 ### 💄 其他/體驗

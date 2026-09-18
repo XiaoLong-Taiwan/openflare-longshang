@@ -162,10 +162,13 @@ func TestPathExecutorRestartIgnoresMissingPID(t *testing.T) {
 	}
 }
 
-func TestPathExecutorReloadDoesNotStartOnInvalidPID(t *testing.T) {
+func TestPathExecutorReloadStartsOnInvalidPID(t *testing.T) {
 	runner := &fakeRunner{
 		runFn: func(name string, args ...string) ([]byte, error) {
-			return []byte("openresty: [error] invalid PID number \"\" in \"/usr/local/openresty/nginx/logs/nginx.pid\""), errors.New("exit status 1")
+			if len(args) >= 2 && args[0] == "-s" && args[1] == "reload" {
+				return []byte("openresty: [error] invalid PID number \"\" in \"/usr/local/openresty/nginx/logs/nginx.pid\""), errors.New("exit status 1")
+			}
+			return nil, nil
 		},
 	}
 	executor := &PathExecutor{
@@ -173,11 +176,11 @@ func TestPathExecutorReloadDoesNotStartOnInvalidPID(t *testing.T) {
 		ConfigPath: "/data/etc/nginx/nginx.conf",
 		Runner:     runner,
 	}
-	if err := executor.Reload(context.Background()); err == nil {
-		t.Fatal("expected reload to fail")
+	if err := executor.Reload(context.Background()); err != nil {
+		t.Fatalf("Reload failed: %v", err)
 	}
-	if len(runner.calls) != 1 {
-		t.Fatalf("expected reload to make one call, got %d", len(runner.calls))
+	if len(runner.calls) != 2 {
+		t.Fatalf("expected reload and start calls, got %d", len(runner.calls))
 	}
 }
 
@@ -1024,6 +1027,26 @@ func TestManagerApplyStartsSafeFallbackWhenNoRollbackConfigExists(t *testing.T) 
 	}
 	if len(routeData) != 0 {
 		t.Fatalf("expected fallback route config to be empty, got %q", string(routeData))
+	}
+}
+
+func TestManagerRestoreKeepsCurrentMainConfigWhenBackupDidNotExist(t *testing.T) {
+	tempDir := t.TempDir()
+	mainPath := filepath.Join(tempDir, "nginx.conf")
+	manager := &Manager{MainConfigPath: mainPath}
+	if err := os.WriteFile(mainPath, []byte("current-main"), 0o644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+
+	if err := manager.restore(&backupState{}); err != nil {
+		t.Fatalf("restore failed: %v", err)
+	}
+	data, err := os.ReadFile(mainPath)
+	if err != nil {
+		t.Fatalf("failed to read main config: %v", err)
+	}
+	if string(data) != "current-main" {
+		t.Fatalf("expected current main config to remain, got %s", string(data))
 	}
 }
 

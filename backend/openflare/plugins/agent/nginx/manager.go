@@ -830,7 +830,8 @@ func isOpenrestyNotRunningError(output string) bool {
 	if text == "" {
 		return false
 	}
-	return strings.Contains(text, "no such process") ||
+	return strings.Contains(text, "invalid pid") ||
+		strings.Contains(text, "no such process") ||
 		strings.Contains(text, "open()") && strings.Contains(text, "nginx.pid") && strings.Contains(text, "failed")
 }
 
@@ -927,8 +928,6 @@ func (m *Manager) restore(state *backupState) error {
 		if err := os.WriteFile(m.MainConfigPath, state.MainData, nginxConfigFilePerm); err != nil {
 			return err
 		}
-	} else if err := os.Remove(m.MainConfigPath); err != nil && !os.IsNotExist(err) {
-		return err
 	}
 	if state.RouteExisted {
 		if err := os.WriteFile(m.RouteConfigPath, state.RouteData, nginxConfigFilePerm); err != nil {
