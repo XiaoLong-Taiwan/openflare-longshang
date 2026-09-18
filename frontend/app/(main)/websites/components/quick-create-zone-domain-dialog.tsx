@@ -55,14 +55,15 @@ export function QuickCreateZoneDomainDialog({
   fixedZoneId,
   fixedZoneRoot,
   zones: zonesProp,
+  editingDomain,
   onCreated,
 }: {
   open: boolean;
   onOpenChange(open: boolean): void;
-  /** When set, Zone 选择器隐藏 */
   fixedZoneId?: number;
   fixedZoneRoot?: string;
   zones?: ZoneItem[];
+  editingDomain?: ZoneDomainItem;
   onCreated(domain: ZoneDomainItem): void | Promise<void>;
 }) {
   const t = useTranslations('websites');
@@ -130,10 +131,10 @@ export function QuickCreateZoneDomainDialog({
     }
     form.reset({
       zone_id: fixedZoneId ? String(fixedZoneId) : '',
-      domain_input: '',
-      cert_id: '',
+      domain_input: editingDomain?.domain ?? '',
+      cert_id: editingDomain?.cert_id ? String(editingDomain.cert_id) : '',
     });
-  }, [fixedZoneId, form, open]);
+  }, [editingDomain, fixedZoneId, form, open]);
 
   const watchedZoneId = form.watch('zone_id');
   const watchedInput = form.watch('domain_input');
@@ -160,13 +161,18 @@ export function QuickCreateZoneDomainDialog({
       if (resolved.error || !resolved.domain) {
         throw new Error(domainErrorMessage(resolved.error, zone.domain));
       }
-      return ZoneDomainService.create(zone.id, {
+      const payload = {
         domain: resolved.domain,
         cert_id: values.cert_id ? Number(values.cert_id) : null,
-      });
+      };
+      return editingDomain
+        ? ZoneDomainService.update(zone.id, editingDomain.id, payload)
+        : ZoneDomainService.create(zone.id, payload);
     },
     onSuccess: async (domain) => {
-      toast.success(t('domainAdded'), { description: domain.domain });
+      toast.success(t(editingDomain ? 'domainUpdated' : 'domainAdded'), {
+        description: domain.domain,
+      });
       await Promise.all([
         onCreated(domain),
         queryClient.invalidateQueries({ queryKey: zoneQueryKey }),
@@ -184,8 +190,12 @@ export function QuickCreateZoneDomainDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t('quickCreateTitle')}</DialogTitle>
-          <DialogDescription>{t('quickCreateDesc')}</DialogDescription>
+          <DialogTitle>
+            {t(editingDomain ? 'editDomainTitle' : 'quickCreateTitle')}
+          </DialogTitle>
+          <DialogDescription>
+            {t(editingDomain ? 'editDomainDesc' : 'quickCreateDesc')}
+          </DialogDescription>
         </DialogHeader>
 
         <form
@@ -319,7 +329,7 @@ export function QuickCreateZoneDomainDialog({
             {mutation.isPending ? (
               <Loader2 className='mr-1 size-4 animate-spin' />
             ) : null}
-            {t('addDomain')}
+            {t(editingDomain ? 'saveChanges' : 'addDomain')}
           </Button>
         </DialogFooter>
       </DialogContent>

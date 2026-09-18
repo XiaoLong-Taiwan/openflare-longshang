@@ -830,8 +830,7 @@ func isOpenrestyNotRunningError(output string) bool {
 	if text == "" {
 		return false
 	}
-	return strings.Contains(text, "invalid pid") ||
-		strings.Contains(text, "no such process") ||
+	return strings.Contains(text, "no such process") ||
 		strings.Contains(text, "open()") && strings.Contains(text, "nginx.pid") && strings.Contains(text, "failed")
 }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { QuickCreateZoneDomainDialog } from '../../components/quick-create-zone-domain-dialog';
+import type { ZoneDomainItem } from '@/lib/services/openflare';
 
 /** Zone 详情页添加域名（固定 Zone，支持简写 / @ / 完整 FQDN）。 */
 export function ZoneDomainDialog({
@@ -8,12 +9,14 @@ export function ZoneDomainDialog({
   onOpenChange,
   zoneId,
   zoneRoot,
+  editingDomain,
   onSaved,
 }: {
   open: boolean;
   onOpenChange(open: boolean): void;
   zoneId: number;
   zoneRoot: string;
+  editingDomain?: ZoneDomainItem;
   onSaved(): Promise<unknown> | void;
 }) {
   return (
@@ -22,6 +25,7 @@ export function ZoneDomainDialog({
       onOpenChange={onOpenChange}
       fixedZoneId={zoneId}
       fixedZoneRoot={zoneRoot}
+      editingDomain={editingDomain}
       onCreated={async () => {
         await onSaved();
       }}

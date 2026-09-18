@@ -63,6 +63,7 @@ function hasConfigDiff(diff: ConfigDiffResult) {
     diff.modified_sites.length > 0 ||
     diff.main_config_changed ||
     diff.waf_config_changed ||
+    diff.support_files_changed ||
     diff.changed_option_keys.length > 0 ||
     !diff.active_version
   );

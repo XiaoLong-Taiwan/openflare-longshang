@@ -650,6 +650,8 @@
     "mainUnchanged": "主配置 无变化",
     "wafChanged": "WAF 已变化",
     "wafUnchanged": "WAF 无变化",
+    "supportFilesChanged": "证书或支持文件已变化",
+    "supportFilesUnchanged": "证书或支持文件无变化",
     "websiteDelta": "网站数 {from} → {to}",
     "optionKey": "参数",
     "activeValue": "激活值",

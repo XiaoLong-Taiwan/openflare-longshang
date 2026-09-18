@@ -8,37 +8,21 @@ sidebar: false
 
 格式基于 [Keep a Changelog](http://keepachangelog.com/)，版本号遵循 [语义化版本](http://semver.org/)。
 
-## [Unreleased]
+## [v0.0.5] - 2026-09-18
 
-- 修復 Agent Docker 映像建置時無法找到 GeoIP 資料下載腳本的問題。
-- 修復 PostgreSQL 排程與推送事件資料表缺少自動主鍵生成，導致啟動遷移因 `id` 為空而失敗的問題。
-- 修復網站列表第二筆起點擊後可能回到錯誤總覽的問題，網站詳情改用固定路由與 `id` 查詢參數載入。
+### ✨ 新功能
 
-### 🛠 修复
+- 新增網站域名編輯功能，可直接修改域名綁定的憑證。
+- 新增設定版本差異中的憑證與支援檔案變更提示。
 
-- 完成 OpenFlare 正式仓库、容器镜像、安装脚本、前端、Swagger 与配置默认值的链接迁移，统一指向 `XiaoLong-Taiwan/openflare-longshang` 与 `ghcr.io/xiaolong-taiwan`。
-- 人机验证与健康检查去掉双路径：浏览器只请求 `/api/v1/cap/challenge` 与 `/api/v1/cap/redeem`，探针只保留 `GET /api/healthz`（`{"status":"ok"}`）。旧的 `/api/cap/*`、`/api/health` 与 `/healthz` 不再注册。
-- Handler 把「记录不存在 → 404、其它错误 → 400」的分支改走上游 `response.AbortNotFoundIfMissing` / `AbortBadRequestOnError`，不再在 OpenFlare 里各写一份。
-- 控制面 `server` 插件按限界上下文重排目录：去掉 `openflare/` 与 `router/v1` 嵌套；业务在 `domain/`（site/fleet/pages 等），共享内核在 `kernel/`（model/repository 与适配器），HTTP 装配在 `httpapi`。接口路径与表结构不变。
-- `server` 插件把 stamp、of_* SQL 与 ClickHouse 迁入单一 `migrate/` 包，updater 提到 `server/updater/`；删除已停用的 76 条历史迁移。全新安装会写入 OpenFlare 定时任务与产品配置默认值，已 stamp 的升级库不重插。
-- 彻底治理跨组件调用与规约违例：严格遵循 Cordis 插件分层与单一表所有者原则，全面消除业务对上游内部实现的私有 import，统一面向 `backend/core/contracts` 编程；将契约 DTO 持久化解耦并增强通用标准库序列化支持回流 Wavelet 上游，全量架构规约检查与下游测试通过率达 100%。
+### 🛠 修復
 
-### 💄 其他/体验
+- 修復 OpenResty reload 遇到無效 PID 時誤啟動第二個實例，避免服務埠被重複佔用。
+- 修復網站域名編輯後設定版本差異未正確反映支援檔案變更的問題。
 
-- 对齐 Wavelet 架构配置与构建布局（提交 807343c8）：配置收敛至 `manifest/config/`（以 `config.default.yaml` 作为基础配置并支持 `config.yaml` 覆盖），Docker 镜像构建文件统一收敛至 `manifest/docker/` 并清理根目录冗余 `docker/` 目录，根目录 docker-compose 配置保持不变并切至新构建路径。
-- 内嵌前端拷贝目标改为 `backend/plugins/drivers/driver_http/dist`，与上游 `//go:embed all:dist` 对齐；发布工作流改为读取 `backend/go.mod`。仓库内 `.gitconfig` 提供 `merge.ours` 驱动，合并上游时保留 OpenFlare 自有路径；Wavelet 的 `build-image.yml` 与 `docker-compose.yml` 已隔离，避免 canary 发布成 wavelet 镜像。
-- 后端代码整体迁入 `backend/`，与上游 Wavelet 的仓库布局对齐（Cordis 插件化改造第一阶段），模块名保持 `Wavelet` 以保证上游包路径逐字一致。构建、测试、镜像与发布链路已同步调整，`make build-all` / `make dev` / `make swagger` 等本地命令用法不变；HTTP 接口与控制台行为均无变化。
-- 引入上游 Cordis 微内核与平台插件到 `backend/{core,pkg,plugins}`（与上游逐字一致，可用 `scripts/sync-upstream.sh` 重复同步），并新增 `backend/openflare/share/` 承载多插件共享资源（控制消息协议、GeoIP、边缘日志）。此阶段仅落位结构与共享层，尚未改变运行时行为。
-- 下游代码按功能职责拆为 `server`/`agent`/`relay`/`flared` 四个插件与 `backend/openflare/share` 共享层；三个边缘守护进程改由 Cordis 内核装配启动（profile `agent`/`relay`/`flared`），`-config` 旗标、默认配置路径、退出码与启动日志保持原样。
-- 控制台 API 改由 Cordis 内核提供服务：`server` 插件以声明式路由注册，HTTP 监听与优雅退出交给内核的 http 驱动。全部 256 条路由（含 20 条带尾部斜杠的历史列表接口）与改造前逐条一致，232 条对外 API 操作无变化。
+### 💄 其他/體驗
 
-- 清理与上游 Wavelet 重复的平台实现：响应封装、日志、邮件、链路追踪、HTTP 连接池、内存/磁盘缓存、批量写入等 8 个本地副本删除并改为使用上游能力（约 600 行重复代码消失，接口形状与文档定义完全一致）；顺带把磁盘缓存的类型断言健壮性修复回流上游。
-- 控制面改为与上游 Wavelet 同构装配：`newOpenFlareApp` 挂载 Wavelet 平台插件后再挂 OpenFlare `server` 业务路由，健康检查/用户/验证码由上游插件提供；`app.redirect_trailing_slash` 默认关闭，避免列表接口尾部斜杠被 301。
-- 删除 OpenFlare 内与 Wavelet 重复的 oauth/cap/user/upload/config/health/admin 平台副本，业务改走契约（登录中间件、公共配置、推送注册、异步任务）；用户/文件/系统配置由上游插件提供，控制台接口形状保持金标准子集。
-- 控制面读写系统配置改为走上游管理仓储并同步失效缓存，避免选项/节点/日志库切换写入后 `/api/v1/config/public` 仍返回旧值。
-- 已部署库启动时把历史 `goose_db_version` 一次性写入 `w_schema_versions`（`openflare/legacy` 与 `server`），不再重跑 76 条混合迁移；全新安装只创建当前的 `of_*` 业务表。ClickHouse 继续只升级节点访问/可观测相关表，用户访问日志表改由上游负责。
-- `make swagger` 重新扫描上游平台插件，对外文档覆盖金标准全部 232 条 path+method（允许超集）；`GET /api/v1/config/public` 仍返回扁平键值。
-- 用 git merge 接入 Wavelet 上游历史（第一次 merge `wavelet/feat/cordis-alignment`，含 W1–W9）；此后以 `git fetch wavelet && git merge wavelet/main` 吸收 `backend/{core,pkg,plugins}`，不再使用 rsync 同步脚本。`frontend/` 与 `backend/openflare/` 仍由本仓库持有。
+- 補充網站域名編輯與設定版本差異的中英文介面文案。
 ## [v3.5.4] - 2026-08-29
 
 ### ✨ 新功能

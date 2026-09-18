@@ -650,6 +650,8 @@
     "mainUnchanged": "Main config unchanged",
     "wafChanged": "WAF changed",
     "wafUnchanged": "WAF unchanged",
+    "supportFilesChanged": "Certificates or support files changed",
+    "supportFilesUnchanged": "Certificates or support files unchanged",
     "websiteDelta": "Websites {from} → {to}",
     "optionKey": "Option",
     "activeValue": "Active value",

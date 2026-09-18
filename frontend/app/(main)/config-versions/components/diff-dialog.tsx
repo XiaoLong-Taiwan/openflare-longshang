@@ -146,6 +146,13 @@ export function DiffDialog({
               >
                 {diff.waf_config_changed ? t('wafChanged') : t('wafUnchanged')}
               </Badge>
+              <Badge
+                variant={diff.support_files_changed ? 'destructive' : 'outline'}
+              >
+                {diff.support_files_changed
+                  ? t('supportFilesChanged')
+                  : t('supportFilesUnchanged')}
+              </Badge>
               <Badge variant='outline'>
                 {t('websiteDelta', {
                   from: diff.active_website_count,

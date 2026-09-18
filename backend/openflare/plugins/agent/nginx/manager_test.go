@@ -162,13 +162,10 @@ func TestPathExecutorRestartIgnoresMissingPID(t *testing.T) {
 	}
 }
 
-func TestPathExecutorReloadStartsWhenRuntimeIsNotRunning(t *testing.T) {
+func TestPathExecutorReloadDoesNotStartOnInvalidPID(t *testing.T) {
 	runner := &fakeRunner{
 		runFn: func(name string, args ...string) ([]byte, error) {
-			if len(args) >= 2 && args[0] == "-s" && args[1] == "reload" {
-				return []byte("openresty: [error] invalid PID number \"\" in \"/usr/local/openresty/nginx/logs/nginx.pid\""), errors.New("exit status 1")
-			}
-			return []byte(""), nil
+			return []byte("openresty: [error] invalid PID number \"\" in \"/usr/local/openresty/nginx/logs/nginx.pid\""), errors.New("exit status 1")
 		},
 	}
 	executor := &PathExecutor{
@@ -176,15 +173,11 @@ func TestPathExecutorReloadStartsWhenRuntimeIsNotRunning(t *testing.T) {
 		ConfigPath: "/data/etc/nginx/nginx.conf",
 		Runner:     runner,
 	}
-	if err := executor.Reload(context.Background()); err != nil {
-		t.Fatalf("Reload failed: %v", err)
+	if err := executor.Reload(context.Background()); err == nil {
+		t.Fatal("expected reload to fail")
 	}
-	expected := []runCall{
-		{name: "/usr/local/openresty/nginx/sbin/openresty", args: []string{"-s", "reload", "-c", "/data/etc/nginx/nginx.conf"}},
-		{name: "/usr/local/openresty/nginx/sbin/openresty", args: []string{"-c", "/data/etc/nginx/nginx.conf"}},
-	}
-	if !reflect.DeepEqual(runner.calls, expected) {
-		t.Fatalf("unexpected calls: %#v", runner.calls)
+	if len(runner.calls) != 1 {
+		t.Fatalf("expected reload to make one call, got %d", len(runner.calls))
 	}
 }
 

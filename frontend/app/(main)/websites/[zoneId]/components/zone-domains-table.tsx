@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Eye, Plus, Trash2 } from 'lucide-react';
+import { Edit, Eye, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -65,6 +65,7 @@ export function ZoneDomainsTable({
   const tc = useTranslations('common');
   const tp = useTranslations('proxyRoutes');
   const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState<ZoneDomainItem | null>(null);
   const [deleting, setDeleting] = useState<ZoneDomainItem | null>(null);
 
   const remove = useMutation({
@@ -184,6 +185,22 @@ export function ZoneDomainsTable({
                         onClick={(event) => event.stopPropagation()}
                       >
                         <div className='flex items-center justify-center gap-0.5'>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant='ghost'
+                                size='icon'
+                                className='h-6 w-6 text-muted-foreground hover:text-foreground'
+                                onClick={() => setEditing(domain)}
+                              >
+                                <Edit className='size-3' />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side='top' className='text-xs'>
+                              {t('editDomain')}
+                            </TooltipContent>
+                          </Tooltip>
+
                           {domain.proxy_route_id ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -237,6 +254,19 @@ export function ZoneDomainsTable({
         onOpenChange={setCreateOpen}
         zoneId={zoneId}
         zoneRoot={zoneRoot}
+        onSaved={onChanged}
+      />
+
+      <ZoneDomainDialog
+        open={editing !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditing(null);
+          }
+        }}
+        zoneId={zoneId}
+        zoneRoot={zoneRoot}
+        editingDomain={editing ?? undefined}
         onSaved={onChanged}
       />
 

@@ -164,6 +164,29 @@ func dedupeSupportFiles(files []SupportFile) []SupportFile {
 	return result
 }
 
+func supportFilesEqual(previousJSON string, current []SupportFile) bool {
+	var previous []SupportFile
+	if err := json.Unmarshal([]byte(previousJSON), &previous); err != nil {
+		return false
+	}
+	previous = dedupeSupportFiles(previous)
+	current = dedupeSupportFiles(current)
+	if len(previous) != len(current) {
+		return false
+	}
+	previousByPath := make(map[string]string, len(previous))
+	for _, file := range previous {
+		previousByPath[file.Path] = file.Content
+	}
+	for _, file := range current {
+		if previousByPath[file.Path] != file.Content {
+			return false
+		}
+		delete(previousByPath, file.Path)
+	}
+	return len(previousByPath) == 0
+}
+
 func uintPtrEqual(left *uint, right *uint) bool {
 	if left == nil || right == nil {
 		return left == nil && right == nil

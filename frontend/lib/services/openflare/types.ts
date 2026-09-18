@@ -339,6 +339,7 @@ export interface ConfigDiffResult {
   modified_domains: string[];
   main_config_changed: boolean;
   waf_config_changed: boolean;
+  support_files_changed: boolean;
   changed_option_keys: string[];
   changed_option_details: ConfigOptionDiffItem[];
   current_website_count: number;

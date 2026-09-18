@@ -52,6 +52,7 @@ type ConfigDiffResult struct {
 	ModifiedDomains      []string               `json:"modified_domains"`
 	MainConfigChanged    bool                   `json:"main_config_changed"`
 	WAFConfigChanged     bool                   `json:"waf_config_changed"`
+	SupportFilesChanged  bool                   `json:"support_files_changed"`
 	ChangedOptionKeys    []string               `json:"changed_option_keys"`
 	ChangedOptionDetails []ConfigOptionDiffItem `json:"changed_option_details"`
 	CurrentWebsiteCount  int                    `json:"current_website_count"`
@@ -185,6 +186,7 @@ func DiffConfigVersion(ctx context.Context) (*ConfigDiffResult, error) {
 	}
 	result.MainConfigChanged = activeVersion.MainConfig != bundle.MainConfig
 	result.WAFConfigChanged = !snapshotWAFConfigEqual(activeSnapshot.WAF, bundle.WAFSnapshot)
+	result.SupportFilesChanged = !supportFilesEqual(activeVersion.SupportFilesJSON, bundle.SupportFiles)
 	result.ChangedOptionDetails = diffOpenRestyOptionDetails(activeSnapshot.OpenRestyConfig, bundle.OpenRestyConfig)
 	result.ChangedOptionKeys = extractOptionDiffKeys(result.ChangedOptionDetails)
 	sort.Strings(result.AddedSites)
