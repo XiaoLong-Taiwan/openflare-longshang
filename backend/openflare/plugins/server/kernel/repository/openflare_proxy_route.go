@@ -71,6 +71,8 @@ func proxyRouteUpdateMap(route *model.ProxyRoute) map[string]any {
 		"origin_url":             route.OriginURL,
 		"origin_host":            route.OriginHost,
 		"upstreams":              route.Upstreams,
+		"upstream_targets":       route.UpstreamTargets,
+		"load_balancing":         route.LoadBalancing,
 		colEnabled:               route.Enabled,
 		"enable_https":           route.EnableHTTPS,
 		"redirect_http":          route.RedirectHTTP,

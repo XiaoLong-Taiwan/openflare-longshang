@@ -120,6 +120,11 @@ type CustomHeader struct {
 	Value string `json:"value"`
 }
 
+type UpstreamTarget struct {
+	URL      string `json:"url"`
+	Priority int    `json:"priority"`
+}
+
 // PoWListConfig holds the IP, CIDR, path, and user-agent lists used by the
 // Proof-of-Work whitelist or blacklist filter.
 type PoWListConfig struct {
@@ -163,6 +168,8 @@ type Route struct {
 	OriginURL          string           `json:"origin_url"`
 	OriginHost         string           `json:"origin_host,omitempty"`
 	Upstreams          []string         `json:"upstreams,omitempty"`
+	UpstreamTargets    []UpstreamTarget `json:"upstream_targets,omitempty"`
+	LoadBalancing      string           `json:"load_balancing,omitempty"`
 	Enabled            bool             `json:"enabled"`
 	EnableHTTPS        bool             `json:"enable_https"`
 	DomainCertIDs      []uint           `json:"domain_cert_ids,omitempty"`
@@ -366,8 +373,14 @@ type routeUpstreamConfig struct {
 	Name              string
 	Scheme            string
 	ProxyPassURI      string
-	Servers           []string
+	Servers           []routeUpstreamServer
+	LoadBalancing     string
 	UsesNamedUpstream bool
+}
+
+type routeUpstreamServer struct {
+	Address string
+	Backup  bool
 }
 
 var requiredMainConfigTemplatePlaceholders = []string{

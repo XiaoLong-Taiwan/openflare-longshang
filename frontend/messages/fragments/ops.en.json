@@ -50,9 +50,9 @@
     "map": {
       "sourceRequests": "Source requests in the last 24 hours {count}",
       "presetPin": "Preset pin",
+      "nodeCount": "{count, plural, one {# node} other {# nodes}}",
       "requestsErrors": "Requests {requests} · errors {errors}",
-      "eventsStatus": "Active events {events} · node status {status}",
-      "openrestyStatus": "OpenResty status {status}",
+      "eventsStatus": "Active events {events}",
       "loadFailed": "Failed to load world map",
       "loading": "Loading world map",
       "loadFailedDesc": "The ECharts world map failed to register. Refresh and try again.",

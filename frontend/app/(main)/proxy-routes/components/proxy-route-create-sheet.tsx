@@ -34,8 +34,11 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import type { ProxyRouteItem } from '@/lib/services/openflare';
+import type {
+  ProxyRouteItem,
+  ProxyRouteLoadBalancing,
+  ProxyRouteUpstreamTarget,
+} from '@/lib/services/openflare';
 import {
   NodeService,
   PagesService,
@@ -47,13 +50,15 @@ import {
 import { useTranslations } from 'next-intl';
 
 import { listAllZoneDomains, parseOriginUrl, parseOriginUrls } from './helpers';
+import { UpstreamTargetEditor } from './upstream-target-editor';
 import { ZoneDomainSelector } from './zone-domain-selector';
 
 type CreateProxyRouteFormValues = {
   site_name: string;
   zone_domain_ids: number[];
   upstream_type: 'direct' | 'tunnel' | 'pages';
-  origin_urls_text: string;
+  upstream_targets: ProxyRouteUpstreamTarget[];
+  load_balancing: ProxyRouteLoadBalancing;
   tunnel_id?: string;
   tunnel_target_addr?: string;
   tunnel_target_protocol?: 'http' | 'https';
@@ -65,7 +70,8 @@ const defaultValues: CreateProxyRouteFormValues = {
   site_name: '',
   zone_domain_ids: [],
   upstream_type: 'direct',
-  origin_urls_text: '',
+  upstream_targets: [{ url: '', priority: 0 }],
+  load_balancing: 'round_robin',
   tunnel_id: '',
   tunnel_target_addr: '',
   tunnel_target_protocol: 'http',
@@ -93,7 +99,10 @@ export function ProxyRouteCreateSheet({
         .array(z.number().int().positive())
         .min(1, t('validation.selectAtLeastOneDomain')),
       upstream_type: z.enum(['direct', 'tunnel', 'pages']),
-      origin_urls_text: z.string().trim(),
+      upstream_targets: z.array(
+        z.object({ url: z.string(), priority: z.number().int().min(0) }),
+      ),
+      load_balancing: z.enum(['round_robin', 'least_conn']),
       tunnel_id: z.string().optional(),
       tunnel_target_addr: z.string().trim().optional(),
       tunnel_target_protocol: z.enum(['http', 'https']).optional(),
@@ -102,18 +111,21 @@ export function ProxyRouteCreateSheet({
     })
     .superRefine((value, context) => {
       if (value.upstream_type === 'direct') {
-        if (!value.origin_urls_text.trim()) {
+        const originUrls = value.upstream_targets
+          .map((target) => target.url.trim())
+          .filter(Boolean);
+        if (originUrls.length === 0) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ['origin_urls_text'],
+            path: ['upstream_targets'],
             message: t('validation.enterAtLeastOneUpstream'),
           });
         } else {
-          const { error } = parseOriginUrls(value.origin_urls_text, t);
+          const { error } = parseOriginUrls(originUrls.join('\n'), t);
           if (error) {
             context.addIssue({
               code: z.ZodIssueCode.custom,
-              path: ['origin_urls_text'],
+              path: ['upstream_targets'],
               message: error,
             });
           }
@@ -196,9 +208,15 @@ export function ProxyRouteCreateSheet({
     let originPort = '';
     let originUri = '';
     let upstreams: string[] = [];
+    const upstreamTargets = values.upstream_targets
+      .filter((target) => target.url.trim())
+      .map((target) => ({ ...target, url: target.url.trim() }));
 
     if (values.upstream_type === 'direct') {
-      const { urls } = parseOriginUrls(values.origin_urls_text, t);
+      const { urls } = parseOriginUrls(
+        upstreamTargets.map((target) => target.url).join('\n'),
+        t,
+      );
       const primaryOrigin = parseOriginUrl(urls[0]);
       originUrl = urls[0];
       originScheme = primaryOrigin.scheme;
@@ -235,6 +253,8 @@ export function ProxyRouteCreateSheet({
         origin_uri: originUri,
         origin_host: '',
         upstreams,
+        upstream_targets: upstreamTargets,
+        load_balancing: values.load_balancing,
         enabled: values.enabled,
         enable_https: hasCert,
         redirect_http: false,
@@ -359,20 +379,30 @@ export function ProxyRouteCreateSheet({
             {upstreamType === 'direct' ? (
               <FormField
                 control={form.control}
-                name='origin_urls_text'
+                name='upstream_targets'
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t('upstreamAddresses')}</FormLabel>
                     <FormControl>
-                      <Textarea
-                        className='min-h-32 font-mono text-xs'
-                        placeholder={
-                          'https://origin-a.internal:443\nhttps://origin-b.internal:443'
+                      <UpstreamTargetEditor
+                        value={field.value}
+                        loadBalancing={form.watch('load_balancing')}
+                        onChange={field.onChange}
+                        onLoadBalancingChange={(value) =>
+                          form.setValue('load_balancing', value)
                         }
-                        {...field}
+                        labels={{
+                          address: t('upstreamAddress'),
+                          priority: t('upstreamPriority'),
+                          loadBalancing: t('loadBalancing'),
+                          roundRobin: t('roundRobin'),
+                          leastConn: t('leastConn'),
+                          add: t('addUpstream'),
+                          remove: t('removeUpstream'),
+                          hint: t('upstreamStructuredHint'),
+                        }}
                       />
                     </FormControl>
-                    <FormDescription>{t('upstreamUrlsHint')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

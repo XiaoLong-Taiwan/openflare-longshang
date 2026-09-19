@@ -214,9 +214,10 @@ export function CloudflareGroupDetailPageClient() {
         <CardHeader>
           <CardTitle className='text-base'>{t('currentPoint')}</CardTitle>
           <CardDescription>
-            {t('activeNode', {
-              name: group.active_node.name,
-              ip: group.active_node.ip,
+            {t('activePriority', {
+              priority:
+                group.nodes?.find((node) => node.id === group.active_node.id)
+                  ?.priority ?? 0,
             })}
           </CardDescription>
         </CardHeader>
@@ -224,14 +225,22 @@ export function CloudflareGroupDetailPageClient() {
           <Badge variant={group.enabled ? 'default' : 'secondary'}>
             {group.enabled ? t('syncEnabled') : t('syncDisabled')}
           </Badge>
-          <Badge variant='outline'>
-            {t('primaryNode', { name: group.primary_node.name })}
-          </Badge>
-          <Badge variant='outline'>
-            {t('backupNode', {
-              name: group.backup_node?.name ?? t('backupUnset'),
-            })}
-          </Badge>
+          {(
+            group.nodes ?? [
+              { ...group.primary_node, priority: 0 },
+              ...(group.backup_node
+                ? [{ ...group.backup_node, priority: 1 }]
+                : []),
+            ]
+          ).map((node) => (
+            <Badge key={node.id} variant='outline'>
+              {t('nodeWithPriority', {
+                name: node.name,
+                ip: node.ip,
+                priority: node.priority,
+              })}
+            </Badge>
+          ))}
         </CardContent>
       </Card>
 
@@ -270,7 +279,9 @@ export function CloudflareGroupDetailPageClient() {
                       ) : null}
                     </TableCell>
                     <TableCell>
-                      {member.desired_ip || t('pendingSync')}
+                      {(member.desired_ips?.length
+                        ? member.desired_ips.join(', ')
+                        : member.desired_ip) || t('pendingSync')}
                     </TableCell>
                     <TableCell>
                       <Badge

@@ -6,6 +6,7 @@ package cloudflare
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -78,6 +79,47 @@ func TestHTTPClientVerifyTokenAndManageARecord(t *testing.T) {
 	}
 	if err := client.DeleteRecord(ctx, zone.ID, record.ID); err != nil {
 		t.Fatalf("DeleteRecord() error = %v", err)
+	}
+}
+
+func TestHTTPClientPreservesHTTPErrorStatus(t *testing.T) {
+	tests := []struct {
+		name       string
+		statusCode int
+		notFound   bool
+	}{
+		{name: "not found", statusCode: http.StatusNotFound, notFound: true},
+		{name: "forbidden", statusCode: http.StatusForbidden, notFound: false},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(test.statusCode)
+				if err := json.NewEncoder(w).Encode(map[string]any{
+					"success": false,
+					"errors":  []map[string]any{{"code": 1000, "message": test.name}},
+					"result":  nil,
+				}); err != nil {
+					t.Errorf("Encode(response) error = %v", err)
+				}
+			}))
+			t.Cleanup(server.Close)
+			client := NewHTTPClient("test-token", WithBaseURL(server.URL), WithHTTPClient(server.Client()))
+			_, err := client.GetRecord(context.Background(), "zone-1", "record-1")
+			if err == nil {
+				t.Fatal("GetRecord() error = nil, want HTTP error")
+			}
+			var apiErr *apiHTTPError
+			if !errors.As(err, &apiErr) {
+				t.Fatalf("GetRecord() error = %T, want *apiHTTPError", err)
+			}
+			if apiErr.statusCode != test.statusCode {
+				t.Errorf("GetRecord() status = %d, want %d", apiErr.statusCode, test.statusCode)
+			}
+			if got := isNotFoundError(err); got != test.notFound {
+				t.Errorf("isNotFoundError() = %t, want %t", got, test.notFound)
+			}
+		})
 	}
 }
 

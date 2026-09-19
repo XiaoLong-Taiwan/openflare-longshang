@@ -20,7 +20,7 @@ func setupCloudflareRepositoryDB(t *testing.T) *gorm.DB {
 		t.Fatalf("gorm.Open() error = %v", err)
 	}
 	if err := conn.AutoMigrate(
-		&model.CFConnection{}, &model.CFPointingGroup{}, &model.CFPointingMember{},
+		&model.CFConnection{}, &model.CFPointingGroup{}, &model.CFPointingGroupNode{}, &model.CFPointingMember{}, &model.CFPointingManagedRecord{},
 		&model.Zone{}, &model.ZoneDomain{}, &model.OpenFlareNode{}, &model.DNSAccount{},
 	); err != nil {
 		t.Fatalf("AutoMigrate() error = %v", err)
@@ -28,6 +28,25 @@ func setupCloudflareRepositoryDB(t *testing.T) *gorm.DB {
 	SetDBForTest(conn)
 	t.Cleanup(func() { SetDBForTest(nil) })
 	return conn
+}
+
+func TestSaveCFPointingGroupWithNodesReplacesMembership(t *testing.T) {
+	setupCloudflareRepositoryDB(t)
+	ctx := context.Background()
+	group := &model.CFPointingGroup{Name: "edge", PrimaryNodeID: 1, ActiveNodeID: 1, Enabled: true}
+	if err := SaveCFPointingGroupWithNodes(ctx, group, []model.CFPointingGroupNode{{NodeID: 1, Priority: 0}, {NodeID: 2, Priority: 1}}); err != nil {
+		t.Fatalf("SaveCFPointingGroupWithNodes(create) error = %v", err)
+	}
+	if err := SaveCFPointingGroupWithNodes(ctx, group, []model.CFPointingGroupNode{{NodeID: 2, Priority: 0}}); err != nil {
+		t.Fatalf("SaveCFPointingGroupWithNodes(update) error = %v", err)
+	}
+	nodes, err := ListCFPointingGroupNodes(ctx, group.ID)
+	if err != nil {
+		t.Fatalf("ListCFPointingGroupNodes() error = %v", err)
+	}
+	if len(nodes) != 1 || nodes[0].NodeID != 2 || nodes[0].Priority != 0 {
+		t.Errorf("group nodes = %+v", nodes)
+	}
 }
 
 func TestUpsertCFConnectionKeepsSingleRow(t *testing.T) {

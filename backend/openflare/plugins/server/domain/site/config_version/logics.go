@@ -347,6 +347,7 @@ func normalizeSnapshotRoutes(routes []snapshotRoute) []snapshotRoute {
 			routes[index].OriginURL = normalizedUpstreams[0]
 			routes[index].Upstreams = normalizedUpstreams
 		}
+		routes[index].LoadBalancing = displayLoadBalancing(routes[index].LoadBalancing)
 		if !routes[index].BasicAuthEnabled {
 			routes[index].BasicAuthUsername = ""
 			routes[index].BasicAuthPassword = ""
@@ -404,6 +405,7 @@ func snapshotRouteConfigEqual(left snapshotRoute, right snapshotRoute) bool {
 	return snapshotRouteScalarsEqual(left, right) &&
 		slices.Equal(left.Domains, right.Domains) &&
 		slices.Equal(left.Upstreams, right.Upstreams) &&
+		slices.Equal(left.UpstreamTargets, right.UpstreamTargets) &&
 		slices.Equal(left.CacheRules, right.CacheRules) &&
 		slices.Equal(left.CustomHeaders, right.CustomHeaders)
 }
@@ -423,6 +425,7 @@ func snapshotRouteIdentityEqual(left, right snapshotRoute) bool {
 func snapshotRouteOriginEqual(left, right snapshotRoute) bool {
 	return left.OriginURL == right.OriginURL &&
 		left.OriginHost == right.OriginHost &&
+		left.LoadBalancing == right.LoadBalancing &&
 		left.UpstreamType == right.UpstreamType &&
 		snapshotPagesDeploymentEqual(left.PagesDeployment, right.PagesDeployment)
 }

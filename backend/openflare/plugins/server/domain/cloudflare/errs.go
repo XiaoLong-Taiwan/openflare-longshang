@@ -13,6 +13,7 @@ const (
 	errGroupNodeSame           = "主节点和备用节点不能相同"
 	errNodeInvalid             = "请选择有效的边缘节点"
 	errNodeIPv4Required        = "生效节点必须配置合法 IPv4"
+	errNoAvailableNodes        = "分组没有在线且配置合法 IPv4 的可用节点"
 	errGroupDisabled           = "指向分组已停用"
 	errMemberExists            = "该域名已加入其他指向分组"
 	errMultipleARecords        = "检测到 Cloudflare 中存在多条同名 A 记录，请先手动清理"

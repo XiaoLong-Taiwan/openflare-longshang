@@ -14,9 +14,10 @@ import (
 )
 
 type proxyRouteJSONFields struct {
-	cacheRulesJSON    string
-	upstreamsJSON     string
-	customHeadersJSON string
+	cacheRulesJSON      string
+	upstreamsJSON       string
+	upstreamTargetsJSON string
+	customHeadersJSON   string
 }
 
 func resolveProxyRouteUpstreams(ctx context.Context, upstreamType string, input Input) (string, *uint, []string, error) {
@@ -44,6 +45,7 @@ func resolveProxyRouteUpstreams(ctx context.Context, upstreamType string, input 
 
 func marshalProxyRouteJSONFields(
 	upstreams []string,
+	upstreamTargets []UpstreamTargetInput,
 	cacheRules []string,
 	customHeaders []CustomHeaderInput,
 ) (*proxyRouteJSONFields, error) {
@@ -55,14 +57,19 @@ func marshalProxyRouteJSONFields(
 	if err != nil {
 		return nil, err
 	}
+	upstreamTargetsJSON, err := json.Marshal(upstreamTargets)
+	if err != nil {
+		return nil, err
+	}
 	customHeadersJSON, err := json.Marshal(customHeaders)
 	if err != nil {
 		return nil, err
 	}
 	return &proxyRouteJSONFields{
-		cacheRulesJSON:    string(cacheRulesJSON),
-		upstreamsJSON:     string(upstreamsJSON),
-		customHeadersJSON: string(customHeadersJSON),
+		cacheRulesJSON:      string(cacheRulesJSON),
+		upstreamsJSON:       string(upstreamsJSON),
+		upstreamTargetsJSON: string(upstreamTargetsJSON),
+		customHeadersJSON:   string(customHeadersJSON),
 	}, nil
 }
 
@@ -89,13 +96,15 @@ func populateProxyRouteFields(
 	upstreams []string,
 	originHost, cachePolicy string,
 	limitConnPerServer, limitConnPerIP int,
-	limitRate, limitReqPerIP, upstreamType string,
+	limitRate, limitReqPerIP, upstreamType, loadBalancing string,
 ) {
 	route.SiteName = siteName
 	route.OriginID = originID
 	route.OriginURL = upstreams[0]
 	route.OriginHost = originHost
 	route.Upstreams = jsonFields.upstreamsJSON
+	route.UpstreamTargets = jsonFields.upstreamTargetsJSON
+	route.LoadBalancing = loadBalancing
 	route.Enabled = input.Enabled
 	route.EnableHTTPS = input.EnableHTTPS
 	route.RedirectHTTP = input.RedirectHTTP

@@ -22,6 +22,11 @@ type CustomHeaderInput struct {
 	Value string `json:"value"`
 }
 
+type UpstreamTargetInput struct {
+	URL      string `json:"url"`
+	Priority int    `json:"priority"`
+}
+
 // Input 代理规则创建/更新请求。
 type Input struct {
 	SiteName             string              `json:"site_name"`
@@ -33,8 +38,10 @@ type Input struct {
 	OriginPort           string              `json:"origin_port"`
 	OriginURI            string              `json:"origin_uri"`
 	OriginHost           string              `json:"origin_host"`
-	Upstreams            []string            `json:"upstreams"`
-	Enabled              bool                `json:"enabled"`
+	Upstreams            []string              `json:"upstreams"`
+	UpstreamTargets      []UpstreamTargetInput `json:"upstream_targets"`
+	LoadBalancing        string                `json:"load_balancing"`
+	Enabled              bool                  `json:"enabled"`
 	EnableHTTPS          bool                `json:"enable_https"`
 	RedirectHTTP         bool                `json:"redirect_http"`
 	LimitConnPerServer   int                 `json:"limit_conn_per_server"`
@@ -65,9 +72,11 @@ type View struct {
 	OriginID             *uint               `json:"origin_id"`
 	OriginURL            string              `json:"origin_url"`
 	OriginHost           string              `json:"origin_host"`
-	Upstreams            string              `json:"upstreams"`
-	UpstreamList         []string            `json:"upstream_list"`
-	Enabled              bool                `json:"enabled"`
+	Upstreams            string                `json:"upstreams"`
+	UpstreamList         []string              `json:"upstream_list"`
+	UpstreamTargets      []UpstreamTargetInput `json:"upstream_targets"`
+	LoadBalancing        string                `json:"load_balancing"`
+	Enabled              bool                  `json:"enabled"`
 	EnableHTTPS          bool                `json:"enable_https"`
 	RedirectHTTP         bool                `json:"redirect_http"`
 	LimitConnPerServer   int                 `json:"limit_conn_per_server"`
@@ -253,7 +262,27 @@ func buildProxyRoute(ctx context.Context, route *model.ProxyRoute, input Input) 
 	siteName := strings.TrimSpace(input.SiteName)
 
 	upstreamType := normalizeUpstreamType(input.UpstreamType)
+	var upstreamTargets []UpstreamTargetInput
+	if upstreamType == "direct" && len(input.UpstreamTargets) > 0 {
+		upstreamTargets, err = normalizeUpstreamTargets(upstreamType, nil, input.UpstreamTargets)
+		if err != nil {
+			return nil, err
+		}
+		input.OriginURL = upstreamTargets[0].URL
+		input.Upstreams = upstreamTargetURLs(upstreamTargets[1:])
+	}
 	_, originID, upstreams, err := resolveProxyRouteUpstreams(ctx, upstreamType, input)
+	if err != nil {
+		return nil, err
+	}
+	upstreamTargets, err = normalizeUpstreamTargets(upstreamType, upstreams, input.UpstreamTargets)
+	if err != nil {
+		return nil, err
+	}
+	if upstreamType == "direct" && len(input.UpstreamTargets) > 0 {
+		upstreams = upstreamTargetURLs(upstreamTargets)
+	}
+	loadBalancing, err := normalizeLoadBalancing(input.LoadBalancing)
 	if err != nil {
 		return nil, err
 	}
@@ -286,7 +315,7 @@ func buildProxyRoute(ctx context.Context, route *model.ProxyRoute, input Input) 
 	if err := validateProxyRouteZoneDomainCertificates(ctx, domains, input.EnableHTTPS); err != nil {
 		return nil, err
 	}
-	jsonFields, err := marshalProxyRouteJSONFields(upstreams, cacheRules, customHeaders)
+	jsonFields, err := marshalProxyRouteJSONFields(upstreams, upstreamTargets, cacheRules, customHeaders)
 	if err != nil {
 		return nil, err
 	}
@@ -325,6 +354,7 @@ func buildProxyRoute(ctx context.Context, route *model.ProxyRoute, input Input) 
 		limitRate,
 		limitReqPerIP,
 		upstreamType,
+		loadBalancing,
 	)
 	if err := applyProxyRouteUpstreamType(ctx, route, upstreamType, input); err != nil {
 		return nil, err
@@ -356,6 +386,10 @@ func buildProxyRouteView(ctx context.Context, route *model.ProxyRoute) (*View, e
 	if err != nil {
 		return nil, err
 	}
+	upstreamTargets, err := decodeStoredUpstreamTargets(route.UpstreamTargets, upstreams)
+	if err != nil {
+		return nil, err
+	}
 	cacheRules, err := decodeStoredCacheRules(route.CacheRules)
 	if err != nil {
 		return nil, err
@@ -380,6 +414,8 @@ func buildProxyRouteView(ctx context.Context, route *model.ProxyRoute) (*View, e
 		OriginHost:           route.OriginHost,
 		Upstreams:            route.Upstreams,
 		UpstreamList:         upstreams,
+		UpstreamTargets:      upstreamTargets,
+		LoadBalancing:        displayLoadBalancing(route.LoadBalancing),
 		Enabled:              route.Enabled,
 		EnableHTTPS:          route.EnableHTTPS,
 		RedirectHTTP:         route.RedirectHTTP,

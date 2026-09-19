@@ -60,6 +60,92 @@ func TestCreateProxyRouteBindsZoneDomains(t *testing.T) {
 	assert.Equal(t, "api.example.com", view.ZoneDomains[0].Domain)
 }
 
+func TestCreateProxyRouteStoresStructuredUpstreamTargets(t *testing.T) {
+	cleanup := setupProxyRouteTestDB(t)
+	defer cleanup()
+	ctx := context.Background()
+	domain := createZoneDomain(t, ctx, "api.example.com", nil)
+
+	view, err := CreateProxyRoute(ctx, Input{
+		SiteName:       "api",
+		ZoneDomainIDs:  []uint{domain.ID},
+		UpstreamTargets: []UpstreamTargetInput{
+			{URL: "http://primary.example.com:8080", Priority: 0},
+			{URL: "http://backup.example.com:8080", Priority: 2},
+		},
+		LoadBalancing: "least_conn",
+		Enabled:       true,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, []UpstreamTargetInput{
+		{URL: "http://primary.example.com:8080", Priority: 0},
+		{URL: "http://backup.example.com:8080", Priority: 2},
+	}, view.UpstreamTargets)
+	assert.Equal(t, "least_conn", view.LoadBalancing)
+	assert.Equal(t, []string{
+		"http://primary.example.com:8080",
+		"http://backup.example.com:8080",
+	}, view.UpstreamList)
+}
+
+func TestCreateProxyRouteOrdersStructuredUpstreamTargetsByPriority(t *testing.T) {
+	cleanup := setupProxyRouteTestDB(t)
+	defer cleanup()
+	ctx := context.Background()
+	domain := createZoneDomain(t, ctx, "api.example.com", nil)
+
+	view, err := CreateProxyRoute(ctx, Input{
+		SiteName:      "api",
+		ZoneDomainIDs: []uint{domain.ID},
+		UpstreamTargets: []UpstreamTargetInput{
+			{URL: "http://backup.example.com:8080", Priority: 2},
+			{URL: "http://primary.example.com:8080", Priority: 0},
+		},
+		Enabled: true,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, []UpstreamTargetInput{
+		{URL: "http://primary.example.com:8080", Priority: 0},
+		{URL: "http://backup.example.com:8080", Priority: 2},
+	}, view.UpstreamTargets)
+	assert.Equal(t, "http://primary.example.com:8080", view.OriginURL)
+}
+
+func TestCreateProxyRouteRejectsInvalidStructuredUpstreamTarget(t *testing.T) {
+	cleanup := setupProxyRouteTestDB(t)
+	defer cleanup()
+	ctx := context.Background()
+	domain := createZoneDomain(t, ctx, "api.example.com", nil)
+
+	_, err := CreateProxyRoute(ctx, Input{
+		SiteName:      "api",
+		ZoneDomainIDs: []uint{domain.ID},
+		UpstreamTargets: []UpstreamTargetInput{
+			{URL: "http://primary.example.com:8080", Priority: -1},
+		},
+	})
+	require.EqualError(t, err, errProxyRouteUpstreamPriority)
+
+	_, err = CreateProxyRoute(ctx, Input{
+		SiteName:      "priority-tiers",
+		ZoneDomainIDs: []uint{domain.ID},
+		UpstreamTargets: []UpstreamTargetInput{
+			{URL: "http://primary.example.com:8080", Priority: 0},
+			{URL: "http://backup-one.example.com:8080", Priority: 1},
+			{URL: "http://backup-two.example.com:8080", Priority: 2},
+		},
+	})
+	require.EqualError(t, err, errProxyRouteUpstreamPriorityTier)
+
+	_, err = CreateProxyRoute(ctx, Input{
+		SiteName:      "other",
+		ZoneDomainIDs: []uint{domain.ID},
+		OriginURL:     "http://origin.example.com:8080",
+		LoadBalancing: "invalid",
+	})
+	require.EqualError(t, err, errProxyRouteLoadBalancing)
+}
+
 func TestCreateProxyRouteRejectsInvalidZoneDomainBindings(t *testing.T) {
 	cleanup := setupProxyRouteTestDB(t)
 	defer cleanup()

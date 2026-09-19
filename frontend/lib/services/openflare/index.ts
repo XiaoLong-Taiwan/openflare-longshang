@@ -52,6 +52,8 @@ export type {
   ProxyRouteItem,
   ProxyRouteMutationPayload,
   ProxyRoutePoWConfig,
+  ProxyRouteLoadBalancing,
+  ProxyRouteUpstreamTarget,
   ProxyRouteZoneDomain,
   ReleaseChannel,
   SupportFile,

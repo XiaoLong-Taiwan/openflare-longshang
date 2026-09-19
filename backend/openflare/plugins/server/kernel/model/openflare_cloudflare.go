@@ -57,6 +57,19 @@ type CFPointingGroup struct {
 // TableName returns the Cloudflare pointing group table name.
 func (CFPointingGroup) TableName() string { return "of_cf_pointing_groups" }
 
+// CFPointingGroupNode assigns a node to a pointing group priority.
+type CFPointingGroupNode struct {
+	ID        uint      `json:"id" gorm:"primaryKey;autoIncrement"`
+	GroupID   uint      `json:"group_id" gorm:"not null;uniqueIndex:idx_of_cf_pointing_group_nodes_group_node;index:idx_of_cf_pointing_group_nodes_group_priority"`
+	NodeID    uint      `json:"node_id" gorm:"not null;uniqueIndex:idx_of_cf_pointing_group_nodes_group_node;index:idx_of_cf_pointing_group_nodes_node_id"`
+	Priority  int       `json:"priority" gorm:"not null;default:0;index:idx_of_cf_pointing_group_nodes_group_priority"`
+	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"autoUpdateTime"`
+}
+
+// TableName returns the Cloudflare pointing group node table name.
+func (CFPointingGroupNode) TableName() string { return "of_cf_pointing_group_nodes" }
+
 // CFPointingMember stores one managed ZoneDomain A record.
 type CFPointingMember struct {
 	ID           uint       `json:"id" gorm:"primaryKey;autoIncrement"`
@@ -75,3 +88,17 @@ type CFPointingMember struct {
 
 // TableName returns the Cloudflare pointing member table name.
 func (CFPointingMember) TableName() string { return "of_cf_pointing_members" }
+
+// CFPointingManagedRecord tracks one DNS record created for a group node.
+type CFPointingManagedRecord struct {
+	ID         uint      `json:"id" gorm:"primaryKey;autoIncrement"`
+	MemberID   uint      `json:"member_id" gorm:"not null;uniqueIndex:idx_of_cf_pointing_managed_records_member_node;index:idx_of_cf_pointing_managed_records_member_id"`
+	NodeID     uint      `json:"node_id" gorm:"not null;uniqueIndex:idx_of_cf_pointing_managed_records_member_node"`
+	CFRecordID string    `json:"cf_record_id" gorm:"size:64;not null;default:''"`
+	DesiredIP  string    `json:"desired_ip" gorm:"size:64;not null;default:''"`
+	CreatedAt  time.Time `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt  time.Time `json:"updated_at" gorm:"autoUpdateTime"`
+}
+
+// TableName returns the managed Cloudflare record table name.
+func (CFPointingManagedRecord) TableName() string { return "of_cf_pointing_managed_records" }

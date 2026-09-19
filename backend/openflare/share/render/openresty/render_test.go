@@ -19,6 +19,52 @@ func TestRenderOpenRestyUsesDedicatedWAFIPGroupSharedDict(t *testing.T) {
 	}
 }
 
+func TestRenderRouteConfigStructuredUpstreams(t *testing.T) {
+	doc := Document{
+		Routes: []Route{{
+			ID: 1, SiteName: "example.com", Domains: []string{"example.com"}, Enabled: true,
+			UpstreamTargets: []UpstreamTarget{
+				{URL: "http://primary.example.com:8080", Priority: 0},
+				{URL: "http://peer.example.com:8080", Priority: 0},
+				{URL: "http://backup.example.com:8080", Priority: 2},
+			},
+			LoadBalancing: "least_conn",
+		}},
+	}
+
+	config, err := RenderRouteConfig(doc, nil)
+	if err != nil {
+		t.Fatalf("RenderRouteConfig() error = %v", err)
+	}
+	for _, expected := range []string{
+		"least_conn;",
+		"server primary.example.com:8080 max_fails=3 fail_timeout=10s;",
+		"server peer.example.com:8080 max_fails=3 fail_timeout=10s;",
+		"server backup.example.com:8080 max_fails=3 fail_timeout=10s backup;",
+	} {
+		if !strings.Contains(config, expected) {
+			t.Fatalf("expected rendered config to contain %q, got:\n%s", expected, config)
+		}
+	}
+}
+
+func TestRenderRouteConfigLegacyUpstreamsRemainRoundRobin(t *testing.T) {
+	doc := Document{
+		Routes: []Route{{
+			ID: 1, SiteName: "legacy.example.com", Domains: []string{"legacy.example.com"}, Enabled: true,
+			Upstreams: []string{"http://one.example.com:8080", "http://two.example.com:8080"},
+		}},
+	}
+
+	config, err := RenderRouteConfig(doc, nil)
+	if err != nil {
+		t.Fatalf("RenderRouteConfig() error = %v", err)
+	}
+	if strings.Contains(config, "least_conn;") || strings.Contains(config, " backup;") {
+		t.Fatalf("legacy upstream rendering changed unexpectedly:\n%s", config)
+	}
+}
+
 func TestRenderWAFConfigIncludesAllRouteSiteNames(t *testing.T) {
 	doc := Document{
 		Routes: []Route{

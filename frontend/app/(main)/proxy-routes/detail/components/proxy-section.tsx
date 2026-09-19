@@ -25,7 +25,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import type { ProxyRouteItem } from '@/lib/services/openflare';
+import type {
+  ProxyRouteItem,
+  ProxyRouteLoadBalancing,
+  ProxyRouteUpstreamTarget,
+} from '@/lib/services/openflare';
 import { NodeService, PagesService } from '@/lib/services/openflare';
 
 import { useTranslations } from 'next-intl';
@@ -37,13 +41,15 @@ import {
   parseOriginUrls,
   validateOriginHost,
 } from '../../components/helpers';
+import { UpstreamTargetEditor } from '../../components/upstream-target-editor';
 import { proxyRouteFormIds } from '../helpers';
 import { useRouteSectionSave } from '../hooks/use-route-section-save';
 import { SectionShell } from './section-shell';
 
 type ReverseProxyValues = {
   upstream_type: 'direct' | 'tunnel' | 'pages';
-  origin_urls_text: string;
+  upstream_targets: ProxyRouteUpstreamTarget[];
+  load_balancing: ProxyRouteLoadBalancing;
   origin_host: string;
   tunnel_id?: string;
   tunnel_target_addr?: string;
@@ -67,7 +73,10 @@ export function ProxySection({
   const reverseProxySchema = z
     .object({
       upstream_type: z.enum(['direct', 'tunnel', 'pages']),
-      origin_urls_text: z.string().trim(),
+      upstream_targets: z.array(
+        z.object({ url: z.string(), priority: z.number().int().min(0) }),
+      ),
+      load_balancing: z.enum(['round_robin', 'least_conn']),
       origin_host: z.string(),
       tunnel_id: z.string().optional(),
       tunnel_target_addr: z.string().trim().optional(),
@@ -77,18 +86,21 @@ export function ProxySection({
     })
     .superRefine((value, context) => {
       if (value.upstream_type === 'direct') {
-        if (!value.origin_urls_text.trim()) {
+        const originUrls = value.upstream_targets
+          .map((target) => target.url.trim())
+          .filter(Boolean);
+        if (originUrls.length === 0) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ['origin_urls_text'],
+            path: ['upstream_targets'],
             message: t('validation.enterAtLeastOneUpstream'),
           });
         } else {
-          const { error } = parseOriginUrls(value.origin_urls_text, t);
+          const { error } = parseOriginUrls(originUrls.join('\n'), t);
           if (error) {
             context.addIssue({
               code: z.ZodIssueCode.custom,
-              path: ['origin_urls_text'],
+              path: ['upstream_targets'],
               message: error,
             });
           }
@@ -164,7 +176,11 @@ export function ProxySection({
     resolver: zodResolver(reverseProxySchema),
     defaultValues: {
       upstream_type: route.upstream_type || 'direct',
-      origin_urls_text: route.upstream_list.join('\n'),
+      upstream_targets:
+        route.upstream_targets?.length > 0
+          ? route.upstream_targets
+          : route.upstream_list.map((url) => ({ url, priority: 0 })),
+      load_balancing: route.load_balancing || 'round_robin',
       origin_host: route.origin_host || '',
       tunnel_id: route.tunnel_node_id ? String(route.tunnel_node_id) : '',
       tunnel_target_addr: route.tunnel_target_addr || '',
@@ -180,7 +196,11 @@ export function ProxySection({
   useEffect(() => {
     form.reset({
       upstream_type: route.upstream_type || 'direct',
-      origin_urls_text: route.upstream_list.join('\n'),
+      upstream_targets:
+        route.upstream_targets?.length > 0
+          ? route.upstream_targets
+          : route.upstream_list.map((url) => ({ url, priority: 0 })),
+      load_balancing: route.load_balancing || 'round_robin',
       origin_host: route.origin_host || '',
       tunnel_id: route.tunnel_node_id ? String(route.tunnel_node_id) : '',
       tunnel_target_addr: route.tunnel_target_addr || '',
@@ -213,9 +233,15 @@ export function ProxySection({
             let originPort = '';
             let originUri = '';
             let upstreams: string[] = [];
+            const upstreamTargets = values.upstream_targets
+              .filter((target) => target.url.trim())
+              .map((target) => ({ ...target, url: target.url.trim() }));
 
             if (values.upstream_type === 'direct') {
-              const { urls } = parseOriginUrls(values.origin_urls_text, t);
+              const { urls } = parseOriginUrls(
+                upstreamTargets.map((target) => target.url).join('\n'),
+                t,
+              );
               const primaryOrigin = parseOriginUrl(urls[0]);
               originUrl = urls[0];
               originScheme = primaryOrigin.scheme;
@@ -249,6 +275,8 @@ export function ProxySection({
                 origin_uri: originUri,
                 origin_host: values.origin_host.trim(),
                 upstreams,
+                upstream_targets: upstreamTargets,
+                load_balancing: values.load_balancing,
                 custom_headers: headers,
                 upstream_type: values.upstream_type,
                 tunnel_node_id:
@@ -309,20 +337,30 @@ export function ProxySection({
           {upstreamType === 'direct' ? (
             <FormField
               control={form.control}
-              name='origin_urls_text'
+              name='upstream_targets'
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('upstreamAddresses')}</FormLabel>
                   <FormControl>
-                    <Textarea
-                      className='min-h-40 font-mono text-xs'
-                      placeholder={
-                        'https://origin-a.internal:443\nhttps://origin-b.internal:443'
+                    <UpstreamTargetEditor
+                      value={field.value}
+                      loadBalancing={form.watch('load_balancing')}
+                      onChange={field.onChange}
+                      onLoadBalancingChange={(value) =>
+                        form.setValue('load_balancing', value)
                       }
-                      {...field}
+                      labels={{
+                        address: t('upstreamAddress'),
+                        priority: t('upstreamPriority'),
+                        loadBalancing: t('loadBalancing'),
+                        roundRobin: t('roundRobin'),
+                        leastConn: t('leastConn'),
+                        add: t('addUpstream'),
+                        remove: t('removeUpstream'),
+                        hint: t('upstreamStructuredHint'),
+                      }}
                     />
                   </FormControl>
-                  <FormDescription>{t('upstreamUrlsHint')}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

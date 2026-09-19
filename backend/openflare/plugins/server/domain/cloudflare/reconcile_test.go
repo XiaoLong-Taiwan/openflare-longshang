@@ -6,6 +6,7 @@ package cloudflare
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"Wavelet/openflare/plugins/server/kernel/credential"
@@ -18,7 +19,7 @@ import (
 
 type fakeClient struct {
 	records      []DNSRecord
-	created      *RecordInput
+	created      []RecordInput
 	updated      *RecordInput
 	deleted      []string
 	deleteErrors map[string]error
@@ -35,8 +36,8 @@ func (client *fakeClient) ListARecords(context.Context, string, string) ([]DNSRe
 	return client.records, nil
 }
 func (client *fakeClient) CreateARecord(_ context.Context, _ string, input RecordInput) (*DNSRecord, error) {
-	client.created = &input
-	return &DNSRecord{ID: "record-created", Name: input.Name, Content: input.Content, Proxied: input.Proxied}, nil
+	client.created = append(client.created, input)
+	return &DNSRecord{ID: fmt.Sprintf("record-created-%d", len(client.created)), Name: input.Name, Content: input.Content, Proxied: input.Proxied}, nil
 }
 func (client *fakeClient) UpdateARecord(_ context.Context, _, id string, input RecordInput) (*DNSRecord, error) {
 	client.updated = &input
@@ -54,7 +55,7 @@ func setupCloudflareLogicDB(t *testing.T) (context.Context, uint) {
 		t.Fatalf("gorm.Open() error = %v", err)
 	}
 	if err := conn.AutoMigrate(
-		&model.CFConnection{}, &model.CFPointingGroup{}, &model.CFPointingMember{},
+		&model.CFConnection{}, &model.CFPointingGroup{}, &model.CFPointingGroupNode{}, &model.CFPointingMember{}, &model.CFPointingManagedRecord{},
 		&model.Zone{}, &model.ZoneDomain{}, &model.OpenFlareNode{}, &model.DNSAccount{},
 	); err != nil {
 		t.Fatalf("AutoMigrate() error = %v", err)
@@ -70,7 +71,7 @@ func setupCloudflareLogicDB(t *testing.T) (context.Context, uint) {
 		t.Fatalf("UpsertCFConnection() error = %v", err)
 	}
 	zone := model.Zone{Domain: "example.com"}
-	node := model.OpenFlareNode{Name: "edge", NodeID: "node-1", NodeType: "edge_node", IP: "203.0.113.10"}
+	node := model.OpenFlareNode{Name: "edge", NodeID: "node-1", NodeType: "edge_node", IP: "203.0.113.10", Status: "online"}
 	if err := conn.Create(&zone).Error; err != nil {
 		t.Fatalf("Create(zone) error = %v", err)
 	}
@@ -84,6 +85,9 @@ func setupCloudflareLogicDB(t *testing.T) (context.Context, uint) {
 	group := model.CFPointingGroup{Name: "primary", PrimaryNodeID: node.ID, ActiveNodeID: node.ID, DefaultProxied: true, Enabled: true}
 	if err := conn.Create(&group).Error; err != nil {
 		t.Fatalf("Create(group) error = %v", err)
+	}
+	if err := conn.Create(&model.CFPointingGroupNode{GroupID: group.ID, NodeID: node.ID, Priority: 0}).Error; err != nil {
+		t.Fatalf("Create(group node) error = %v", err)
 	}
 	member := model.CFPointingMember{GroupID: group.ID, ZoneDomainID: domain.ID, Proxied: true, SyncStatus: model.CFMemberSyncPending}
 	if err := conn.Create(&member).Error; err != nil {
@@ -101,33 +105,33 @@ func TestReconcileMemberCreatesMissingARecord(t *testing.T) {
 	if err := ReconcileMember(ctx, memberID); err != nil {
 		t.Fatalf("ReconcileMember() error = %v", err)
 	}
-	if fake.created == nil || fake.created.Content != "203.0.113.10" || !fake.created.Proxied || fake.created.TTL != 1 {
+	if len(fake.created) != 1 || fake.created[0].Content != "203.0.113.10" || !fake.created[0].Proxied || fake.created[0].TTL != 1 {
 		t.Errorf("CreateARecord input = %+v", fake.created)
 	}
 	member, err := repository.GetCFPointingMemberByID(ctx, memberID)
 	if err != nil {
 		t.Fatalf("GetCFPointingMemberByID() error = %v", err)
 	}
-	if member.SyncStatus != model.CFMemberSyncOK || member.CFRecordID != "record-created" || member.DesiredIP != "203.0.113.10" {
+	if member.SyncStatus != model.CFMemberSyncOK || member.CFRecordID != "record-created-1" || member.DesiredIP != "203.0.113.10" {
 		t.Errorf("reconciled member = %+v", member)
 	}
 }
 
-func TestReconcileMemberRejectsMultipleSameNameARecords(t *testing.T) {
+func TestReconcileMemberPreservesUnmanagedSameNameARecords(t *testing.T) {
 	ctx, memberID := setupCloudflareLogicDB(t)
 	fake := &fakeClient{records: []DNSRecord{{ID: "one"}, {ID: "two"}}}
 	restore := SetClientFactoryForTest(func(string) Client { return fake })
 	t.Cleanup(restore)
 
-	if err := ReconcileMember(ctx, memberID); err == nil {
-		t.Fatal("ReconcileMember() error = nil, want duplicate record error")
+	if err := ReconcileMember(ctx, memberID); err != nil {
+		t.Fatalf("ReconcileMember() error = %v", err)
 	}
 	member, err := repository.GetCFPointingMemberByID(ctx, memberID)
 	if err != nil {
 		t.Fatalf("GetCFPointingMemberByID() error = %v", err)
 	}
-	if member.SyncStatus != model.CFMemberSyncError || member.LastError == "" {
-		t.Errorf("failed member = %+v", member)
+	if member.SyncStatus != model.CFMemberSyncOK || len(fake.deleted) != 0 || len(fake.created) != 1 {
+		t.Errorf("member = %+v deleted = %v created = %v", member, fake.deleted, fake.created)
 	}
 }
 
@@ -161,7 +165,7 @@ func TestCreateMemberCopiesGroupDefaultProxied(t *testing.T) {
 	}
 }
 
-func TestDeleteManagedRecordFallsBackWhenCachedRecordIsStale(t *testing.T) {
+func TestDeleteManagedRecordDoesNotDeleteDiscoveredRecords(t *testing.T) {
 	ctx, memberID := setupCloudflareLogicDB(t)
 	if err := repository.UpdateCFPointingMemberColumns(ctx, memberID, map[string]any{
 		"cf_zone_id":   "zone-1",
@@ -176,11 +180,11 @@ func TestDeleteManagedRecordFallsBackWhenCachedRecordIsStale(t *testing.T) {
 	restore := SetClientFactoryForTest(func(string) Client { return fake })
 	t.Cleanup(restore)
 
-	if err := DeleteManagedRecord(ctx, memberID); err != nil {
-		t.Fatalf("DeleteManagedRecord() error = %v", err)
+	if err := DeleteManagedRecord(ctx, memberID); err == nil {
+		t.Fatal("DeleteManagedRecord() error = nil, want cached deletion error")
 	}
-	if len(fake.deleted) != 2 || fake.deleted[0] != "stale-record" || fake.deleted[1] != "actual-record" {
-		t.Errorf("deleted record IDs = %v, want [stale-record actual-record]", fake.deleted)
+	if len(fake.deleted) != 1 || fake.deleted[0] != "stale-record" {
+		t.Errorf("deleted record IDs = %v, want [stale-record]", fake.deleted)
 	}
 }
 
@@ -214,5 +218,19 @@ func TestUpdateMemberDoesNotDispatchWhenGroupIsDisabled(t *testing.T) {
 	}
 	if dispatchCount != 0 {
 		t.Errorf("dispatch count = %d, want 0", dispatchCount)
+	}
+}
+
+func TestLowestPriorityAvailableNodesFindsLaterLowerPriorityNodes(t *testing.T) {
+	nodes := []repository.CFPointingGroupNodeContext{
+		{GroupNode: model.CFPointingGroupNode{NodeID: 1, Priority: 0}, Node: model.OpenFlareNode{ID: 1, Status: "offline", IP: "203.0.113.1"}},
+		{GroupNode: model.CFPointingGroupNode{NodeID: 2, Priority: 1}, Node: model.OpenFlareNode{ID: 2, Status: "online", IP: "203.0.113.2"}},
+		{GroupNode: model.CFPointingGroupNode{NodeID: 3, Priority: 0}, Node: model.OpenFlareNode{ID: 3, Status: "online", IP: "203.0.113.3"}},
+		{GroupNode: model.CFPointingGroupNode{NodeID: 4, Priority: 0}, Node: model.OpenFlareNode{ID: 4, Status: "online", IP: "2001:db8::4"}},
+	}
+
+	got := lowestPriorityAvailableNodes(nodes)
+	if len(got) != 1 || got[0].Node.ID != 3 {
+		t.Errorf("lowestPriorityAvailableNodes(%+v) = %+v, want node ID 3", nodes, got)
 	}
 }

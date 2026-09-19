@@ -2,7 +2,7 @@
 
 ## 目标
 
-通过 Cloudflare API 将 OpenFlare 中的 **ZoneDomain（明确 FQDN）** 快速指向边缘节点 IP，替代在 CF 控制台手工改 A 记录。用户以 **指向分组** 组织域名：每组配置主节点与备用节点、默认橙云策略；成员可单独覆盖橙云。系统以库表为期望状态，幂等同步远端 DNS。
+通过 Cloudflare API 将 OpenFlare 中的 **ZoneDomain（明确 FQDN）** 快速指向边缘节点 IP，替代在 CF 控制台手工改 A 记录。用户以 **指向分组** 组织域名：每组配置多个带优先级的节点和默认橙云策略；成员可单独覆盖橙云。系统以库表为期望状态，幂等同步远端 DNS。
 
 本模块是 **可选对接能力**，不把 Zone 本身变成权威 DNS 控制面。Zone 仍只负责根域边界、域名、证书与反代关联；DNS A 记录的创建/更新/删除由本模块驱动 Cloudflare。
 
@@ -12,21 +12,22 @@
 
 * 侧边栏 **Cloudflare** 入口与 Token 就绪门禁
 * 连接配置：从现有 DNS 账号导入 **或** 模块内独立录入（混合来源），加密存储
-* 指向分组 CRUD：主节点、备用节点（预留）、分组默认橙云
+* 指向分组 CRUD：多个节点及优先级、分组默认橙云
 * 成员管理：以 `zone_domain_id` 为粒度加入/移出；成员级橙云
-* 同步：将每个成员写成 Cloudflare 上 **单条 A 记录** → 当前生效节点 IPv4
+* 同步：将每个成员写成 Cloudflare 上一条或多条同名 A 记录，指向最低可用优先级的全部在线节点
 * 触发：手动同步、加入成员、改节点/橙云、节点 IP 变更入队
 * 异步任务批量同步；成员同步状态与可读错误
+* 精确记录本模块创建的远端记录，只更新或删除受管记录
 
 ### 二期
 
-* Agent 心跳离线判定主节点故障 → `active_node` 切至备用 → 整组自动同步
-* 可选自动回切、故障通知推送
+* 节点状态防抖、故障通知推送
+* 可配置自动回切策略与切换冷却时间
 
 ### 明确不做（更远或永久）
 
 * 多 Cloudflare 账号并行（全局一份连接配置）
-* AAAA / 多 A 负载 / CNAME 到节点主机名
+* AAAA / CNAME 到节点主机名
 * 管理 MX/TXT/Page Rules 等非本模块 A 记录
 * 非 Cloudflare DNS 厂商
 * 将 DNS 记录管理并入 Zone 核心模型
@@ -47,9 +48,10 @@ erDiagram
   CF_CONNECTIONS ||--o| DNS_ACCOUNTS : optional_import
   CF_POINTING_GROUPS ||--o{ CF_POINTING_MEMBERS : contains
   ZONE_DOMAINS ||--o| CF_POINTING_MEMBERS : pointed_as
-  NODES ||--o{ CF_POINTING_GROUPS : primary
-  NODES ||--o{ CF_POINTING_GROUPS : backup
-  NODES ||--o{ CF_POINTING_GROUPS : active
+  CF_POINTING_GROUPS ||--o{ CF_POINTING_GROUP_NODES : selects
+  NODES ||--o{ CF_POINTING_GROUP_NODES : participates
+  CF_POINTING_MEMBERS ||--o{ CF_POINTING_MANAGED_RECORDS : owns
+  NODES ||--o{ CF_POINTING_MANAGED_RECORDS : resolves_to
 
   CF_CONNECTIONS {
     uint id PK
@@ -68,6 +70,12 @@ erDiagram
     bool default_proxied
     bool enabled
   }
+  CF_POINTING_GROUP_NODES {
+    uint id PK
+    uint group_id
+    uint node_id
+    int priority
+  }
   CF_POINTING_MEMBERS {
     uint id PK
     uint group_id
@@ -79,6 +87,13 @@ erDiagram
     string sync_status
     string last_error
     time synced_at
+  }
+  CF_POINTING_MANAGED_RECORDS {
+    uint id PK
+    uint member_id
+    uint node_id
+    string cf_record_id
+    string desired_ip
   }
 ```
 
@@ -100,13 +115,21 @@ erDiagram
 | 字段 | 说明 |
 | --- | --- |
 | `name` | 展示名 |
-| `primary_node_id` | 主节点 |
-| `backup_node_id` | 备用（可空；一期仅存储） |
-| `active_node_id` | 当前生效节点；一期等于 primary；二期 failover 改写 |
+| `primary_node_id` | 兼容字段，投影为排序后的第一个节点 |
+| `backup_node_id` | 兼容字段，投影为排序后的第二个节点（可空） |
+| `active_node_id` | 兼容字段，记录当前最低可用优先级中的首个节点 |
 | `default_proxied` | 分组默认橙云；**仅影响新加入成员** |
 | `enabled` | 是否参与同步 |
 
-约束：主备不得为同一节点；选作生效目标的节点须有合法 IPv4。
+### `of_cf_pointing_group_nodes`
+
+| 字段 | 说明 |
+| --- | --- |
+| `group_id` | 所属分组 |
+| `node_id` | 参与该分组解析的边缘节点 |
+| `priority` | 非负整数，数值越小越优先；同一优先级共同发布 |
+
+同一分组内节点不可重复。同步时扫描全部在线且具有合法 IPv4 的节点，只选择其中最低优先级的一层；因此支持一主多备、二主多备及更多同层节点。
 
 ### `of_cf_pointing_members`
 
@@ -115,12 +138,24 @@ erDiagram
 | `group_id` | 所属分组 |
 | `zone_domain_id` | 全局唯一：一域名最多在一个分组 |
 | `proxied` | 成员橙云（运行时唯一依据） |
-| `cf_zone_id` / `cf_record_id` | Cloudflare 缓存，用于幂等更新 |
-| `desired_ip` / `sync_status` / `last_error` / `synced_at` | 期望与同步状态 |
+| `cf_zone_id` | Cloudflare Zone 缓存 |
+| `cf_record_id` / `desired_ip` | 单记录时期的兼容字段，投影当前首条受管记录 |
+| `sync_status` / `last_error` / `synced_at` | 同步状态 |
 
 `sync_status`：`pending` \| `syncing` \| `ok` \| `error`。
 
 无物理外键；`zone_domain_id` 唯一索引；`group_id` 等查询索引。
+
+### `of_cf_pointing_managed_records`
+
+| 字段 | 说明 |
+| --- | --- |
+| `member_id` | 所属成员 |
+| `node_id` | 记录所对应的节点 |
+| `cf_record_id` | Cloudflare DNS Record ID |
+| `desired_ip` | 最近同步的 IPv4 |
+
+该表是远端记录所有权依据。同步只更新或删除表中登记的记录，不接管或删除 Cloudflare 上其他来源创建的同名 A 记录。
 
 ## 橙云优先级
 
@@ -138,11 +173,11 @@ OpenFlare 库表为 Source of Truth。每个成员期望：
 | --- | --- |
 | type | `A` |
 | name | ZoneDomain 的 FQDN |
-| content | 分组 `active_node` 的 IPv4 |
+| content | 分组最低可用优先级中各在线节点的 IPv4；每个节点一条同名 A |
 | proxied | 成员 `proxied` |
 | ttl | 橙云开启时由 CF 强制 Auto；关闭时使用统一默认（如 300） |
 
-一期不写 AAAA。节点 IP 非合法 IPv4 → 该成员 `error`。
+一期不写 AAAA。离线或无合法 IPv4 的节点不参与当前可用层选择；所有节点均不可用时该成员同步失败。
 
 ### 触发
 
@@ -151,8 +186,8 @@ OpenFlare 库表为 Source of Truth。每个成员期望：
 | 手动同步（全部 / 组 / 成员） | reconcile |
 | 成员加入 | 初始化 `proxied` 后入队同步 |
 | 成员移出 / 删组 | 默认删除本模块管理的远端 A（可配置保留） |
-| 改主节点 / active / 成员 proxied | 对应范围重新同步 |
-| 节点 IP 变更（心跳或手动） | `active_node_id` 指向该节点的成员入队 |
+| 改分组节点 / priority / 成员 proxied | 对应范围重新同步 |
+| 节点 IP 或在线状态变更（心跳或手动） | 包含该节点的分组成员入队 |
 | Token 未就绪 | 拒绝同步 |
 
 一期不做定时全量对账。
@@ -160,12 +195,13 @@ OpenFlare 库表为 Source of Truth。每个成员期望：
 ### Reconcile（单成员，幂等）
 
 1. 用 FQDN 注册根域解析 CF Zone，缓存 `cf_zone_id`。
-2. 有 `cf_record_id` 则优先 Update；失效则按 `name+type=A` 列举。
-3. **0 条** → Create；**恰好 1 条** → 接管并 Update；**多条** → 失败，提示用户在 CF 清理。
-4. 写回 `cf_record_id`、`desired_ip`、`sync_status`、`synced_at` / `last_error`。
-5. 限流时有限次退避重试。
+2. 从全部分组节点中找出在线、IPv4 合法且 priority 最小的一层，生成期望记录集合。
+3. 按 `of_cf_pointing_managed_records` 对已有受管记录逐条 Update；只有 Cloudflare 明确返回 HTTP 404 时才视为记录不存在并重新 Create。
+4. 为新增期望节点 Create A 记录，并登记 Record ID；删除已登记但不再属于期望集合的远端记录及本地关系。
+5. 写回兼容字段、`active_node_id`、`sync_status`、`synced_at` / `last_error`。
+6. 403、429、5xx 或网络错误直接保留错误状态，不得当作记录不存在而重复创建。
 
-**所有权：** 只管理本模块缓存或「唯一同名 A」接管的记录；不清空 Zone、不改其它类型记录。用户在 CF 控制台改动后，下次同步以 OpenFlare 期望覆盖。
+**所有权：** 只管理 `of_cf_pointing_managed_records` 登记的记录；不接管、不覆盖、不删除其他来源创建的同名 A，也不改其他类型记录。用户在 CF 控制台删除受管记录后，下次同步会在确认 404 后重新创建。
 
 ### 执行载体
 
@@ -198,17 +234,19 @@ OpenFlare 库表为 Source of Truth。每个成员期望：
   * `/cloudflare/groups`、`/cloudflare/groups/[id]`：列表与详情（成员、橙云、同步）
 * 服务：`frontend/lib/services/openflare/` 下独立 service，继承 `BaseService`。
 * 页面遵循现有标题栏与组件拆分规范；危险操作二次确认。
-* 必须可见的文案：同步覆盖本模块管理的 A；多条同名 A 需手动清理；移出默认删远端记录；一期无自动故障切换。
+* 必须可见的文案：同 priority 节点共同发布，较大 priority 仅在前层无可用节点时启用；同步只覆盖本模块管理的 A；移出默认删除受管远端记录。
 
 ## 错误与安全
 
 * 用户可见文案为模块内常量；内部错误打 `pkg/logger`。
-* 典型：未配置 Token、Token 无效、节点无 IP、CF 无 Zone、同名多 A、限流。
+* 典型：未配置 Token、Token 无效、无可用节点、CF 无 Zone、限流、受管记录查询或更新失败。
 * Token 仅服务端解密使用；响应与日志禁止明文 Token。
 
 ## 数据迁移
 
-* goose 双方言（PG/SQLite）新建三张表；默认值与 Go 零值一致。
+* goose 双方言（PG/SQLite）新建连接、分组、成员、分组节点与受管记录表；默认值与 Go 零值一致。
+* DDL 与兼容数据回填分离；升级时将既有 primary/backup 转成分组节点，并将既有 `cf_record_id` 登记为受管记录。
+* 回填迁移的 Down 不删除数据，避免误删升级后由用户新增的节点或受管记录。
 
 ## 关键决策摘要
 
@@ -217,7 +255,8 @@ OpenFlare 库表为 Source of Truth。每个成员期望：
 | 模块形态 | 独立 Cloudflare 指向模块，非 Zone 内嵌字段 |
 | Token | 混合：DNS 账号导入或独立加密 |
 | 域名粒度 | ZoneDomain（FQDN） |
-| 记录形态 | 单 A → active 节点 IPv4 |
-| 故障切换 | 二期；心跳离线；一期只存 backup/active |
+| 记录形态 | 最低可用 priority 层的一个或多个同名 A |
+| 故障切换 | 依据在线状态自动选择下一可用 priority；防抖、冷却与通知后续完善 |
 | 橙云 | 成员级生效；分组默认仅初始化 |
 | SoT | 库表期望状态驱动 CF |
+| 远端所有权 | 仅操作本地 managed record 表登记的 Record ID |

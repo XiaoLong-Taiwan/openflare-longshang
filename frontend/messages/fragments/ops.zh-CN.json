@@ -50,9 +50,9 @@
     "map": {
       "sourceRequests": "最近 24 小时来源请求 {count}",
       "presetPin": "预设落点",
+      "nodeCount": "共 {count} 个节点",
       "requestsErrors": "请求量 {requests} · 错误数 {errors}",
-      "eventsStatus": "活动事件 {events} · 节点状态 {status}",
-      "openrestyStatus": "OpenResty 状态 {status}",
+      "eventsStatus": "活动事件 {events}",
       "loadFailed": "全球地图加载失败",
       "loading": "全球地图加载中",
       "loadFailedDesc": "ECharts 世界地图资源未能成功注册，请稍后刷新重试。",

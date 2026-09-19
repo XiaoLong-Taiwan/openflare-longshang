@@ -20,7 +20,13 @@ type CFPointingMemberContext struct {
 	Group  model.CFPointingGroup
 	Domain model.ZoneDomain
 	Zone   model.Zone
-	Node   model.OpenFlareNode
+	Nodes  []CFPointingGroupNodeContext
+}
+
+// CFPointingGroupNodeContext combines a group assignment with its node.
+type CFPointingGroupNodeContext struct {
+	GroupNode model.CFPointingGroupNode
+	Node      model.OpenFlareNode
 }
 
 // GetCFConnection returns the global Cloudflare connection.
@@ -83,6 +89,39 @@ func SaveCFPointingGroup(ctx context.Context, item *model.CFPointingGroup) error
 	return DB(ctx).Save(item).Error
 }
 
+// SaveCFPointingGroupWithNodes persists a group and replaces its node assignments.
+func SaveCFPointingGroupWithNodes(ctx context.Context, item *model.CFPointingGroup, nodes []model.CFPointingGroupNode) error {
+	return DB(ctx).Transaction(func(tx *gorm.DB) error {
+		if item.ID == 0 {
+			if err := tx.Create(item).Error; err != nil {
+				return err
+			}
+		} else if err := tx.Save(item).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("group_id = ?", item.ID).Delete(&model.CFPointingGroupNode{}).Error; err != nil {
+			return err
+		}
+		for i := range nodes {
+			nodes[i].ID = 0
+			nodes[i].GroupID = item.ID
+		}
+		if len(nodes) == 0 {
+			return nil
+		}
+		return tx.Create(&nodes).Error
+	})
+}
+
+// ListCFPointingGroupNodes lists node assignments ordered by priority.
+func ListCFPointingGroupNodes(ctx context.Context, groupID uint) ([]model.CFPointingGroupNode, error) {
+	var items []model.CFPointingGroupNode
+	if err := DB(ctx).Where("group_id = ?", groupID).Order("priority asc, id asc").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 // DeleteCFPointingGroup deletes an empty group.
 func DeleteCFPointingGroup(ctx context.Context, id uint) error {
 	return DB(ctx).Delete(&model.CFPointingGroup{}, id).Error
@@ -110,11 +149,31 @@ func ListCFPointingMembersByGroupID(ctx context.Context, groupID uint) ([]model.
 func ListCFPointingMembersByActiveNodeID(ctx context.Context, nodeID uint) ([]model.CFPointingMember, error) {
 	var items []model.CFPointingMember
 	err := DB(ctx).Table("of_cf_pointing_members AS members").
-		Select("members.*").
+		Select("DISTINCT members.*").
 		Joins("JOIN of_cf_pointing_groups AS groups ON groups.id = members.group_id").
-		Where("groups.active_node_id = ? AND groups.enabled = ?", nodeID, true).
+		Joins("LEFT JOIN of_cf_pointing_group_nodes AS group_nodes ON group_nodes.group_id = groups.id").
+		Where("(group_nodes.node_id = ? OR (group_nodes.id IS NULL AND groups.active_node_id = ?)) AND groups.enabled = ?", nodeID, nodeID, true).
 		Order("members.id asc").Scan(&items).Error
 	return items, err
+}
+
+// ListCFPointingManagedRecords lists DNS records managed for a member.
+func ListCFPointingManagedRecords(ctx context.Context, memberID uint) ([]model.CFPointingManagedRecord, error) {
+	var items []model.CFPointingManagedRecord
+	if err := DB(ctx).Where("member_id = ?", memberID).Order("id asc").Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+// SaveCFPointingManagedRecord persists a managed DNS record.
+func SaveCFPointingManagedRecord(ctx context.Context, item *model.CFPointingManagedRecord) error {
+	return DB(ctx).Save(item).Error
+}
+
+// DeleteCFPointingManagedRecord deletes a managed DNS record entry.
+func DeleteCFPointingManagedRecord(ctx context.Context, item *model.CFPointingManagedRecord) error {
+	return DB(ctx).Delete(item).Error
 }
 
 // GetCFPointingMember returns a member scoped to its group.
@@ -161,7 +220,12 @@ func UpdateCFPointingMemberColumns(ctx context.Context, id uint, changes map[str
 
 // DeleteCFPointingMember deletes a member.
 func DeleteCFPointingMember(ctx context.Context, item *model.CFPointingMember) error {
-	return DB(ctx).Delete(item).Error
+	return DB(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("member_id = ?", item.ID).Delete(&model.CFPointingManagedRecord{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(item).Error
+	})
 }
 
 // ListAvailableCFZoneDomains returns ZoneDomains not already managed by Cloudflare pointing.
@@ -192,11 +256,22 @@ func GetCFPointingMemberContext(ctx context.Context, memberID uint) (*CFPointing
 	if err != nil {
 		return nil, err
 	}
-	node, err := GetOpenFlareNodeByID(ctx, group.ActiveNodeID)
+	groupNodes, err := ListCFPointingGroupNodes(ctx, group.ID)
 	if err != nil {
 		return nil, err
 	}
-	return &CFPointingMemberContext{Member: *member, Group: *group, Domain: *domain, Zone: *zone, Node: *node}, nil
+	if len(groupNodes) == 0 {
+		groupNodes = []model.CFPointingGroupNode{{GroupID: group.ID, NodeID: group.ActiveNodeID, Priority: 0}}
+	}
+	nodes := make([]CFPointingGroupNodeContext, 0, len(groupNodes))
+	for i := range groupNodes {
+		node, nodeErr := GetOpenFlareNodeByID(ctx, groupNodes[i].NodeID)
+		if nodeErr != nil {
+			return nil, nodeErr
+		}
+		nodes = append(nodes, CFPointingGroupNodeContext{GroupNode: groupNodes[i], Node: *node})
+	}
+	return &CFPointingMemberContext{Member: *member, Group: *group, Domain: *domain, Zone: *zone, Nodes: nodes}, nil
 }
 
 // GetZoneDomainByID returns a ZoneDomain by primary key.
@@ -217,7 +292,13 @@ func MarkCFPointingGroupMembersPending(ctx context.Context, groupID uint) error 
 // DeleteCFPointingGroupAndMembers removes a group after its remote records are deleted.
 func DeleteCFPointingGroupAndMembers(ctx context.Context, groupID uint) error {
 	return DB(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("member_id IN (?)", tx.Model(&model.CFPointingMember{}).Select("id").Where("group_id = ?", groupID)).Delete(&model.CFPointingManagedRecord{}).Error; err != nil {
+			return err
+		}
 		if err := tx.Where("group_id = ?", groupID).Delete(&model.CFPointingMember{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("group_id = ?", groupID).Delete(&model.CFPointingGroupNode{}).Error; err != nil {
 			return err
 		}
 		return tx.Delete(&model.CFPointingGroup{}, groupID).Error

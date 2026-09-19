@@ -668,11 +668,20 @@ func buildRouteUpstreamConfig(route Route, upstreams []string) routeUpstreamConf
 		if err != nil || parsed.Host == "" || parsed.Scheme == "" {
 			return routeUpstreamConfig{}
 		}
-		return routeUpstreamConfig{Name: buildRouteUpstreamName(route), Scheme: parsed.Scheme, ProxyPassURI: buildUpstreamProxyPassURI(parsed), Servers: []string{parsed.Host}, UsesNamedUpstream: true}
+		return routeUpstreamConfig{Name: buildRouteUpstreamName(route), Scheme: parsed.Scheme, ProxyPassURI: buildUpstreamProxyPassURI(parsed), Servers: []routeUpstreamServer{{Address: parsed.Host}}, LoadBalancing: normalizeLoadBalancing(route.LoadBalancing), UsesNamedUpstream: true}
 	}
-	servers := make([]string, 0, len(upstreams))
+	servers := make([]routeUpstreamServer, 0, len(upstreams))
+	primaryPriority := 0
+	if len(route.UpstreamTargets) > 0 {
+		primaryPriority = route.UpstreamTargets[0].Priority
+		for _, target := range route.UpstreamTargets[1:] {
+			if target.Priority < primaryPriority {
+				primaryPriority = target.Priority
+			}
+		}
+	}
 	var scheme string
-	for _, upstream := range upstreams {
+	for index, upstream := range upstreams {
 		parsed, err := url.Parse(strings.TrimSpace(upstream))
 		if err != nil || parsed.Host == "" || parsed.Scheme == "" || (strings.TrimSpace(parsed.EscapedPath()) != "" && strings.TrimSpace(parsed.EscapedPath()) != "/") || parsed.RawQuery != "" {
 			return routeUpstreamConfig{}
@@ -682,9 +691,20 @@ func buildRouteUpstreamConfig(route Route, upstreams []string) routeUpstreamConf
 		} else if scheme != parsed.Scheme {
 			return routeUpstreamConfig{}
 		}
-		servers = append(servers, parsed.Host)
+		priority := primaryPriority
+		if index < len(route.UpstreamTargets) {
+			priority = route.UpstreamTargets[index].Priority
+		}
+		servers = append(servers, routeUpstreamServer{Address: parsed.Host, Backup: priority > primaryPriority})
 	}
-	return routeUpstreamConfig{Name: buildRouteUpstreamName(route), Scheme: scheme, Servers: servers, UsesNamedUpstream: true}
+	return routeUpstreamConfig{Name: buildRouteUpstreamName(route), Scheme: scheme, Servers: servers, LoadBalancing: normalizeLoadBalancing(route.LoadBalancing), UsesNamedUpstream: true}
+}
+
+func normalizeLoadBalancing(raw string) string {
+	if strings.EqualFold(strings.TrimSpace(raw), "least_conn") {
+		return "least_conn"
+	}
+	return "round_robin"
 }
 
 func normalizeRouteUpstreamType(raw string) string {
@@ -699,8 +719,15 @@ func normalizeRouteUpstreamType(raw string) string {
 func renderNamedUpstreamBlock(upstreamConfig routeUpstreamConfig) string {
 	var builder strings.Builder
 	fmt.Fprintf(&builder, "upstream %s {\n", upstreamConfig.Name)
+	if upstreamConfig.LoadBalancing == "least_conn" {
+		builder.WriteString("    least_conn;\n")
+	}
 	for _, server := range upstreamConfig.Servers {
-		fmt.Fprintf(&builder, "    server %s max_fails=3 fail_timeout=10s;\n", server)
+		backup := ""
+		if server.Backup {
+			backup = " backup"
+		}
+		fmt.Fprintf(&builder, "    server %s max_fails=3 fail_timeout=10s%s;\n", server.Address, backup)
 	}
 	builder.WriteString("    keepalive 128;\n}\n\n")
 	return builder.String()

@@ -103,6 +103,21 @@ type apiError struct {
 	Message string `json:"message"`
 }
 
+type apiHTTPError struct {
+	statusCode int
+	code       int
+	message    string
+}
+
+func (err *apiHTTPError) Error() string {
+	return err.message
+}
+
+func isNotFoundError(err error) bool {
+	var apiErr *apiHTTPError
+	return errors.As(err, &apiErr) && apiErr.statusCode == http.StatusNotFound
+}
+
 type apiEnvelope[T any] struct {
 	Success bool       `json:"success"`
 	Errors  []apiError `json:"errors"`
@@ -263,14 +278,19 @@ func waitForRetry(ctx context.Context, delay time.Duration) error {
 func decodeAPIResponse(statusCode int, responseBody []byte, result any) error {
 	var envelope apiEnvelope[json.RawMessage]
 	if err := json.Unmarshal(responseBody, &envelope); err != nil {
+		if statusCode < http.StatusOK || statusCode >= http.StatusMultipleChoices {
+			return &apiHTTPError{statusCode: statusCode, message: http.StatusText(statusCode)}
+		}
 		return fmt.Errorf("decode Cloudflare response: %w", err)
 	}
 	if statusCode < http.StatusOK || statusCode >= http.StatusMultipleChoices || !envelope.Success {
 		message := "cloudflare API 请求失败"
+		code := 0
 		if len(envelope.Errors) > 0 && strings.TrimSpace(envelope.Errors[0].Message) != "" {
 			message = envelope.Errors[0].Message
+			code = envelope.Errors[0].Code
 		}
-		return errors.New(message)
+		return &apiHTTPError{statusCode: statusCode, code: code, message: message}
 	}
 	if result == nil || len(envelope.Result) == 0 || string(envelope.Result) == "null" {
 		return nil

@@ -49,6 +49,8 @@ type snapshotRoute struct {
 	OriginURL          string                           `json:"origin_url"`
 	OriginHost         string                           `json:"origin_host,omitempty"`
 	Upstreams          []string                         `json:"upstreams,omitempty"`
+	UpstreamTargets    []snapshotUpstreamTarget          `json:"upstream_targets,omitempty"`
+	LoadBalancing      string                           `json:"load_balancing,omitempty"`
 	Enabled            bool                             `json:"enabled"`
 	EnableHTTPS        bool                             `json:"enable_https"`
 	DomainCertIDs      []uint                           `json:"domain_cert_ids,omitempty"`
@@ -78,6 +80,11 @@ type snapshotWAFRuleGroup struct {
 	Enabled  bool                 `json:"enabled"`
 	IsGlobal bool                 `json:"is_global"`
 	Graph    waf.RuntimeRuleGraph `json:"graph"`
+}
+
+type snapshotUpstreamTarget struct {
+	URL      string `json:"url"`
+	Priority int    `json:"priority"`
 }
 
 type snapshotWAFIPGroup struct {
@@ -258,6 +265,14 @@ func buildSnapshotRoutes(ctx context.Context, routes []*model.ProxyRoute) ([]sna
 		if err != nil {
 			return nil, fmt.Errorf("路由 %s 上游配置无效", route.SiteName)
 		}
+		decodedUpstreamTargets, err := decodeStoredUpstreamTargets(route.UpstreamTargets, upstreams)
+		if err != nil {
+			return nil, fmt.Errorf("路由 %s 結構化上游配置無效", route.SiteName)
+		}
+		upstreamTargets := make([]snapshotUpstreamTarget, 0, len(decodedUpstreamTargets))
+		for _, target := range decodedUpstreamTargets {
+			upstreamTargets = append(upstreamTargets, snapshotUpstreamTarget{URL: target.URL, Priority: target.Priority})
+		}
 		var tunnelNodeID *uint
 		var tunnelTargetAddr string
 		var tunnelTargetProtocol string
@@ -267,11 +282,13 @@ func buildSnapshotRoutes(ctx context.Context, routes []*model.ProxyRoute) ([]sna
 		case "tunnel":
 			originURL = resolveTunnelOpenRestyUpstreamURL(ctx)
 			upstreams = []string{originURL}
+			upstreamTargets = nil
 			tunnelNodeID = route.TunnelNodeID
 			tunnelTargetAddr = strings.TrimSpace(route.TunnelTargetAddr)
 			tunnelTargetProtocol = normalizeTunnelTargetProtocol(route.TunnelTargetProtocol)
 		case "pages":
 			originURL, upstreams, pagesProjectID, pagesDeployment, err = buildPagesRouteSnapshot(ctx, route)
+			upstreamTargets = nil
 			if err != nil {
 				return nil, err
 			}
@@ -287,6 +304,8 @@ func buildSnapshotRoutes(ctx context.Context, routes []*model.ProxyRoute) ([]sna
 			OriginURL:          originURL,
 			OriginHost:         route.OriginHost,
 			Upstreams:          upstreams,
+			UpstreamTargets:    upstreamTargets,
+			LoadBalancing:      displayLoadBalancing(route.LoadBalancing),
 			Enabled:            route.Enabled,
 			EnableHTTPS:        route.EnableHTTPS,
 			DomainCertIDs:      domainCertIDs,

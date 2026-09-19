@@ -20,6 +20,7 @@ import type {
 import {
   getNodeStatusLabel,
   getOpenrestyStatusLabel,
+  type NodeMessageT,
 } from '../../nodes/components/node-utils';
 import countryCentroidsJson from './data/country-centroids.json';
 import worldGeoJson from './data/world-geo.json';
@@ -63,17 +64,15 @@ type WorldFeature = {
 };
 
 type MapNodeDatum = {
-  id: number;
   name: string;
   geoName: string;
   route: string;
   derivedFromGeo: boolean;
+  nodes: DashboardNodeHealth[];
   requestCount: number;
   errorCount: number;
   activeEventCount: number;
-  status: DashboardNodeHealth['status'];
-  openrestyStatus: DashboardNodeHealth['openresty_status'];
-  value: [number, number, number];
+  value: [number, number];
   itemStyle: {
     color: string;
     borderColor: string;
@@ -109,14 +108,14 @@ const baseWorldMapLayoutSizePercent = 118;
 const baseWorldMapZoom = 1;
 const worldMapAspectRatio = 5 / 3;
 
-function buildNodeDetailHref(id?: number | null) {
-  if (!id) {
+export function buildNodeMapHref(nodes: DashboardNodeHealth[]) {
+  if (nodes.length !== 1) {
     return '/nodes';
   }
-  return `/nodes/detail?id=${id}`;
+  return `/nodes/detail?id=${nodes[0].id}`;
 }
 
-function getNodeTone(node: DashboardNodeHealth): Tone {
+export function getNodeTone(node: DashboardNodeHealth): Tone {
   if (
     node.status === 'offline' ||
     node.openresty_status === 'unhealthy' ||
@@ -225,6 +224,106 @@ function getNodeCoordinates(node: DashboardNodeHealth, index: number) {
     ] as [number, number],
     derivedFromGeo: false,
   };
+}
+
+export type NodeMapGroup = {
+  coordinates: [number, number];
+  derivedFromGeo: boolean;
+  geoName: string;
+  nodes: DashboardNodeHealth[];
+  tone: Tone;
+};
+
+const tonePriority: Record<Tone, number> = {
+  healthy: 0,
+  warning: 1,
+  danger: 2,
+};
+
+function coordinateKey(coordinates: [number, number]) {
+  return `${coordinates[0].toFixed(6)},${coordinates[1].toFixed(6)}`;
+}
+
+function geoNameKey(geoName: string) {
+  return geoName.trim().toLocaleLowerCase();
+}
+
+export function groupDashboardNodes(nodes: DashboardNodeHealth[]) {
+  return nodes.reduce<NodeMapGroup[]>((groups, node, index) => {
+    const { coordinates, derivedFromGeo } = getNodeCoordinates(node, index);
+    const locationKey = coordinateKey(coordinates);
+    const nameKey = geoNameKey(node.geo_name || '');
+    const group = groups.find(
+      (item) =>
+        coordinateKey(item.coordinates) === locationKey ||
+        (nameKey && geoNameKey(item.geoName) === nameKey),
+    );
+    const tone = getNodeTone(node);
+
+    if (!group) {
+      groups.push({
+        coordinates,
+        derivedFromGeo,
+        geoName: node.geo_name || node.name,
+        nodes: [node],
+        tone,
+      });
+      return groups;
+    }
+
+    group.nodes.push(node);
+    group.derivedFromGeo = group.derivedFromGeo || derivedFromGeo;
+    if (tonePriority[tone] > tonePriority[group.tone]) {
+      group.tone = tone;
+    }
+    return groups;
+  }, []);
+}
+
+function escapeTooltipText(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+export function buildNodeMapTooltip(
+  data: Pick<
+    MapNodeDatum,
+    | 'activeEventCount'
+    | 'derivedFromGeo'
+    | 'errorCount'
+    | 'geoName'
+    | 'nodes'
+    | 'requestCount'
+  >,
+  t: NodeMessageT,
+  tn: NodeMessageT,
+) {
+  const locationLine = escapeTooltipText(
+    data.derivedFromGeo ? data.geoName : `${data.geoName} · ${t('presetPin')}`,
+  );
+  const nodeLines = data.nodes
+    .map(
+      (node) =>
+        `<div>${escapeTooltipText(node.name)} · ${escapeTooltipText(getNodeStatusLabel(node.status, tn))} · ${escapeTooltipText(getOpenrestyStatusLabel(node.openresty_status, tn))}</div>`,
+    )
+    .join('');
+
+  return [
+    `<div style="font-weight:600;margin-bottom:6px;">${locationLine}</div>`,
+    `<div>${t('nodeCount', { count: data.nodes.length })}</div>`,
+    nodeLines,
+    `<div>${t('requestsErrors', {
+      requests: data.requestCount.toLocaleString('zh-CN'),
+      errors: data.errorCount.toLocaleString('zh-CN'),
+    })}</div>`,
+    `<div>${t('eventsStatus', {
+      events: data.activeEventCount,
+    })}</div>`,
+  ].join('');
 }
 
 function ensureWorldMapRegistered() {
@@ -368,9 +467,8 @@ export function WorldStageMap({
 
   const mapNodes = useMemo<MapNodeDatum[]>(
     () =>
-      nodes.map((node, index) => {
-        const { coordinates, derivedFromGeo } = getNodeCoordinates(node, index);
-        const tone = getNodeTone(node);
+      groupDashboardNodes(nodes).map((group) => {
+        const { coordinates, derivedFromGeo, tone } = group;
         const toneColor =
           tone === 'healthy'
             ? mapPalette.healthyColor
@@ -385,21 +483,24 @@ export function WorldStageMap({
               : mapPalette.dangerBorder;
 
         return {
-          id: node.id,
-          name: node.name,
-          geoName: node.geo_name || node.name,
-          route: buildNodeDetailHref(node.id),
+          name: group.nodes.map((node) => node.name).join(', '),
+          geoName: group.geoName,
+          route: buildNodeMapHref(group.nodes),
           derivedFromGeo,
-          requestCount: node.request_count,
-          errorCount: node.error_count,
-          activeEventCount: node.active_event_count,
-          status: node.status,
-          openrestyStatus: node.openresty_status,
-          value: [
-            coordinates[0],
-            coordinates[1],
-            Math.max(node.request_count, 1),
-          ],
+          nodes: group.nodes,
+          requestCount: group.nodes.reduce(
+            (total, node) => total + node.request_count,
+            0,
+          ),
+          errorCount: group.nodes.reduce(
+            (total, node) => total + node.error_count,
+            0,
+          ),
+          activeEventCount: group.nodes.reduce(
+            (total, node) => total + node.active_event_count,
+            0,
+          ),
+          value: [coordinates[0], coordinates[1]],
           itemStyle: {
             color: toneColor,
             borderColor: toneBorder,
@@ -514,25 +615,7 @@ export function WorldStageMap({
             return '';
           }
 
-          const locationLine = data.derivedFromGeo
-            ? data.geoName
-            : `${data.geoName} · ${t('presetPin')}`;
-
-          return [
-            `<div style="font-weight:600;margin-bottom:6px;">${data.name}</div>`,
-            `<div>${locationLine}</div>`,
-            `<div>${t('requestsErrors', {
-              requests: data.requestCount.toLocaleString('zh-CN'),
-              errors: data.errorCount.toLocaleString('zh-CN'),
-            })}</div>`,
-            `<div>${t('eventsStatus', {
-              events: data.activeEventCount,
-              status: getNodeStatusLabel(data.status, tn),
-            })}</div>`,
-            `<div>${t('openrestyStatus', {
-              status: getOpenrestyStatusLabel(data.openrestyStatus, tn),
-            })}</div>`,
-          ].join('');
+          return buildNodeMapTooltip(data, t, tn);
         },
       },
       geo: {
@@ -573,20 +656,7 @@ export function WorldStageMap({
           coordinateSystem: 'geo',
           data: mapNodes,
           z: 3,
-          progressive: 64,
-          large: true,
-          largeThreshold: 24,
-          symbolSize: (value: unknown) => {
-            const size =
-              Array.isArray(value) && typeof value[2] === 'number'
-                ? value[2]
-                : 1;
-            const responsiveBase = 8 + Math.log10(size + 1) * 3.6;
-            return Math.max(
-              7,
-              Math.min(18, responsiveBase * Math.max(responsiveMapScale, 0.88)),
-            );
-          },
+          symbolSize: 11,
           label: {
             show: false,
             color: mapPalette.labelColor,
@@ -620,7 +690,6 @@ export function WorldStageMap({
       isDark,
       mapNodes,
       mapPalette,
-      responsiveMapScale,
       t,
       tn,
     ],

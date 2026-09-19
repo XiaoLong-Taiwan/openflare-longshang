@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
+	"sort"
 	"strings"
 	"time"
 
@@ -181,11 +182,11 @@ func ListGroups(ctx context.Context) ([]GroupItem, error) {
 
 // CreateGroup creates a pointing group with its primary node active.
 func CreateGroup(ctx context.Context, input GroupInput) (*GroupItem, error) {
-	group, err := groupFromInput(ctx, nil, input)
+	group, nodes, err := groupFromInput(ctx, nil, input)
 	if err != nil {
 		return nil, err
 	}
-	if err = repository.CreateCFPointingGroup(ctx, group); err != nil {
+	if err = repository.SaveCFPointingGroupWithNodes(ctx, group, nodes); err != nil {
 		return nil, err
 	}
 	return buildGroupItem(ctx, group)
@@ -197,11 +198,11 @@ func UpdateGroup(ctx context.Context, id uint, input GroupInput) (*GroupItem, er
 	if err != nil {
 		return nil, err
 	}
-	group, err := groupFromInput(ctx, existing, input)
+	group, nodes, err := groupFromInput(ctx, existing, input)
 	if err != nil {
 		return nil, err
 	}
-	if err = repository.SaveCFPointingGroup(ctx, group); err != nil {
+	if err = repository.SaveCFPointingGroupWithNodes(ctx, group, nodes); err != nil {
 		return nil, err
 	}
 	if err = repository.MarkCFPointingGroupMembersPending(ctx, id); err != nil {
@@ -215,33 +216,51 @@ func UpdateGroup(ctx context.Context, id uint, input GroupInput) (*GroupItem, er
 	return buildGroupItem(ctx, group)
 }
 
-func groupFromInput(ctx context.Context, existing *model.CFPointingGroup, input GroupInput) (*model.CFPointingGroup, error) {
+func groupFromInput(ctx context.Context, existing *model.CFPointingGroup, input GroupInput) (*model.CFPointingGroup, []model.CFPointingGroupNode, error) {
 	name := strings.TrimSpace(input.Name)
 	if name == "" {
-		return nil, errors.New(errGroupNameRequired)
+		return nil, nil, errors.New(errGroupNameRequired)
 	}
-	if input.BackupNodeID != nil && *input.BackupNodeID == input.PrimaryNodeID {
-		return nil, errors.New(errGroupNodeSame)
-	}
-	primary, err := validEdgeNode(ctx, input.PrimaryNodeID, true)
-	if err != nil {
-		return nil, err
-	}
-	if input.BackupNodeID != nil {
-		if _, err = validEdgeNode(ctx, *input.BackupNodeID, false); err != nil {
-			return nil, err
+	inputs := input.Nodes
+	if len(inputs) == 0 {
+		inputs = []GroupNodeInput{{NodeID: input.PrimaryNodeID, Priority: 0}}
+		if input.BackupNodeID != nil {
+			inputs = append(inputs, GroupNodeInput{NodeID: *input.BackupNodeID, Priority: 1})
 		}
 	}
+	seen := make(map[uint]struct{}, len(inputs))
+	nodes := make([]model.CFPointingGroupNode, 0, len(inputs))
+	for _, item := range inputs {
+		if item.NodeID == 0 || item.Priority < 0 {
+			return nil, nil, errors.New(errNodeInvalid)
+		}
+		if _, ok := seen[item.NodeID]; ok {
+			return nil, nil, errors.New(errGroupNodeSame)
+		}
+		seen[item.NodeID] = struct{}{}
+		if _, err := validEdgeNode(ctx, item.NodeID, false); err != nil {
+			return nil, nil, err
+		}
+		nodes = append(nodes, model.CFPointingGroupNode{NodeID: item.NodeID, Priority: item.Priority})
+	}
+	if len(nodes) == 0 {
+		return nil, nil, errors.New(errNodeInvalid)
+	}
+	sort.SliceStable(nodes, func(i, j int) bool { return nodes[i].Priority < nodes[j].Priority })
 	if existing == nil {
 		existing = &model.CFPointingGroup{}
 	}
 	existing.Name = name
-	existing.PrimaryNodeID = primary.ID
-	existing.ActiveNodeID = primary.ID
-	existing.BackupNodeID = input.BackupNodeID
+	existing.PrimaryNodeID = nodes[0].NodeID
+	existing.ActiveNodeID = nodes[0].NodeID
+	existing.BackupNodeID = nil
+	if len(nodes) > 1 {
+		backupID := nodes[1].NodeID
+		existing.BackupNodeID = &backupID
+	}
 	existing.DefaultProxied = input.DefaultProxied
 	existing.Enabled = input.Enabled
-	return existing, nil
+	return existing, nodes, nil
 }
 
 func validEdgeNode(ctx context.Context, id uint, requireIPv4 bool) (*model.OpenFlareNode, error) {
@@ -268,7 +287,21 @@ func buildGroupItem(ctx context.Context, group *model.CFPointingGroup) (*GroupIt
 	if err != nil {
 		return nil, err
 	}
-	item := &GroupItem{ID: group.ID, Name: group.Name, PrimaryNode: nodeOption(primary), ActiveNode: nodeOption(active), DefaultProxied: group.DefaultProxied, Enabled: group.Enabled, MemberCount: count, CreatedAt: group.CreatedAt, UpdatedAt: group.UpdatedAt}
+	groupNodes, err := repository.ListCFPointingGroupNodes(ctx, group.ID)
+	if err != nil {
+		return nil, err
+	}
+	item := &GroupItem{ID: group.ID, Name: group.Name, PrimaryNode: nodeOption(primary), ActiveNode: nodeOption(active), Nodes: make([]GroupNodeItem, 0, len(groupNodes)), DefaultProxied: group.DefaultProxied, Enabled: group.Enabled, MemberCount: count, CreatedAt: group.CreatedAt, UpdatedAt: group.UpdatedAt}
+	for _, groupNode := range groupNodes {
+		node, nodeErr := repository.GetOpenFlareNodeByID(ctx, groupNode.NodeID)
+		if nodeErr != nil {
+			return nil, nodeErr
+		}
+		item.Nodes = append(item.Nodes, GroupNodeItem{NodeOption: nodeOption(node), Priority: groupNode.Priority})
+	}
+	if len(item.Nodes) == 0 {
+		item.Nodes = append(item.Nodes, GroupNodeItem{NodeOption: item.PrimaryNode, Priority: 0})
+	}
 	if group.BackupNodeID != nil {
 		backup, backupErr := repository.GetOpenFlareNodeByID(ctx, *group.BackupNodeID)
 		if backupErr != nil {
@@ -329,7 +362,7 @@ func CreateMember(ctx context.Context, groupID uint, input MemberCreateInput) (*
 			return nil, errors.New(errTaskDispatchFailed)
 		}
 	}
-	return memberItem(member, domain), nil
+	return memberItem(ctx, member, domain), nil
 }
 
 // UpdateMember updates orange-cloud state and queues reconciliation.
@@ -357,7 +390,7 @@ func UpdateMember(ctx context.Context, groupID, memberID uint, input MemberUpdat
 	if err != nil {
 		return nil, err
 	}
-	return memberItem(member, domain), nil
+	return memberItem(ctx, member, domain), nil
 }
 
 // RemoveMember deletes the managed remote A record before removing local state.
@@ -433,13 +466,23 @@ func listMemberItems(ctx context.Context, groupID uint) ([]MemberItem, error) {
 			}
 			return nil, domainErr
 		}
-		items = append(items, *memberItem(&members[i], domain))
+		items = append(items, *memberItem(ctx, &members[i], domain))
 	}
 	return items, nil
 }
 
-func memberItem(member *model.CFPointingMember, domain *model.ZoneDomain) *MemberItem {
-	return &MemberItem{ID: member.ID, GroupID: member.GroupID, ZoneDomainID: member.ZoneDomainID, Domain: domain.Domain, ZoneID: domain.ZoneID, Proxied: member.Proxied, DesiredIP: member.DesiredIP, SyncStatus: member.SyncStatus, LastError: member.LastError, SyncedAt: member.SyncedAt}
+func memberItem(ctx context.Context, member *model.CFPointingMember, domain *model.ZoneDomain) *MemberItem {
+	desiredIPs := []string{}
+	if member.DesiredIP != "" {
+		desiredIPs = append(desiredIPs, member.DesiredIP)
+	}
+	if records, err := repository.ListCFPointingManagedRecords(ctx, member.ID); err == nil {
+		desiredIPs = desiredIPs[:0]
+		for _, record := range records {
+			desiredIPs = append(desiredIPs, record.DesiredIP)
+		}
+	}
+	return &MemberItem{ID: member.ID, GroupID: member.GroupID, ZoneDomainID: member.ZoneDomainID, Domain: domain.Domain, ZoneID: domain.ZoneID, Proxied: member.Proxied, DesiredIP: member.DesiredIP, DesiredIPs: desiredIPs, SyncStatus: member.SyncStatus, LastError: member.LastError, SyncedAt: member.SyncedAt}
 }
 
 // GetOverview returns readiness and aggregate sync counts.

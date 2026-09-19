@@ -29,11 +29,24 @@ type NodeOption struct {
 	IP   string `json:"ip"`
 }
 
+// GroupNodeInput assigns a node to a Cloudflare group priority.
+type GroupNodeInput struct {
+	NodeID   uint `json:"node_id"`
+	Priority int  `json:"priority"`
+}
+
+// GroupNodeItem exposes a Cloudflare group node and its priority.
+type GroupNodeItem struct {
+	NodeOption
+	Priority int `json:"priority"`
+}
+
 // GroupInput creates or updates a pointing group.
 type GroupInput struct {
 	Name           string `json:"name"`
 	PrimaryNodeID  uint   `json:"primary_node_id"`
 	BackupNodeID   *uint  `json:"backup_node_id"`
+	Nodes          []GroupNodeInput `json:"nodes"`
 	DefaultProxied bool   `json:"default_proxied"`
 	Enabled        bool   `json:"enabled"`
 }
@@ -45,6 +58,7 @@ type GroupItem struct {
 	PrimaryNode    NodeOption  `json:"primary_node"`
 	BackupNode     *NodeOption `json:"backup_node"`
 	ActiveNode     NodeOption  `json:"active_node"`
+	Nodes          []GroupNodeItem `json:"nodes"`
 	DefaultProxied bool        `json:"default_proxied"`
 	Enabled        bool        `json:"enabled"`
 	MemberCount    int64       `json:"member_count"`
@@ -72,6 +86,7 @@ type MemberItem struct {
 	ZoneID       uint       `json:"zone_id"`
 	Proxied      bool       `json:"proxied"`
 	DesiredIP    string     `json:"desired_ip"`
+	DesiredIPs   []string   `json:"desired_ips"`
 	SyncStatus   string     `json:"sync_status"`
 	LastError    string     `json:"last_error"`
 	SyncedAt     *time.Time `json:"synced_at"`

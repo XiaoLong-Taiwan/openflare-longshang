@@ -129,6 +129,12 @@ func renderPagesRoute(builder *strings.Builder, route Route, displayName, server
 
 func renderProxyRoute(builder *strings.Builder, route Route, displayName, serverNames string, certificates map[uint]string, cacheConfig routeCacheConfig, limitConfig routeLimitConfig, powEnabled bool, cfg ConfigSnapshot) error {
 	upstreams := route.Upstreams
+	if len(route.UpstreamTargets) > 0 {
+		upstreams = make([]string, 0, len(route.UpstreamTargets))
+		for _, target := range route.UpstreamTargets {
+			upstreams = append(upstreams, target.URL)
+		}
+	}
 	if len(upstreams) == 0 && strings.TrimSpace(route.OriginURL) != "" {
 		upstreams = []string{route.OriginURL}
 	}

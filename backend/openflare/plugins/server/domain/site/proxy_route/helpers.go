@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/url"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"unicode"
@@ -443,6 +444,87 @@ func normalizeUpstreams(originURL string, upstreams []string) ([]string, error) 
 		return nil, errors.New(errProxyRouteUpstreamRequired)
 	}
 	return normalized, nil
+}
+
+func normalizeUpstreamTargets(upstreamType string, upstreams []string, targets []UpstreamTargetInput) ([]UpstreamTargetInput, error) {
+	if upstreamType != "direct" || len(targets) == 0 {
+		result := make([]UpstreamTargetInput, 0, len(upstreams))
+		for _, upstream := range upstreams {
+			result = append(result, UpstreamTargetInput{URL: upstream, Priority: 0})
+		}
+		return result, nil
+	}
+
+	urls := make([]string, 0, len(targets))
+	priorities := make(map[string]int, len(targets))
+	priorityTiers := make(map[int]struct{}, 2)
+	for _, target := range targets {
+		if target.Priority < 0 {
+			return nil, errors.New(errProxyRouteUpstreamPriority)
+		}
+		priorityTiers[target.Priority] = struct{}{}
+		if len(priorityTiers) > 2 {
+			return nil, errors.New(errProxyRouteUpstreamPriorityTier)
+		}
+		url := strings.TrimSpace(target.URL)
+		if _, exists := priorities[url]; exists {
+			continue
+		}
+		urls = append(urls, url)
+		priorities[url] = target.Priority
+	}
+	normalizedURLs, err := normalizeUpstreams("", urls)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]UpstreamTargetInput, 0, len(normalizedURLs))
+	for _, upstream := range normalizedURLs {
+		result = append(result, UpstreamTargetInput{URL: upstream, Priority: priorities[upstream]})
+	}
+	sort.SliceStable(result, func(left, right int) bool {
+		return result[left].Priority < result[right].Priority
+	})
+	return result, nil
+}
+
+func upstreamTargetURLs(targets []UpstreamTargetInput) []string {
+	result := make([]string, 0, len(targets))
+	for _, target := range targets {
+		result = append(result, target.URL)
+	}
+	return result
+}
+
+func normalizeLoadBalancing(raw string) (string, error) {
+	value := strings.ToLower(strings.TrimSpace(raw))
+	switch value {
+	case "", "round_robin":
+		return "round_robin", nil
+	case "least_conn":
+		return value, nil
+	default:
+		return "", errors.New(errProxyRouteLoadBalancing)
+	}
+}
+
+func displayLoadBalancing(raw string) string {
+	value, err := normalizeLoadBalancing(raw)
+	if err != nil {
+		return "round_robin"
+	}
+	return value
+}
+
+func decodeStoredUpstreamTargets(raw string, upstreams []string) ([]UpstreamTargetInput, error) {
+	text := strings.TrimSpace(raw)
+	if text == "" || text == "[]" {
+		return normalizeUpstreamTargets("direct", upstreams, nil)
+	}
+	var targets []UpstreamTargetInput
+	if err := json.Unmarshal([]byte(text), &targets); err != nil {
+		return nil, errors.New("upstream_targets payload is invalid")
+	}
+	return normalizeUpstreamTargets("direct", upstreams, targets)
 }
 
 func decodeStoredCustomHeaders(raw string) ([]CustomHeaderInput, error) {

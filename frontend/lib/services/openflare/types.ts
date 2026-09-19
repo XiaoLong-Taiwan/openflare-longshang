@@ -197,6 +197,13 @@ export interface ProxyRouteCustomHeader {
   value: string;
 }
 
+export type ProxyRouteLoadBalancing = 'round_robin' | 'least_conn';
+
+export interface ProxyRouteUpstreamTarget {
+  url: string;
+  priority: number;
+}
+
 export interface ProxyRoutePoWListConfig {
   ips: string[];
   ip_cidrs: string[];
@@ -232,6 +239,8 @@ export interface ProxyRouteItem {
   origin_host: string;
   upstreams: string;
   upstream_list: string[];
+  upstream_targets: ProxyRouteUpstreamTarget[];
+  load_balancing: ProxyRouteLoadBalancing;
   enabled: boolean;
   enable_https: boolean;
   redirect_http: boolean;
@@ -269,6 +278,8 @@ export interface ProxyRouteMutationPayload {
   origin_uri: string;
   origin_host: string;
   upstreams: string[];
+  upstream_targets?: ProxyRouteUpstreamTarget[];
+  load_balancing?: ProxyRouteLoadBalancing;
   enabled: boolean;
   enable_https: boolean;
   redirect_http: boolean;
@@ -1365,12 +1376,17 @@ export interface CloudflareNodeOption {
   ip: string;
 }
 
+export interface CloudflareGroupNode extends CloudflareNodeOption {
+  priority: number;
+}
+
 export interface CloudflareGroup {
   id: number;
   name: string;
   primary_node: CloudflareNodeOption;
   backup_node: CloudflareNodeOption | null;
   active_node: CloudflareNodeOption;
+  nodes?: CloudflareGroupNode[];
   default_proxied: boolean;
   enabled: boolean;
   member_count: number;
@@ -1380,8 +1396,9 @@ export interface CloudflareGroup {
 
 export interface CloudflareGroupPayload {
   name: string;
-  primary_node_id: number;
-  backup_node_id: number | null;
+  primary_node_id?: number;
+  backup_node_id?: number | null;
+  nodes?: Array<{ node_id: number; priority: number }>;
   default_proxied: boolean;
   enabled: boolean;
 }
@@ -1394,6 +1411,7 @@ export interface CloudflareMember {
   zone_id: number;
   proxied: boolean;
   desired_ip: string;
+  desired_ips?: string[];
   sync_status: CloudflareSyncStatus;
   last_error: string;
   synced_at: string | null;

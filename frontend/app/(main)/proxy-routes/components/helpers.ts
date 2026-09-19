@@ -378,6 +378,11 @@ export function buildPayloadFromRoute(
     origin_uri: primaryOrigin.uri,
     origin_host: route.origin_host || '',
     upstreams: (route.upstream_list ?? []).slice(1),
+    upstream_targets:
+      route.upstream_targets?.length > 0
+        ? route.upstream_targets
+        : (route.upstream_list ?? []).map((url) => ({ url, priority: 0 })),
+    load_balancing: route.load_balancing ?? 'round_robin',
     enabled: route.enabled,
     enable_https: route.enable_https,
     redirect_http: route.redirect_http,
