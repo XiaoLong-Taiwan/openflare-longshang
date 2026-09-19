@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"Wavelet/openflare/plugins/server/domain/site/proxy_route"
 	oftls "Wavelet/openflare/plugins/server/domain/tls"
 	"Wavelet/openflare/plugins/server/domain/waf"
 	"Wavelet/openflare/plugins/server/kernel/model"
@@ -265,7 +266,7 @@ func buildSnapshotRoutes(ctx context.Context, routes []*model.ProxyRoute) ([]sna
 		if err != nil {
 			return nil, fmt.Errorf("路由 %s 上游配置无效", route.SiteName)
 		}
-		decodedUpstreamTargets, err := decodeStoredUpstreamTargets(route.UpstreamTargets, upstreams)
+		decodedUpstreamTargets, err := proxy_route.DecodeStoredUpstreamTargets(route.UpstreamTargets, upstreams)
 		if err != nil {
 			return nil, fmt.Errorf("路由 %s 結構化上游配置無效", route.SiteName)
 		}
@@ -305,7 +306,7 @@ func buildSnapshotRoutes(ctx context.Context, routes []*model.ProxyRoute) ([]sna
 			OriginHost:         route.OriginHost,
 			Upstreams:          upstreams,
 			UpstreamTargets:    upstreamTargets,
-			LoadBalancing:      displayLoadBalancing(route.LoadBalancing),
+			LoadBalancing:      proxy_route.DisplayLoadBalancing(route.LoadBalancing),
 			Enabled:            route.Enabled,
 			EnableHTTPS:        route.EnableHTTPS,
 			DomainCertIDs:      domainCertIDs,

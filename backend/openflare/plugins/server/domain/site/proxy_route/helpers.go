@@ -515,6 +515,11 @@ func displayLoadBalancing(raw string) string {
 	return value
 }
 
+// DisplayLoadBalancing returns the normalized load-balancing mode for stored routes.
+func DisplayLoadBalancing(raw string) string {
+	return displayLoadBalancing(raw)
+}
+
 func decodeStoredUpstreamTargets(raw string, upstreams []string) ([]UpstreamTargetInput, error) {
 	text := strings.TrimSpace(raw)
 	if text == "" || text == "[]" {
@@ -525,6 +530,11 @@ func decodeStoredUpstreamTargets(raw string, upstreams []string) ([]UpstreamTarg
 		return nil, errors.New("upstream_targets payload is invalid")
 	}
 	return normalizeUpstreamTargets("direct", upstreams, targets)
+}
+
+// DecodeStoredUpstreamTargets decodes and normalizes stored structured upstream targets.
+func DecodeStoredUpstreamTargets(raw string, upstreams []string) ([]UpstreamTargetInput, error) {
+	return decodeStoredUpstreamTargets(raw, upstreams)
 }
 
 func decodeStoredCustomHeaders(raw string) ([]CustomHeaderInput, error) {

@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"Wavelet/openflare/plugins/server/domain/site/proxy_route"
 	"Wavelet/openflare/plugins/server/kernel/repository"
 
 	"Wavelet/openflare/plugins/server/domain/fleet/websocket"
@@ -347,7 +348,7 @@ func normalizeSnapshotRoutes(routes []snapshotRoute) []snapshotRoute {
 			routes[index].OriginURL = normalizedUpstreams[0]
 			routes[index].Upstreams = normalizedUpstreams
 		}
-		routes[index].LoadBalancing = displayLoadBalancing(routes[index].LoadBalancing)
+		routes[index].LoadBalancing = proxy_route.DisplayLoadBalancing(routes[index].LoadBalancing)
 		if !routes[index].BasicAuthEnabled {
 			routes[index].BasicAuthUsername = ""
 			routes[index].BasicAuthPassword = ""
