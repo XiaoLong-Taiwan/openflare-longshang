@@ -170,14 +170,15 @@ func (handler *SyncMemberTaskHandler) Execute(ctx context.Context, payload []byt
 	if loadErr != nil {
 		task.AppendLog(ctx, "加载成员上下文失败: member_id=%d error=%v", input.MemberID, loadErr)
 	} else {
+		nodeNames, nodeIPs := syncTargetSummary(state.Nodes)
 		task.AppendLog(ctx,
-			"开始域名同步: domain=%s zone=%s group=%s(#%d) node=%s(%s) proxied=%v member_id=%d",
+			"开始域名同步: domain=%s zone=%s group=%s(#%d) nodes=%s ips=%s proxied=%v member_id=%d",
 			state.Domain.Domain,
 			state.Zone.Domain,
 			state.Group.Name,
 			state.Group.ID,
-			state.Node.Name,
-			strings.TrimSpace(state.Node.IP),
+			nodeNames,
+			nodeIPs,
 			state.Member.Proxied,
 			input.MemberID,
 		)
@@ -195,17 +196,28 @@ func (handler *SyncMemberTaskHandler) Execute(ctx context.Context, payload []byt
 
 	message := "Cloudflare 域名同步成功"
 	if state != nil {
-		ip := strings.TrimSpace(state.Node.IP)
+		nodeNames, nodeIPs := syncTargetSummary(state.Nodes)
 		message = fmt.Sprintf("Cloudflare 域名同步成功: %s → %s (proxied=%v)",
-			state.Domain.Domain, ip, state.Member.Proxied)
+			state.Domain.Domain, nodeIPs, state.Member.Proxied)
 		task.AppendLog(ctx,
-			"域名同步成功: domain=%s desired_ip=%s proxied=%v group=%s node=%s",
-			state.Domain.Domain, ip, state.Member.Proxied, state.Group.Name, state.Node.Name,
+			"域名同步成功: domain=%s desired_ips=%s proxied=%v group=%s nodes=%s",
+			state.Domain.Domain, nodeIPs, state.Member.Proxied, state.Group.Name, nodeNames,
 		)
 	} else {
 		task.AppendLog(ctx, "域名同步成功: member_id=%d", input.MemberID)
 	}
 	return &task.TaskResult{Message: message}, nil
+}
+
+func syncTargetSummary(nodes []repository.CFPointingGroupNodeContext) (string, string) {
+	targets := lowestPriorityAvailableNodes(nodes)
+	names := make([]string, 0, len(targets))
+	ips := make([]string, 0, len(targets))
+	for _, target := range targets {
+		names = append(names, target.Node.Name)
+		ips = append(ips, strings.TrimSpace(target.Node.IP))
+	}
+	return strings.Join(names, ", "), strings.Join(ips, ", ")
 }
 
 // SyncGroupTaskHandler reconciles every member in a group.
