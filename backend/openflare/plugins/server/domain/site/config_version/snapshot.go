@@ -46,8 +46,9 @@ const (
 type snapshotRoute struct {
 	ID                 uint                             `json:"id,omitempty"`
 	SiteName           string                           `json:"site_name,omitempty"`
-	Domains            []string                         `json:"domains,omitempty"`
-	OriginURL          string                           `json:"origin_url"`
+	Domains            []string                               `json:"domains,omitempty"`
+	DomainNginxConfigs  []openrestyrender.DomainNginxConfig    `json:"domain_nginx_configs,omitempty"`
+	OriginURL           string                                `json:"origin_url"`
 	OriginHost         string                           `json:"origin_host,omitempty"`
 	Upstreams          []string                         `json:"upstreams,omitempty"`
 	UpstreamTargets    []snapshotUpstreamTarget          `json:"upstream_targets,omitempty"`
@@ -63,6 +64,7 @@ type snapshotRoute struct {
 	CacheEnabled       bool                             `json:"cache_enabled"`
 	CachePolicy        string                           `json:"cache_policy,omitempty"`
 	CacheRules         []string                         `json:"cache_rules,omitempty"`
+	CacheConfig        proxy_route.CacheConfigInput     `json:"cache_config,omitempty"`
 	CustomHeaders      []customHeaderInput              `json:"custom_headers,omitempty"`
 	BasicAuthEnabled   bool                             `json:"basic_auth_enabled,omitempty"`
 	BasicAuthUsername  string                           `json:"basic_auth_username,omitempty"`
@@ -236,6 +238,14 @@ func buildCurrentConfigBundle(ctx context.Context, requireRoutes bool) (*configB
 	}, nil
 }
 
+func domainHeadersToRenderHeaders(headers []model.DomainHeader) []openrestyrender.CustomHeader {
+	result := make([]openrestyrender.CustomHeader, 0, len(headers))
+	for _, header := range headers {
+		result = append(result, openrestyrender.CustomHeader{Key: header.Key, Value: header.Value})
+	}
+	return result
+}
+
 func buildSnapshotRoutes(ctx context.Context, routes []*model.ProxyRoute) ([]snapshotRoute, error) {
 	items := make([]snapshotRoute, 0, len(routes))
 	for _, route := range routes {
@@ -247,9 +257,23 @@ func buildSnapshotRoutes(ctx context.Context, routes []*model.ProxyRoute) ([]sna
 			return nil, fmt.Errorf("route %s has no zone domains", route.SiteName)
 		}
 		domains := make([]string, 0, len(zoneDomains))
+		domainNginxConfigs := make([]openrestyrender.DomainNginxConfig, 0, len(zoneDomains))
 		domainCertIDs := make([]uint, 0, len(zoneDomains))
 		for _, zoneDomain := range zoneDomains {
 			domains = append(domains, zoneDomain.Domain)
+			domainNginxConfigs = append(domainNginxConfigs, openrestyrender.DomainNginxConfig{
+				ProxyConnectTimeout:   zoneDomain.NginxConfig.ProxyConnectTimeout,
+				ProxySendTimeout:      zoneDomain.NginxConfig.ProxySendTimeout,
+				ProxyReadTimeout:      zoneDomain.NginxConfig.ProxyReadTimeout,
+				ClientHeaderTimeout:   zoneDomain.NginxConfig.ClientHeaderTimeout,
+				ClientBodyTimeout:     zoneDomain.NginxConfig.ClientBodyTimeout,
+				SendTimeout:           zoneDomain.NginxConfig.SendTimeout,
+				ClientMaxBodySize:     zoneDomain.NginxConfig.ClientMaxBodySize,
+				WebsocketEnabled:      zoneDomain.NginxConfig.WebsocketEnabled,
+				ProxyRequestBuffering: zoneDomain.NginxConfig.ProxyRequestBuffering,
+				ProxyBufferingEnabled: zoneDomain.NginxConfig.ProxyBufferingEnabled,
+				CustomHeaders:         domainHeadersToRenderHeaders(zoneDomain.NginxConfig.CustomHeaders),
+			})
 			if zoneDomain.CertID == nil {
 				domainCertIDs = append(domainCertIDs, 0)
 				continue
@@ -298,10 +322,15 @@ func buildSnapshotRoutes(ctx context.Context, routes []*model.ProxyRoute) ([]sna
 		if err != nil {
 			return nil, fmt.Errorf("路由 %s 缓存规则无效", route.SiteName)
 		}
+		cacheConfig, err := proxy_route.DecodeStoredCacheConfig(route.CacheConfig)
+		if err != nil {
+			return nil, fmt.Errorf("路由 %s 缓存参数无效", route.SiteName)
+		}
 		items = append(items, snapshotRoute{
 			ID:                 route.ID,
 			SiteName:           route.SiteName,
 			Domains:            domains,
+			DomainNginxConfigs: domainNginxConfigs,
 			OriginURL:          originURL,
 			OriginHost:         route.OriginHost,
 			Upstreams:          upstreams,
@@ -318,6 +347,7 @@ func buildSnapshotRoutes(ctx context.Context, routes []*model.ProxyRoute) ([]sna
 			CacheEnabled:       route.CacheEnabled,
 			CachePolicy:        route.CachePolicy,
 			CacheRules:         cacheRules,
+			CacheConfig:        cacheConfig,
 			CustomHeaders:      customHeaders,
 			BasicAuthEnabled:   route.BasicAuthEnabled,
 			BasicAuthUsername:  route.BasicAuthUsername,

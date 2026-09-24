@@ -520,6 +520,72 @@ func TestRenderRouteCacheBlockAlignsCloudflareDefaults(t *testing.T) {
 	}
 }
 
+func TestRenderRouteCacheBlockAppliesRouteConfig(t *testing.T) {
+	block := renderRouteCacheBlock(
+		routeCacheConfig{
+			Enabled: true,
+			Policy:  "all",
+			Config: RouteCacheConfig{
+				SuccessTTL:          "2h",
+				RedirectTTL:         "30m",
+				NotFoundTTL:         "1m",
+				BypassAuthorization: true,
+				BypassCookies:       []string{"session_id"},
+			},
+		},
+		ConfigSnapshot{CacheEnabled: true},
+	)
+	wants := []string{
+		"if ($http_authorization != \"\")",
+		"if ($cookie_session_id != \"\")",
+		"proxy_no_cache $openflare_skip_cache $upstream_http_set_cookie;",
+		"proxy_cache_valid 200 206 301 2h;",
+		"proxy_cache_valid 302 303 30m;",
+		"proxy_cache_valid 404 410 1m;",
+	}
+	for _, want := range wants {
+		if !strings.Contains(block, want) {
+			t.Errorf("renderRouteCacheBlock() missing %q in:\n%s", want, block)
+		}
+	}
+}
+
+func TestRenderJSONAppliesDomainNginxConfig(t *testing.T) {
+	source := `{"routes":[{"site_name":"example.com","domains":["api.example.com","www.example.com"],"domain_nginx_configs":[{"proxy_read_timeout":120,"client_max_body_size":"50m","websocket_enabled":true,"custom_headers":[{"key":"X-Tenant","value":"api"}]},{}],"origin_url":"http://127.0.0.1:8080","enabled":true}],"openresty_config":{"websocket_enabled":false},"waf":{"rule_groups":[],"bindings":[]}}`
+	result, err := RenderJSON(source, nil)
+	if err != nil {
+		t.Fatalf("RenderJSON() error = %v, want nil", err)
+	}
+	for _, want := range []string{
+		"server_name api.example.com;",
+		"proxy_read_timeout 120s;",
+		"client_max_body_size 50m;",
+		"proxy_set_header X-Tenant \"api\";",
+		"server_name www.example.com;",
+	} {
+		if !strings.Contains(result.RouteConfig, want) {
+			t.Fatalf("RenderJSON() route config missing %q in:\n%s", want, result.RouteConfig)
+		}
+	}
+}
+
+func TestRenderJSONAppliesRouteCacheConfig(t *testing.T) {
+	source := `{"routes":[{"site_name":"example.com","domains":["example.com"],"origin_url":"http://127.0.0.1:8080","enabled":true,"cache_enabled":true,"cache_policy":"all","cache_config":{"success_ttl":"2h","bypass_authorization":true,"bypass_cookies":["session_id"]}}],"openresty_config":{"cache_enabled":true},"waf":{"rule_groups":[],"bindings":[]}}`
+	result, err := RenderJSON(source, nil)
+	if err != nil {
+		t.Fatalf("RenderJSON() error = %v, want nil", err)
+	}
+	for _, want := range []string{
+		"proxy_cache_valid 200 206 301 2h;",
+		"if ($http_authorization != \"\")",
+		"if ($cookie_session_id != \"\")",
+	} {
+		if !strings.Contains(result.RouteConfig, want) {
+			t.Errorf("RenderJSON() route config missing %q in:\n%s", want, result.RouteConfig)
+		}
+	}
+}
+
 func TestMergeRouteLimitConfig(t *testing.T) {
 	t.Parallel()
 	cases := []struct {

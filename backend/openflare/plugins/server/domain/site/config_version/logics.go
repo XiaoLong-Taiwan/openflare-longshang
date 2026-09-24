@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 	"sort"
 	"strconv"
@@ -405,6 +406,7 @@ func flattenSnapshotRoutesByDomain(routes []snapshotRoute) map[string]snapshotRo
 func snapshotRouteConfigEqual(left snapshotRoute, right snapshotRoute) bool {
 	return snapshotRouteScalarsEqual(left, right) &&
 		slices.Equal(left.Domains, right.Domains) &&
+		reflect.DeepEqual(left.DomainNginxConfigs, right.DomainNginxConfigs) &&
 		slices.Equal(left.Upstreams, right.Upstreams) &&
 		slices.Equal(left.UpstreamTargets, right.UpstreamTargets) &&
 		slices.Equal(left.CacheRules, right.CacheRules) &&
@@ -455,8 +457,11 @@ func snapshotRoutePolicyEqual(left, right snapshotRoute) bool {
 		left.LimitConnPerServer == right.LimitConnPerServer &&
 		left.LimitConnPerIP == right.LimitConnPerIP &&
 		left.LimitRate == right.LimitRate &&
+		left.LimitReqPerIP == right.LimitReqPerIP &&
 		left.CacheEnabled == right.CacheEnabled &&
 		left.CachePolicy == right.CachePolicy &&
+		reflect.DeepEqual(left.CacheRules, right.CacheRules) &&
+		reflect.DeepEqual(left.CacheConfig, right.CacheConfig) &&
 		left.BasicAuthEnabled == right.BasicAuthEnabled &&
 		left.BasicAuthUsername == right.BasicAuthUsername &&
 		left.BasicAuthPassword == right.BasicAuthPassword

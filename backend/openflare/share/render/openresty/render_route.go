@@ -127,6 +127,34 @@ func renderPagesRoute(builder *strings.Builder, route Route, displayName, server
 	return nil
 }
 
+func renderProxyRouteByDomain(builder *strings.Builder, route Route, displayName string, domains []string, certificates map[uint]string, cacheConfig routeCacheConfig, limitConfig routeLimitConfig, upstreamConfig routeUpstreamConfig, powEnabled bool, cfg ConfigSnapshot) error {
+	for index, domain := range domains {
+		domainConfig := DomainNginxConfig{}
+		if index < len(route.DomainNginxConfigs) {
+			domainConfig = route.DomainNginxConfigs[index]
+		}
+		if !route.EnableHTTPS || index >= len(route.DomainCertIDs) || route.DomainCertIDs[index] == 0 {
+			builder.WriteString(renderHTTPProxyServerWithDomainConfig(domain, displayName, route.OriginURL, route.OriginHost, route.CustomHeaders, cacheConfig, limitConfig, upstreamConfig, powEnabled, route.BasicAuthEnabled, route.BasicAuthUsername, route.BasicAuthPassword, cfg, domainConfig))
+			continue
+		}
+		certificateID := route.DomainCertIDs[index]
+		certificate, exists := certificates[certificateID]
+		if !exists {
+			return fmt.Errorf("route %s certificate %d does not exist", route.SiteName, certificateID)
+		}
+		if err := validateCertificateCoverage(certificate, []string{domain}); err != nil {
+			return fmt.Errorf("site %s certificate validation failed: %w", displayName, err)
+		}
+		if route.RedirectHTTP {
+			builder.WriteString(renderHTTPRedirectServer(domain))
+		} else {
+			builder.WriteString(renderHTTPProxyServerWithDomainConfig(domain, displayName, route.OriginURL, route.OriginHost, route.CustomHeaders, cacheConfig, limitConfig, upstreamConfig, powEnabled, route.BasicAuthEnabled, route.BasicAuthUsername, route.BasicAuthPassword, cfg, domainConfig))
+		}
+		builder.WriteString(renderHTTPSServerWithDomainConfig(domain, displayName, route.OriginURL, route.OriginHost, certificateID, route.CustomHeaders, cacheConfig, limitConfig, upstreamConfig, powEnabled, route.BasicAuthEnabled, route.BasicAuthUsername, route.BasicAuthPassword, routeSWEnabled([]string{domain}, cfg), cfg, domainConfig))
+	}
+	return nil
+}
+
 func renderProxyRoute(builder *strings.Builder, route Route, displayName, serverNames string, certificates map[uint]string, cacheConfig routeCacheConfig, limitConfig routeLimitConfig, powEnabled bool, cfg ConfigSnapshot) error {
 	upstreams := route.Upstreams
 	if len(route.UpstreamTargets) > 0 {
@@ -142,19 +170,22 @@ func renderProxyRoute(builder *strings.Builder, route Route, displayName, server
 	if upstreamConfig.UsesNamedUpstream {
 		builder.WriteString(renderNamedUpstreamBlock(upstreamConfig))
 	}
-	if !route.EnableHTTPS {
-		builder.WriteString(renderHTTPProxyServer(serverNames, displayName, route.OriginURL, route.OriginHost, route.CustomHeaders, cacheConfig, limitConfig, upstreamConfig, powEnabled, route.BasicAuthEnabled, route.BasicAuthUsername, route.BasicAuthPassword, false, cfg))
+	domains := normalizedRouteDomains(route)
+	if len(route.DomainNginxConfigs) == 0 {
+		if !route.EnableHTTPS {
+			builder.WriteString(renderHTTPProxyServer(serverNames, displayName, route.OriginURL, route.OriginHost, route.CustomHeaders, cacheConfig, limitConfig, upstreamConfig, powEnabled, route.BasicAuthEnabled, route.BasicAuthUsername, route.BasicAuthPassword, false, cfg))
+			return nil
+		}
+		certIDs := certificateIDsFromDomainCertIDs(route.DomainCertIDs)
+		if len(certIDs) == 0 {
+			return fmt.Errorf("路由 %s 未配置证书", route.SiteName)
+		}
+		partition := partitionRouteDomainsByCert(domains, certIDs, route.DomainCertIDs)
+		if err := validateRouteCertificates(route, displayName, certIDs, partition, certificates); err != nil {
+			return err
+		}
+		renderProxyRouteHTTPS(builder, serverNames, displayName, route, partition, certIDs, cacheConfig, limitConfig, upstreamConfig, powEnabled, cfg)
 		return nil
 	}
-	certIDs := certificateIDsFromDomainCertIDs(route.DomainCertIDs)
-	domainCertIDs := route.DomainCertIDs
-	if len(certIDs) == 0 {
-		return fmt.Errorf("路由 %s 未配置证书", route.SiteName)
-	}
-	partition := partitionRouteDomainsByCert(normalizedRouteDomains(route), certIDs, domainCertIDs)
-	if err := validateRouteCertificates(route, displayName, certIDs, partition, certificates); err != nil {
-		return err
-	}
-	renderProxyRouteHTTPS(builder, serverNames, displayName, route, partition, certIDs, cacheConfig, limitConfig, upstreamConfig, powEnabled, cfg)
-	return nil
+	return renderProxyRouteByDomain(builder, route, displayName, domains, certificates, cacheConfig, limitConfig, upstreamConfig, powEnabled, cfg)
 }

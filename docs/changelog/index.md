@@ -8,6 +8,17 @@ sidebar: false
 
 格式基于 [Keep a Changelog](http://keepachangelog.com/)，版本号遵循 [语义化版本](http://semver.org/)。
 
+## [Unreleased]
+
+### ✨ 新功能
+
+- 规则管理支持为每条代理规则独立设置结构化 Nginx 缓存参数，包括状态码 TTL、Authorization 与 Cookie 绕过，同时保留源站缓存隐私保护。
+- 网站域名支持独立配置 Nginx 代理超时、请求体大小、缓冲、WebSocket 与请求头规则，并在配置快照中按域名生成对应 server 块。
+
+### 🛠 修复
+
+- 修复配置版本差异遗漏单 IP 请求频率、缓存匹配规则与高级缓存参数变更的问题。
+
 ## [v0.0.7] - 2026-09-20
 
 ### ✨ 新功能

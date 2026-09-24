@@ -36,6 +36,68 @@ func TestCreateZoneDomainRejectsWildcard(t *testing.T) {
 	require.EqualError(t, err, errDomainWildcardUnsupported)
 }
 
+func TestCreateAndUpdateDomainNginxConfig(t *testing.T) {
+	ctx := setupZoneDB(t)
+	zone, err := Create(ctx, Input{Domain: "example.com"})
+	require.NoError(t, err)
+	enabled := true
+	created, err := CreateDomain(ctx, zone.ID, DomainInput{
+		Domain: "api.example.com",
+		NginxConfig: &model.DomainNginxConfig{
+			ProxyReadTimeout: 120,
+			ClientMaxBodySize: "50m",
+			WebsocketEnabled:  &enabled,
+			CustomHeaders: []model.DomainHeader{
+				{Key: "X-Tenant", Value: "api"},
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.Equal(t, 120, created.NginxConfig.ProxyReadTimeout)
+	require.Equal(t, "50m", created.NginxConfig.ClientMaxBodySize)
+	require.Equal(t, "X-Tenant", created.NginxConfig.CustomHeaders[0].Key)
+
+	stored, err := repository.GetZoneDomainByZoneAndID(ctx, zone.ID, created.ID)
+	require.NoError(t, err)
+	require.NotNil(t, stored.NginxConfig.WebsocketEnabled)
+	require.True(t, *stored.NginxConfig.WebsocketEnabled)
+
+	updated, err := UpdateDomain(ctx, zone.ID, created.ID, DomainInput{Domain: created.Domain})
+	require.NoError(t, err)
+	require.Equal(t, 120, updated.NginxConfig.ProxyReadTimeout)
+	require.Len(t, updated.NginxConfig.CustomHeaders, 1)
+
+	cleared, err := UpdateDomain(ctx, zone.ID, created.ID, DomainInput{
+		Domain:      created.Domain,
+		NginxConfig: &model.DomainNginxConfig{},
+	})
+	require.NoError(t, err)
+	require.Zero(t, cleared.NginxConfig.ProxyReadTimeout)
+	require.Empty(t, cleared.NginxConfig.CustomHeaders)
+}
+
+func TestCreateDomainRejectsInvalidNginxConfig(t *testing.T) {
+	ctx := setupZoneDB(t)
+	zone, err := Create(ctx, Input{Domain: "example.com"})
+	require.NoError(t, err)
+
+	_, err = CreateDomain(ctx, zone.ID, DomainInput{
+		Domain: "api.example.com",
+		NginxConfig: &model.DomainNginxConfig{
+			ProxyReadTimeout: -1,
+		},
+	})
+	require.EqualError(t, err, errNginxConfigInvalid)
+
+	_, err = CreateDomain(ctx, zone.ID, DomainInput{
+		Domain: "api.example.com",
+		NginxConfig: &model.DomainNginxConfig{
+			CustomHeaders: []model.DomainHeader{{Key: "Bad Header", Value: "value"}},
+		},
+	})
+	require.EqualError(t, err, errNginxConfigInvalid)
+}
+
 func TestDeleteDomainRejectsBoundRoute(t *testing.T) {
 	ctx := setupZoneDB(t)
 	zone, err := Create(ctx, Input{Domain: "example.com"})

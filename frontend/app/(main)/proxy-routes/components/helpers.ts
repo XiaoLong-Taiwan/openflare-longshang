@@ -403,6 +403,13 @@ export function buildPayloadFromRoute(
       return policy;
     })(),
     cache_rules: route.cache_rule_list ?? [],
+    cache_config: route.cache_config ?? {
+      success_ttl: '',
+      redirect_ttl: '',
+      not_found_ttl: '',
+      bypass_authorization: false,
+      bypass_cookies: [],
+    },
     custom_headers: route.custom_header_list ?? [],
     basic_auth_enabled: route.basic_auth_enabled,
     basic_auth_username: route.basic_auth_username,

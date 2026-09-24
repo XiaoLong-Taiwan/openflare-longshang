@@ -162,10 +162,11 @@ func DefaultPoWConfig() PoWConfig {
 // Route describes a single proxy or pages site entry in the OpenFlare config
 // document, including upstream, TLS, caching, rate-limiting and WAF settings.
 type Route struct {
-	ID                 uint             `json:"id,omitempty"`
-	SiteName           string           `json:"site_name,omitempty"`
-	Domains            []string         `json:"domains,omitempty"`
-	OriginURL          string           `json:"origin_url"`
+	ID                 uint                `json:"id,omitempty"`
+	SiteName           string              `json:"site_name,omitempty"`
+	Domains            []string            `json:"domains,omitempty"`
+	DomainNginxConfigs []DomainNginxConfig `json:"domain_nginx_configs,omitempty"`
+	OriginURL          string              `json:"origin_url"`
 	OriginHost         string           `json:"origin_host,omitempty"`
 	Upstreams          []string         `json:"upstreams,omitempty"`
 	UpstreamTargets    []UpstreamTarget `json:"upstream_targets,omitempty"`
@@ -181,6 +182,7 @@ type Route struct {
 	CacheEnabled       bool             `json:"cache_enabled"`
 	CachePolicy        string           `json:"cache_policy,omitempty"`
 	CacheRules         []string         `json:"cache_rules,omitempty"`
+	CacheConfig        RouteCacheConfig `json:"cache_config,omitempty"`
 	CustomHeaders      []CustomHeader   `json:"custom_headers,omitempty"`
 	PoWEnabled         bool             `json:"pow_enabled,omitempty"`
 	PoWConfig          *PoWConfig       `json:"pow_config,omitempty"`
@@ -189,6 +191,30 @@ type Route struct {
 	BasicAuthPassword  string           `json:"basic_auth_password,omitempty"`
 	UpstreamType       string           `json:"upstream_type,omitempty"`
 	PagesDeployment    *PagesDeployment `json:"pages_deployment,omitempty"`
+}
+
+// RouteCacheConfig contains validated per-route cache directives.
+type RouteCacheConfig struct {
+	SuccessTTL          string   `json:"success_ttl,omitempty"`
+	RedirectTTL         string   `json:"redirect_ttl,omitempty"`
+	NotFoundTTL         string   `json:"not_found_ttl,omitempty"`
+	BypassAuthorization bool     `json:"bypass_authorization,omitempty"`
+	BypassCookies       []string `json:"bypass_cookies,omitempty"`
+}
+
+// DomainNginxConfig contains validated per-domain Nginx overrides.
+type DomainNginxConfig struct {
+	ProxyConnectTimeout   int            `json:"proxy_connect_timeout,omitempty"`
+	ProxySendTimeout      int            `json:"proxy_send_timeout,omitempty"`
+	ProxyReadTimeout      int            `json:"proxy_read_timeout,omitempty"`
+	ClientHeaderTimeout   int            `json:"client_header_timeout,omitempty"`
+	ClientBodyTimeout     int            `json:"client_body_timeout,omitempty"`
+	SendTimeout           int            `json:"send_timeout,omitempty"`
+	ClientMaxBodySize     string         `json:"client_max_body_size,omitempty"`
+	WebsocketEnabled      *bool          `json:"websocket_enabled,omitempty"`
+	ProxyRequestBuffering *bool          `json:"proxy_request_buffering,omitempty"`
+	ProxyBufferingEnabled *bool          `json:"proxy_buffering_enabled,omitempty"`
+	CustomHeaders         []CustomHeader `json:"custom_headers,omitempty"`
 }
 
 // PagesDeployment holds the static-site deployment parameters for a Pages-type
@@ -360,6 +386,7 @@ type routeCacheConfig struct {
 	Enabled bool
 	Policy  string
 	Rules   []string
+	Config  RouteCacheConfig
 }
 
 type routeLimitConfig struct {

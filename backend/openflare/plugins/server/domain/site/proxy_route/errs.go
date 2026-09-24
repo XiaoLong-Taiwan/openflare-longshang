@@ -37,6 +37,8 @@ const (
 	errProxyRouteCacheSuffixReq      = "at least one suffix is required"
 	errProxyRouteCachePrefixReq      = "at least one path prefix is required"
 	errProxyRouteCacheExactReq       = "at least one exact path is required"
+	errProxyRouteCacheTTL            = "cache TTL must use a positive Nginx duration such as 30s, 20m, 2h, or 7d"
+	errProxyRouteCacheCookie         = "cache bypass cookie name is invalid"
 	errProxyRouteHeaderKeyEmpty      = "custom header key cannot be empty"
 	errProxyRouteHeaderKeyInvalid    = "custom header key format is invalid"
 	errProxyRouteHeaderNewline       = "custom headers cannot contain newlines"

@@ -15,6 +15,7 @@ import (
 
 type proxyRouteJSONFields struct {
 	cacheRulesJSON      string
+	cacheConfigJSON     string
 	upstreamsJSON       string
 	upstreamTargetsJSON string
 	customHeadersJSON   string
@@ -47,9 +48,14 @@ func marshalProxyRouteJSONFields(
 	upstreams []string,
 	upstreamTargets []UpstreamTargetInput,
 	cacheRules []string,
+	cacheConfig CacheConfigInput,
 	customHeaders []CustomHeaderInput,
 ) (*proxyRouteJSONFields, error) {
 	cacheRulesJSON, err := json.Marshal(cacheRules)
+	if err != nil {
+		return nil, err
+	}
+	cacheConfigJSON, err := json.Marshal(cacheConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -67,6 +73,7 @@ func marshalProxyRouteJSONFields(
 	}
 	return &proxyRouteJSONFields{
 		cacheRulesJSON:      string(cacheRulesJSON),
+		cacheConfigJSON:     string(cacheConfigJSON),
 		upstreamsJSON:       string(upstreamsJSON),
 		upstreamTargetsJSON: string(upstreamTargetsJSON),
 		customHeadersJSON:   string(customHeadersJSON),
@@ -115,6 +122,7 @@ func populateProxyRouteFields(
 	route.CacheEnabled = input.CacheEnabled
 	route.CachePolicy = normalizeCachePolicy(input.CacheEnabled, cachePolicy)
 	route.CacheRules = jsonFields.cacheRulesJSON
+	route.CacheConfig = jsonFields.cacheConfigJSON
 	route.CustomHeaders = jsonFields.customHeadersJSON
 	route.BasicAuthEnabled = input.BasicAuthEnabled
 	route.BasicAuthUsername = input.BasicAuthUsername

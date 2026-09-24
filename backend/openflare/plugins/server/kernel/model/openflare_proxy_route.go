@@ -30,6 +30,7 @@ type ProxyRoute struct {
 	CacheEnabled         bool         `json:"cache_enabled" gorm:"not null;default:false"`
 	CachePolicy          string       `json:"cache_policy" gorm:"size:32;not null;default:''"`
 	CacheRules           string       `json:"cache_rules" gorm:"type:text;not null;default:'[]'"`
+	CacheConfig          string       `json:"cache_config" gorm:"type:text;not null;default:'{}'"`
 	CustomHeaders        string       `json:"custom_headers" gorm:"type:text;not null;default:'[]'"`
 	BasicAuthEnabled     bool         `json:"basic_auth_enabled" gorm:"not null;default:false"`
 	BasicAuthUsername    string       `json:"basic_auth_username" gorm:"size:255;not null;default:''"`

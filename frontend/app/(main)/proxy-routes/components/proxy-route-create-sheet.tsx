@@ -265,6 +265,13 @@ export function ProxyRouteCreateSheet({
         cache_enabled: true,
         cache_policy: 'static',
         cache_rules: [],
+        cache_config: {
+          success_ttl: '',
+          redirect_ttl: '',
+          not_found_ttl: '',
+          bypass_authorization: false,
+          bypass_cookies: [],
+        },
         custom_headers: [],
         basic_auth_enabled: false,
         upstream_type: values.upstream_type,

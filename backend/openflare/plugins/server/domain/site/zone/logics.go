@@ -7,6 +7,7 @@ package zone
 import (
 	"context"
 	"errors"
+	"regexp"
 	"strings"
 	"time"
 
@@ -26,8 +27,9 @@ type Input struct {
 
 // DomainInput is the mutable Zone-domain payload.
 type DomainInput struct {
-	Domain string `json:"domain"`
-	CertID *uint  `json:"cert_id"`
+	Domain      string                   `json:"domain"`
+	CertID      *uint                    `json:"cert_id"`
+	NginxConfig *model.DomainNginxConfig `json:"nginx_config"`
 }
 
 // Overview joins a Zone with its explicit domains.
@@ -47,6 +49,39 @@ type ListItem struct {
 
 func zoneRoot(domain string) (string, error) {
 	return publicsuffix.EffectiveTLDPlusOne(strings.ToLower(strings.TrimSpace(domain)))
+}
+
+var (
+	domainHeaderNamePattern = regexp.MustCompile(`^[A-Za-z0-9!#$%&'*+.^_` + "`" + `|~-]+$`)
+	domainBodySizePattern   = regexp.MustCompile(`^[1-9][0-9]*(?:[kKmMgG])?$`)
+)
+
+func normalizeNginxConfig(input model.DomainNginxConfig) (model.DomainNginxConfig, error) {
+	if input.ProxyConnectTimeout < 0 || input.ProxySendTimeout < 0 || input.ProxyReadTimeout < 0 || input.ClientHeaderTimeout < 0 || input.ClientBodyTimeout < 0 || input.SendTimeout < 0 {
+		return model.DomainNginxConfig{}, errors.New(errNginxConfigInvalid)
+	}
+	input.ClientMaxBodySize = strings.TrimSpace(input.ClientMaxBodySize)
+	if input.ClientMaxBodySize != "" && !domainBodySizePattern.MatchString(input.ClientMaxBodySize) {
+		return model.DomainNginxConfig{}, errors.New(errNginxConfigInvalid)
+	}
+	if len(input.CustomHeaders) > 32 {
+		return model.DomainNginxConfig{}, errors.New(errNginxConfigInvalid)
+	}
+	seen := make(map[string]struct{}, len(input.CustomHeaders))
+	for index := range input.CustomHeaders {
+		header := &input.CustomHeaders[index]
+		header.Key = strings.TrimSpace(header.Key)
+		header.Value = strings.TrimSpace(header.Value)
+		if header.Key == "" || len(header.Key) > 128 || !domainHeaderNamePattern.MatchString(header.Key) || len(header.Value) > 1024 || strings.ContainsAny(header.Value, "\r\n") {
+			return model.DomainNginxConfig{}, errors.New(errNginxConfigInvalid)
+		}
+		key := strings.ToLower(header.Key)
+		if _, exists := seen[key]; exists {
+			return model.DomainNginxConfig{}, errors.New(errNginxConfigInvalid)
+		}
+		seen[key] = struct{}{}
+	}
+	return input, nil
 }
 
 func normalizeDomain(raw string) (string, error) {
@@ -171,7 +206,14 @@ func CreateDomain(ctx context.Context, zoneID uint, input DomainInput) (*model.Z
 			return nil, errors.New(errCertificateNotFound)
 		}
 	}
-	item := &model.ZoneDomain{ZoneID: zoneID, Domain: domain, CertID: input.CertID}
+	nginxConfig := model.DomainNginxConfig{}
+	if input.NginxConfig != nil {
+		nginxConfig, err = normalizeNginxConfig(*input.NginxConfig)
+		if err != nil {
+			return nil, err
+		}
+	}
+	item := &model.ZoneDomain{ZoneID: zoneID, Domain: domain, CertID: input.CertID, NginxConfig: nginxConfig}
 	if err := repository.CreateZoneDomain(ctx, item); err != nil {
 		if isUnique(err) {
 			return nil, errors.New(errDomainExists)
@@ -204,7 +246,14 @@ func UpdateDomain(ctx context.Context, zoneID, id uint, input DomainInput) (*mod
 			return nil, errors.New(errCertificateNotFound)
 		}
 	}
-	item.Domain, item.CertID = domain, input.CertID
+	nginxConfig := item.NginxConfig
+	if input.NginxConfig != nil {
+		nginxConfig, err = normalizeNginxConfig(*input.NginxConfig)
+		if err != nil {
+			return nil, err
+		}
+	}
+	item.Domain, item.CertID, item.NginxConfig = domain, input.CertID, nginxConfig
 	if err = repository.SaveZoneDomain(ctx, item); err != nil {
 		if isUnique(err) {
 			return nil, errors.New(errDomainExists)

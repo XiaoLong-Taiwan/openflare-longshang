@@ -105,7 +105,7 @@ func RenderRouteConfig(doc Document, certificateFiles []SupportFile) (string, er
 		}
 		serverNames := renderServerNames(domains)
 		displayName := resolveRouteSiteName(route)
-		cacheConfig := routeCacheConfig{Enabled: route.CacheEnabled, Policy: route.CachePolicy, Rules: route.CacheRules}
+		cacheConfig := routeCacheConfig{Enabled: route.CacheEnabled, Policy: route.CachePolicy, Rules: route.CacheRules, Config: route.CacheConfig}
 		limitConfig := mergeRouteLimitConfig(route, doc.OpenRestyConfig)
 		powEnabled := getPoWConfigForRoute(route.ID, doc.WAF)
 		if normalizeRouteUpstreamType(route.UpstreamType) == routeUpstreamTypePages {
@@ -280,7 +280,13 @@ func renderOpenRestyObservabilityTemplateBlock() string {
 }
 
 func renderHTTPProxyServer(serverNames string, siteName string, originURL string, originHost string, customHeaders []CustomHeader, cacheConfig routeCacheConfig, limitConfig routeLimitConfig, upstreamConfig routeUpstreamConfig, powEnabled bool, basicAuthEnabled bool, basicAuthUsername string, basicAuthPassword string, _ bool, cfg ConfigSnapshot) string {
-	return fmt.Sprintf("server {\n    listen 80;\n    server_name %s;\n%s%s    location / {\n%s%s%s%s%s%s    }\n%s%s}\n\n", serverNames, renderAccessBlock(siteName, powEnabled), renderPowLocationBlocks(powEnabled), renderBasicAuthBlock(basicAuthEnabled, basicAuthUsername, basicAuthPassword), renderProxyHeaderBlock(originURL, originHost, customHeaders, upstreamConfig, cfg), renderRouteLimitBlock(limitConfig), renderRouteCacheBlock(cacheConfig, cfg), renderOriginErrorPageIntercept(cfg), renderProxyPassBlock(originURL, upstreamConfig), renderOriginErrorPageServerBits(cfg), renderPowStaticLocationBlock(powEnabled))
+	return renderHTTPProxyServerWithDomainConfig(serverNames, siteName, originURL, originHost, customHeaders, cacheConfig, limitConfig, upstreamConfig, powEnabled, basicAuthEnabled, basicAuthUsername, basicAuthPassword, cfg, DomainNginxConfig{})
+}
+
+func renderHTTPProxyServerWithDomainConfig(serverNames string, siteName string, originURL string, originHost string, customHeaders []CustomHeader, cacheConfig routeCacheConfig, limitConfig routeLimitConfig, upstreamConfig routeUpstreamConfig, powEnabled bool, basicAuthEnabled bool, basicAuthUsername string, basicAuthPassword string, cfg ConfigSnapshot, domainConfig DomainNginxConfig) string {
+	cfg = mergeDomainConfig(cfg, domainConfig)
+	customHeaders = mergeDomainHeaders(customHeaders, domainConfig.CustomHeaders)
+	return fmt.Sprintf("server {\n    listen 80;\n    server_name %s;\n%s%s%s    location / {\n%s%s%s%s%s%s%s    }\n%s%s}\n\n", serverNames, renderAccessBlock(siteName, powEnabled), renderPowLocationBlocks(powEnabled), renderDomainServerBlock(domainConfig), renderBasicAuthBlock(basicAuthEnabled, basicAuthUsername, basicAuthPassword), renderProxyHeaderBlock(originURL, originHost, customHeaders, upstreamConfig, cfg), renderDomainProxyBlock(domainConfig), renderRouteLimitBlock(limitConfig), renderRouteCacheBlock(cacheConfig, cfg), renderOriginErrorPageIntercept(cfg), renderProxyPassBlock(originURL, upstreamConfig), renderOriginErrorPageServerBits(cfg), renderPowStaticLocationBlock(powEnabled))
 }
 
 func renderPagesAPIProxyLocationBlock(deployment *PagesDeployment) string {
@@ -335,6 +341,12 @@ func renderHTTPRedirectServer(serverNames string) string {
 }
 
 func renderHTTPSServer(serverNames string, siteName string, originURL string, originHost string, certificateID uint, customHeaders []CustomHeader, cacheConfig routeCacheConfig, limitConfig routeLimitConfig, upstreamConfig routeUpstreamConfig, powEnabled bool, basicAuthEnabled bool, basicAuthUsername string, basicAuthPassword string, swEnabled bool, cfg ConfigSnapshot) string {
+	return renderHTTPSServerWithDomainConfig(serverNames, siteName, originURL, originHost, certificateID, customHeaders, cacheConfig, limitConfig, upstreamConfig, powEnabled, basicAuthEnabled, basicAuthUsername, basicAuthPassword, swEnabled, cfg, DomainNginxConfig{})
+}
+
+func renderHTTPSServerWithDomainConfig(serverNames string, siteName string, originURL string, originHost string, certificateID uint, customHeaders []CustomHeader, cacheConfig routeCacheConfig, limitConfig routeLimitConfig, upstreamConfig routeUpstreamConfig, powEnabled bool, basicAuthEnabled bool, basicAuthUsername string, basicAuthPassword string, swEnabled bool, cfg ConfigSnapshot, domainConfig DomainNginxConfig) string {
+	cfg = mergeDomainConfig(cfg, domainConfig)
+	customHeaders = mergeDomainHeaders(customHeaders, domainConfig.CustomHeaders)
 	certPath := fmt.Sprintf("%s/%d.crt", CertDirPlaceholder, certificateID)
 	keyPath := fmt.Sprintf("%s/%d.key", CertDirPlaceholder, certificateID)
 	var h3Listen string
@@ -344,9 +356,9 @@ func renderHTTPSServer(serverNames string, siteName string, originURL string, or
 		h3Header = "    add_header Alt-Svc 'h3=\":443\"; ma=86400';\n"
 	}
 	if swEnabled {
-		return fmt.Sprintf("server {\n    listen 443 ssl;\n%s    http2 on;\n    server_name %s;\n    ssl_certificate %s;\n    ssl_certificate_key %s;\n%s%s%s    location / {\n%s%s%s%s%s%s    }\n%s%s%s}\n\n", h3Listen, serverNames, certPath, keyPath, h3Header, renderAccessBlockWithSW(siteName, powEnabled, cfg), renderPowLocationBlocks(powEnabled), renderBasicAuthBlock(basicAuthEnabled, basicAuthUsername, basicAuthPassword), renderProxyHeaderBlock(originURL, originHost, customHeaders, upstreamConfig, cfg), renderRouteLimitBlock(limitConfig), renderRouteCacheBlock(cacheConfig, cfg), renderOriginErrorPageIntercept(cfg), renderProxyPassBlock(originURL, upstreamConfig), renderOriginErrorPageServerBits(cfg), renderPowStaticLocationBlock(powEnabled), renderServiceWorkerChallenger(cfg))
+		return fmt.Sprintf("server {\n    listen 443 ssl;\n%s    http2 on;\n    server_name %s;\n    ssl_certificate %s;\n    ssl_certificate_key %s;\n%s%s%s%s    location / {\n%s%s%s%s%s%s%s    }\n%s%s%s}\n\n", h3Listen, serverNames, certPath, keyPath, h3Header, renderAccessBlockWithSW(siteName, powEnabled, cfg), renderPowLocationBlocks(powEnabled), renderDomainServerBlock(domainConfig), renderBasicAuthBlock(basicAuthEnabled, basicAuthUsername, basicAuthPassword), renderProxyHeaderBlock(originURL, originHost, customHeaders, upstreamConfig, cfg), renderDomainProxyBlock(domainConfig), renderRouteLimitBlock(limitConfig), renderRouteCacheBlock(cacheConfig, cfg), renderOriginErrorPageIntercept(cfg), renderProxyPassBlock(originURL, upstreamConfig), renderOriginErrorPageServerBits(cfg), renderPowStaticLocationBlock(powEnabled), renderServiceWorkerChallenger(cfg))
 	}
-	return fmt.Sprintf("server {\n    listen 443 ssl;\n%s    http2 on;\n    server_name %s;\n    ssl_certificate %s;\n    ssl_certificate_key %s;\n%s%s%s    location / {\n%s%s%s%s%s%s    }\n%s%s}\n\n", h3Listen, serverNames, certPath, keyPath, h3Header, renderAccessBlock(siteName, powEnabled), renderPowLocationBlocks(powEnabled), renderBasicAuthBlock(basicAuthEnabled, basicAuthUsername, basicAuthPassword), renderProxyHeaderBlock(originURL, originHost, customHeaders, upstreamConfig, cfg), renderRouteLimitBlock(limitConfig), renderRouteCacheBlock(cacheConfig, cfg), renderOriginErrorPageIntercept(cfg), renderProxyPassBlock(originURL, upstreamConfig), renderOriginErrorPageServerBits(cfg), renderPowStaticLocationBlock(powEnabled))
+	return fmt.Sprintf("server {\n    listen 443 ssl;\n%s    http2 on;\n    server_name %s;\n    ssl_certificate %s;\n    ssl_certificate_key %s;\n%s%s%s%s    location / {\n%s%s%s%s%s%s%s    }\n%s%s}\n\n", h3Listen, serverNames, certPath, keyPath, h3Header, renderAccessBlock(siteName, powEnabled), renderPowLocationBlocks(powEnabled), renderDomainServerBlock(domainConfig), renderBasicAuthBlock(basicAuthEnabled, basicAuthUsername, basicAuthPassword), renderProxyHeaderBlock(originURL, originHost, customHeaders, upstreamConfig, cfg), renderDomainProxyBlock(domainConfig), renderRouteLimitBlock(limitConfig), renderRouteCacheBlock(cacheConfig, cfg), renderOriginErrorPageIntercept(cfg), renderProxyPassBlock(originURL, upstreamConfig), renderOriginErrorPageServerBits(cfg), renderPowStaticLocationBlock(powEnabled))
 }
 
 func renderHTTPSPagesServer(serverNames string, siteName string, certificateID uint, deployment *PagesDeployment, limitConfig routeLimitConfig, powEnabled bool, basicAuthEnabled bool, basicAuthUsername string, basicAuthPassword string, swEnabled bool, cfg ConfigSnapshot) string {
@@ -428,6 +440,67 @@ func pagesFallbackPath(deployment *PagesDeployment) string {
 		return "/index.html"
 	}
 	return cleaned
+}
+
+func mergeDomainConfig(cfg ConfigSnapshot, domain DomainNginxConfig) ConfigSnapshot {
+	if domain.WebsocketEnabled != nil {
+		cfg.WebsocketEnabled = *domain.WebsocketEnabled
+	}
+	return cfg
+}
+
+func mergeDomainHeaders(routeHeaders, domainHeaders []CustomHeader) []CustomHeader {
+	result := append([]CustomHeader(nil), routeHeaders...)
+	indexes := make(map[string]int, len(result))
+	for index, header := range result {
+		indexes[strings.ToLower(header.Key)] = index
+	}
+	for _, header := range domainHeaders {
+		key := strings.ToLower(header.Key)
+		if index, exists := indexes[key]; exists {
+			result[index] = header
+			continue
+		}
+		indexes[key] = len(result)
+		result = append(result, header)
+	}
+	return result
+}
+
+func renderDomainServerBlock(config DomainNginxConfig) string {
+	if config.ClientHeaderTimeout <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("    client_header_timeout %ds;\n", config.ClientHeaderTimeout)
+}
+
+func renderDomainProxyBlock(config DomainNginxConfig) string {
+	var builder strings.Builder
+	values := []struct {
+		name  string
+		value int
+	}{
+		{"proxy_connect_timeout", config.ProxyConnectTimeout},
+		{"proxy_send_timeout", config.ProxySendTimeout},
+		{"proxy_read_timeout", config.ProxyReadTimeout},
+		{"client_body_timeout", config.ClientBodyTimeout},
+		{"send_timeout", config.SendTimeout},
+	}
+	for _, item := range values {
+		if item.value > 0 {
+			fmt.Fprintf(&builder, "        %s %ds;\n", item.name, item.value)
+		}
+	}
+	if config.ClientMaxBodySize != "" {
+		fmt.Fprintf(&builder, "        client_max_body_size %s;\n", config.ClientMaxBodySize)
+	}
+	if config.ProxyRequestBuffering != nil {
+		fmt.Fprintf(&builder, "        proxy_request_buffering %s;\n", onOff(*config.ProxyRequestBuffering))
+	}
+	if config.ProxyBufferingEnabled != nil {
+		fmt.Fprintf(&builder, "        proxy_buffering %s;\n", onOff(*config.ProxyBufferingEnabled))
+	}
+	return builder.String()
 }
 
 func renderProxyHeaderBlock(originURL string, originHost string, customHeaders []CustomHeader, upstreamConfig routeUpstreamConfig, cfg ConfigSnapshot) string {
@@ -545,13 +618,31 @@ func renderRouteCacheBlock(cacheConfig routeCacheConfig, cfg ConfigSnapshot) str
 	if condition := renderRouteCachePolicyCondition(cacheConfig); condition != "" {
 		builder.WriteString(condition)
 	}
+	if cacheConfig.Config.BypassAuthorization {
+		builder.WriteString("        if ($http_authorization != \"\") {\n            set $openflare_skip_cache 1;\n        }\n")
+	}
+	for _, cookie := range cacheConfig.Config.BypassCookies {
+		fmt.Fprintf(&builder, "        if ($cookie_%s != \"\") {\n            set $openflare_skip_cache 1;\n        }\n", cookie)
+	}
 	builder.WriteString("        proxy_cache openflare_cache;\n")
 	builder.WriteString("        proxy_cache_methods GET;\n")
 	builder.WriteString("        proxy_cache_bypass $openflare_skip_cache;\n")
 	builder.WriteString("        proxy_no_cache $openflare_skip_cache $upstream_http_set_cookie;\n")
-	builder.WriteString("        proxy_cache_valid 200 206 301 120m;\n")
-	builder.WriteString("        proxy_cache_valid 302 303 20m;\n")
-	builder.WriteString("        proxy_cache_valid 404 410 3m;\n")
+	successTTL := cacheConfig.Config.SuccessTTL
+	if successTTL == "" {
+		successTTL = "120m"
+	}
+	redirectTTL := cacheConfig.Config.RedirectTTL
+	if redirectTTL == "" {
+		redirectTTL = "20m"
+	}
+	notFoundTTL := cacheConfig.Config.NotFoundTTL
+	if notFoundTTL == "" {
+		notFoundTTL = "3m"
+	}
+	fmt.Fprintf(&builder, "        proxy_cache_valid 200 206 301 %s;\n", successTTL)
+	fmt.Fprintf(&builder, "        proxy_cache_valid 302 303 %s;\n", redirectTTL)
+	fmt.Fprintf(&builder, "        proxy_cache_valid 404 410 %s;\n", notFoundTTL)
 	return builder.String()
 }
 

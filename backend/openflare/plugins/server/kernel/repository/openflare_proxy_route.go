@@ -83,6 +83,7 @@ func proxyRouteUpdateMap(route *model.ProxyRoute) map[string]any {
 		"cache_enabled":          route.CacheEnabled,
 		"cache_policy":           route.CachePolicy,
 		"cache_rules":            route.CacheRules,
+		"cache_config":           route.CacheConfig,
 		"custom_headers":         route.CustomHeaders,
 		"basic_auth_enabled":     route.BasicAuthEnabled,
 		"basic_auth_username":    route.BasicAuthUsername,

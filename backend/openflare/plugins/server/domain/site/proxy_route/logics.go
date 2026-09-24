@@ -51,6 +51,7 @@ type Input struct {
 	CacheEnabled         bool                `json:"cache_enabled"`
 	CachePolicy          string              `json:"cache_policy"`
 	CacheRules           []string            `json:"cache_rules"`
+	CacheConfig          CacheConfigInput     `json:"cache_config"`
 	CustomHeaders        []CustomHeaderInput `json:"custom_headers"`
 	BasicAuthEnabled     bool                `json:"basic_auth_enabled"`
 	BasicAuthUsername    string              `json:"basic_auth_username"`
@@ -87,6 +88,7 @@ type View struct {
 	CachePolicy          string              `json:"cache_policy"`
 	CacheRules           string              `json:"cache_rules"`
 	CacheRuleList        []string            `json:"cache_rule_list"`
+	CacheConfig          CacheConfigInput     `json:"cache_config"`
 	CustomHeaders        string              `json:"custom_headers"`
 	CustomHeaderList     []CustomHeaderInput `json:"custom_header_list"`
 	BasicAuthEnabled     bool                `json:"basic_auth_enabled"`
@@ -292,6 +294,10 @@ func buildProxyRoute(ctx context.Context, route *model.ProxyRoute, input Input) 
 	if err != nil {
 		return nil, err
 	}
+	cacheConfig, err := normalizeCacheConfig(input.CacheEnabled, input.CacheConfig)
+	if err != nil {
+		return nil, err
+	}
 	customHeaders, err := normalizeCustomHeaders(input.CustomHeaders)
 	if err != nil {
 		return nil, err
@@ -315,7 +321,7 @@ func buildProxyRoute(ctx context.Context, route *model.ProxyRoute, input Input) 
 	if err := validateProxyRouteZoneDomainCertificates(ctx, domains, input.EnableHTTPS); err != nil {
 		return nil, err
 	}
-	jsonFields, err := marshalProxyRouteJSONFields(upstreams, upstreamTargets, cacheRules, customHeaders)
+	jsonFields, err := marshalProxyRouteJSONFields(upstreams, upstreamTargets, cacheRules, cacheConfig, customHeaders)
 	if err != nil {
 		return nil, err
 	}
@@ -394,6 +400,10 @@ func buildProxyRouteView(ctx context.Context, route *model.ProxyRoute) (*View, e
 	if err != nil {
 		return nil, err
 	}
+	cacheConfig, err := DecodeStoredCacheConfig(route.CacheConfig)
+	if err != nil {
+		return nil, err
+	}
 	customHeaders, err := decodeStoredCustomHeaders(route.CustomHeaders)
 	if err != nil {
 		return nil, err
@@ -427,6 +437,7 @@ func buildProxyRouteView(ctx context.Context, route *model.ProxyRoute) (*View, e
 		CachePolicy:          displayCachePolicy(route.CacheEnabled, route.CachePolicy),
 		CacheRules:           route.CacheRules,
 		CacheRuleList:        cacheRules,
+		CacheConfig:          cacheConfig,
 		CustomHeaders:        route.CustomHeaders,
 		CustomHeaderList:     customHeaders,
 		BasicAuthEnabled:     route.BasicAuthEnabled,

@@ -134,6 +134,7 @@ export type {
   DnsAccountMutationPayload,
   ZoneDomainItem,
   ZoneDomainMutationPayload,
+  ZoneDomainNginxConfig,
   ZoneItem,
   ZoneMutationPayload,
   ZoneOverview,

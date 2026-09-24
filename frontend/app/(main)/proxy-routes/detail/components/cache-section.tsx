@@ -7,6 +7,12 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -17,6 +23,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import {
   Popover,
   PopoverContent,
@@ -47,7 +54,15 @@ type CacheValues = {
   cache_enabled: boolean;
   cache_policy: 'static' | 'all' | 'suffix' | 'path_prefix' | 'path_exact';
   cache_rules_text: string;
+  success_ttl: string;
+  redirect_ttl: string;
+  not_found_ttl: string;
+  bypass_authorization: boolean;
+  bypass_cookies_text: string;
 };
+
+const cacheTTLPattern = /^[1-9][0-9]*[smhdwMy]$/;
+const cacheCookiePattern = /^[A-Za-z0-9_]{1,64}$/;
 
 interface CacheSectionProps {
   route: ProxyRouteItem;
@@ -144,6 +159,11 @@ export function CacheSection({
         'path_exact',
       ]),
       cache_rules_text: z.string(),
+      success_ttl: z.string(),
+      redirect_ttl: z.string(),
+      not_found_ttl: z.string(),
+      bypass_authorization: z.boolean(),
+      bypass_cookies_text: z.string(),
     })
     .superRefine((value, context) => {
       if (!value.cache_enabled) {
@@ -157,6 +177,30 @@ export function CacheSection({
           code: z.ZodIssueCode.custom,
           path: ['cache_rules_text'],
           message: error,
+        });
+      }
+      for (const field of [
+        'success_ttl',
+        'redirect_ttl',
+        'not_found_ttl',
+      ] as const) {
+        const ttl = value[field].trim();
+        if (ttl && !cacheTTLPattern.test(ttl)) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [field],
+            message: t('cacheTTLInvalid'),
+          });
+        }
+      }
+      const invalidCookie = linesFromTextarea(value.bypass_cookies_text).find(
+        (cookie) => !cacheCookiePattern.test(cookie),
+      );
+      if (invalidCookie) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['bypass_cookies_text'],
+          message: t('cacheCookieInvalid'),
         });
       }
     });
@@ -175,6 +219,13 @@ export function CacheSection({
         route.cache_enabled,
       ) as CacheValues['cache_policy'],
       cache_rules_text: route.cache_rule_list.join('\n'),
+      success_ttl: route.cache_config?.success_ttl ?? '',
+      redirect_ttl: route.cache_config?.redirect_ttl ?? '',
+      not_found_ttl: route.cache_config?.not_found_ttl ?? '',
+      bypass_authorization: route.cache_config?.bypass_authorization ?? false,
+      bypass_cookies_text: (route.cache_config?.bypass_cookies ?? []).join(
+        '\n',
+      ),
     },
   });
 
@@ -186,6 +237,13 @@ export function CacheSection({
         route.cache_enabled,
       ) as CacheValues['cache_policy'],
       cache_rules_text: route.cache_rule_list.join('\n'),
+      success_ttl: route.cache_config?.success_ttl ?? '',
+      redirect_ttl: route.cache_config?.redirect_ttl ?? '',
+      not_found_ttl: route.cache_config?.not_found_ttl ?? '',
+      bypass_authorization: route.cache_config?.bypass_authorization ?? false,
+      bypass_cookies_text: (route.cache_config?.bypass_cookies ?? []).join(
+        '\n',
+      ),
     });
   }, [form, route]);
 
@@ -239,6 +297,13 @@ export function CacheSection({
                   needsRulesForPolicy(values.cache_policy)
                     ? rules
                     : [],
+                cache_config: {
+                  success_ttl: values.success_ttl.trim(),
+                  redirect_ttl: values.redirect_ttl.trim(),
+                  not_found_ttl: values.not_found_ttl.trim(),
+                  bypass_authorization: values.bypass_authorization,
+                  bypass_cookies: linesFromTextarea(values.bypass_cookies_text),
+                },
               },
               t('cacheSaved'),
             );
@@ -323,6 +388,80 @@ export function CacheSection({
               </FormItem>
             )}
           />
+
+          <Accordion type='single' collapsible>
+            <AccordionItem value='advanced-cache'>
+              <AccordionTrigger>{t('advancedCache')}</AccordionTrigger>
+              <AccordionContent className='flex flex-col gap-5'>
+                <div className='grid gap-4 md:grid-cols-3'>
+                  {(
+                    [
+                      ['success_ttl', 'cacheSuccessTTL', '120m'],
+                      ['redirect_ttl', 'cacheRedirectTTL', '20m'],
+                      ['not_found_ttl', 'cacheNotFoundTTL', '3m'],
+                    ] as const
+                  ).map(([name, label, placeholder]) => (
+                    <FormField
+                      key={name}
+                      control={form.control}
+                      name={name}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t(label)}</FormLabel>
+                          <FormControl>
+                            <Input
+                              disabled={!watchedEnabled}
+                              placeholder={placeholder}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
+                <FormDescription>{t('cacheTTLDesc')}</FormDescription>
+                <FormField
+                  control={form.control}
+                  name='bypass_authorization'
+                  render={({ field }) => (
+                    <FormItem className='flex items-center justify-between rounded-lg border p-3'>
+                      <FormLabel>{t('cacheBypassAuthorization')}</FormLabel>
+                      <FormControl>
+                        <Switch
+                          disabled={!watchedEnabled}
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='bypass_cookies_text'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('cacheBypassCookies')}</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          className='min-h-24'
+                          disabled={!watchedEnabled}
+                          placeholder={'session_id\nauth_token'}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t('cacheBypassCookiesDesc')}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </form>
       </Form>
     </SectionShell>

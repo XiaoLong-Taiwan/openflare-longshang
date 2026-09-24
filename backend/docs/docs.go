@@ -18332,6 +18332,58 @@ const docTemplate = `{
                 }
             }
         },
+        "model.DomainHeader": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.DomainNginxConfig": {
+            "type": "object",
+            "properties": {
+                "client_body_timeout": {
+                    "type": "integer"
+                },
+                "client_header_timeout": {
+                    "type": "integer"
+                },
+                "client_max_body_size": {
+                    "type": "string"
+                },
+                "custom_headers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.DomainHeader"
+                    }
+                },
+                "proxy_buffering_enabled": {
+                    "type": "boolean"
+                },
+                "proxy_connect_timeout": {
+                    "type": "integer"
+                },
+                "proxy_read_timeout": {
+                    "type": "integer"
+                },
+                "proxy_request_buffering": {
+                    "type": "boolean"
+                },
+                "proxy_send_timeout": {
+                    "type": "integer"
+                },
+                "send_timeout": {
+                    "type": "integer"
+                },
+                "websocket_enabled": {
+                    "type": "boolean"
+                }
+            }
+        },
         "model.Zone": {
             "type": "object",
             "properties": {
@@ -18363,6 +18415,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
+                },
+                "nginx_config": {
+                    "$ref": "#/definitions/model.DomainNginxConfig"
                 },
                 "proxy_route_id": {
                     "type": "integer"
@@ -20295,6 +20350,29 @@ const docTemplate = `{
                 }
             }
         },
+        "proxy_route.CacheConfigInput": {
+            "type": "object",
+            "properties": {
+                "bypass_authorization": {
+                    "type": "boolean"
+                },
+                "bypass_cookies": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "not_found_ttl": {
+                    "type": "string"
+                },
+                "redirect_ttl": {
+                    "type": "string"
+                },
+                "success_ttl": {
+                    "type": "string"
+                }
+            }
+        },
         "proxy_route.Input": {
             "type": "object",
             "properties": {
@@ -20306,6 +20384,9 @@ const docTemplate = `{
                 },
                 "basic_auth_username": {
                     "type": "string"
+                },
+                "cache_config": {
+                    "$ref": "#/definitions/proxy_route.CacheConfigInput"
                 },
                 "cache_enabled": {
                     "type": "boolean"
@@ -20413,6 +20494,9 @@ const docTemplate = `{
                 },
                 "basic_auth_username": {
                     "type": "string"
+                },
+                "cache_config": {
+                    "$ref": "#/definitions/proxy_route.CacheConfigInput"
                 },
                 "cache_enabled": {
                     "type": "boolean"
@@ -21347,6 +21431,9 @@ const docTemplate = `{
                 },
                 "domain": {
                     "type": "string"
+                },
+                "nginx_config": {
+                    "$ref": "#/definitions/model.DomainNginxConfig"
                 }
             }
         },
