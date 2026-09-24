@@ -8,7 +8,7 @@ sidebar: false
 
 格式基于 [Keep a Changelog](http://keepachangelog.com/)，版本号遵循 [语义化版本](http://semver.org/)。
 
-## [Unreleased]
+## [v0.0.8] - 2026-09-24
 
 ### ✨ 新功能
 
