@@ -1,0 +1,485 @@
+{
+  "common": {
+    "save": "儲存",
+    "cancel": "取消",
+    "confirm": "確認",
+    "delete": "刪除",
+    "loading": "載入中...",
+    "retry": "重試",
+    "optional": "（可选）",
+    "settings": "設定",
+    "search": "搜尋",
+    "unknownError": "發生錯誤，请重試",
+    "loadFailed": "載入失敗",
+    "previousPage": "上一頁",
+    "nextPage": "下一頁"
+  },
+  "contexts": {
+    "adminUsers": {
+      "userStatusChanged": "已{action}使用者 {username}",
+      "enabled": "啟用",
+      "disabled": "停用",
+      "updateStatusFailed": "更新狀態失敗",
+      "userCreated": "已成功建立使用者 {username}",
+      "createUserFailed": "建立使用者失敗",
+      "userDeleted": "已刪除使用者 {username}",
+      "deleteUserFailed": "刪除使用者失敗",
+      "updateUserSuccess": "更新使用者信息成功",
+      "updateUserFailed": "更新使用者信息失敗"
+    },
+    "admin": {
+      "loadConfigFailed": "載入系統設定失敗",
+      "updateConfigFailed": "更新系統設定失敗"
+    },
+    "user": {
+      "getUserInfoFailed": "获取使用者信息失敗",
+      "logoutFailed": "登出失敗"
+    }
+  },
+  "docs": {
+    "backToHome": "返回首頁",
+    "sectionCount": "共 {count} 個章节",
+    "lastUpdated": "最後更新",
+    "copied": "已複制",
+    "copyMarkdown": "複制 Markdown",
+    "toc": "目录",
+    "haveQuestions": "還有疑問？",
+    "contactSupport": "聯系客服支持",
+    "api": {
+      "title": "接口文档",
+      "description": "Wavelet Platform 後端 API 完整参考，涵盖認證、使用者、令牌與設定管理。",
+      "field": "字段",
+      "type": "類型",
+      "descriptionLabel": "說明",
+      "endpoint": "端點",
+      "desc": "描述",
+      "param": "参數",
+      "required": "必需",
+      "yes": "是",
+      "no": "否",
+      "username": "使用者名",
+      "password": "密碼",
+      "optional": "可选",
+      "default": "預設",
+      "section1": {
+        "title": "通用约定",
+        "desc": "所有 API 响應遵循统一信封格式。",
+        "responseFormat": "响應格式",
+        "responseFormatDesc": "所有接口均返回以下 JSON 结构：",
+        "errorMsgDesc": "成功時為空字符串，失敗時為可读錯誤信息",
+        "dataDesc": "業務資料，结构因接口而异",
+        "successExample": "成功响應示例",
+        "failExample": "失敗响應示例",
+        "failExampleErrorMsg": "錯誤信息",
+        "authentication": "認證方式",
+        "authenticationDesc": "系統支持两種認證方式，所有受保护的接口均需携帶其一：",
+        "sessionCredential": "Session 凭證",
+        "sessionCredentialDesc": "登入後由服務端 Set-Cookie 返回，浏览器自動携帶。",
+        "accessTokenCredential": "AccessToken 凭證",
+        "accessTokenCredentialDesc": "通過 Header 传递，适用于 API 调用與第三方集成：",
+        "supportedHeaders": "支持的 Header"
+      },
+      "section2": {
+        "title": "認證接口",
+        "register": "注册",
+        "registerDesc": "建立新使用者帳號並自動登入。",
+        "usernameDesc": "使用者名，唯一，至少 3 位",
+        "passwordDesc": "密碼，至少 8 位",
+        "nicknameDesc": "昵稱（可选）",
+        "passwordLogin": "密碼登入",
+        "passwordLoginDesc": "使用電子郵件/使用者名 + 密碼登入，成功後 Set-Cookie。",
+        "logout": "登出",
+        "logoutDesc": "销毁目前会話。",
+        "getProfile": "获取目前使用者信息",
+        "getProfileDesc": "返回目前已登入使用者的完整档案。"
+      },
+      "section3": {
+        "title": "存取令牌管理",
+        "desc": "管理個人 API 存取令牌（AccessToken），用于无浏览器場景的 API 调用。",
+        "listTokens": "列出令牌",
+        "listTokensDesc": "获取目前使用者的所有活跃存取令牌。",
+        "createToken": "建立令牌",
+        "tokenName": "令牌名稱",
+        "createTokenDesc": "建立新的存取令牌，返回一次性密钥。",
+        "isAdminDesc": "是否授予管理员權限（預設 false）",
+        "endpoint": "端點",
+        "successResponseExample": "成功响應示例",
+        "deleteToken": "刪除令牌",
+        "deleteTokenDesc": "撤销指定的存取令牌。",
+        "rotateToken": "轮换令牌",
+        "rotateTokenDesc": "為指定令牌生成新密钥，旧密钥立即失效。"
+      },
+      "section4": {
+        "title": "系統設定管理",
+        "publicConfig": "获取公開設定",
+        "publicConfigDesc": "返回所有标記為公開的系統設定项，无需認證。",
+        "responseExample": "响應示例",
+        "adminConfigs": "管理员設定接口",
+        "adminConfigsDesc": "以下接口需要管理员權限。",
+        "getConfigList": "获取設定清單",
+        "createConfig": "建立設定",
+        "updateConfig": "更新設定",
+        "deleteConfig": "刪除設定"
+      }
+    },
+    "howToUse": {
+      "title": "使用文档",
+      "description": "Wavelet Platform 快速上手指南，涵盖認證、令牌、設定、工作與可觀测性。",
+      "section1": {
+        "title": "系統架构概览",
+        "desc": "Wavelet Platform 采用 Go + Next.js 前後端分离架构。",
+        "architecture": "技術栈",
+        "architectureDesc": "Go 1.25+ / Gin / GORM / PostgreSQL / Redis / Asynq",
+        "authSystem": "認證系統",
+        "authSystemDesc": "支持密碼登入 + OIDC 第三方認證",
+        "accessToken": "存取令牌",
+        "accessTokenDesc": "用于 API 调用的 Personal Access Token",
+        "observability": "可觀测性",
+        "observabilityDesc": "OpenTelemetry + 结构化記錄"
+      },
+      "section2": {
+        "title": "認證與注册",
+        "desc": "系統支持多種認證方式，可通過管理後台灵活設定。",
+        "passwordAuth": "密碼認證",
+        "selfRegister": "自主注册",
+        "selfRegisterDesc": "使用者可通過注册页面建立帳號。",
+        "bcryptDesc": "密碼使用 bcrypt 加密儲存。",
+        "switchControl": "開關控制",
+        "switchControlDesc": "管理员可在後台独立控制：",
+        "oidc": "OIDC 第三方登入",
+        "oidcDesc": "支持設定任意 OIDC 兼容的認證源（如 Google、GitHub、企業 SSO）。",
+        "oidcStep1": "在「系統設定 → 安全設定」中新增認證源",
+        "oidcStep2": "填寫 Discovery URL、Client ID、Client Secret",
+        "oidcStep3": "啟用後，登入页將自動顯示對應入口"
+      },
+      "section3": {
+        "title": "存取令牌 (AccessToken)",
+        "desc": "用于无浏览器場景的 API 调用。",
+        "generation": "生成與管理",
+        "oneTimeDisplay": "一次性顯示",
+        "oneTimeDisplayDesc": "建立令牌後，密钥僅顯示一次。",
+        "oneTimeDisplayHint": "请務必在建立後立即複制儲存。",
+        "secureHash": "安全儲存",
+        "secureHashDesc": "系統僅儲存令牌的 SHA-256 哈希，原始密钥不可恢複。",
+        "headerUsage": "使用方式",
+        "headerUsageDesc": "在请求 Header 中携帶令牌：",
+        "bearerHeader": "Bearer Token 方式",
+        "customHeader": "自定义 Header 方式"
+      },
+      "section4": {
+        "title": "系統設定",
+        "desc": "通過管理後台或 API 动態管理系統設定。",
+        "cacheAccel": "快取加速",
+        "cacheAccelDesc": "公開設定项支持多級快取（内存 → Redis → 資料库），高频读取場景下效能优异。",
+        "coreConfigs": "核心設定项",
+        "siteName": "站點名稱",
+        "passwordLoginEnabled": "密碼登入開關",
+        "registrationEnabled": "注册開關",
+        "maxApiKeys": "最大 API Key 數量"
+      },
+      "section5": {
+        "title": "异步工作",
+        "desc": "基于 Asynq 的分布式工作队列系統。",
+        "scheduler": "定時工作 (Scheduler)",
+        "schedulerDesc": "支持 Cron 表達式設定定時工作。",
+        "worker": "Worker",
+        "workerDesc": "後台 Worker 進程负责消费和执行工作。"
+      },
+      "section6": {
+        "title": "可觀测性",
+        "desc": "内置 OpenTelemetry 支持。",
+        "tracing": "链路追踪",
+        "tracingDesc": "支持將 Trace 資料匯出到 Jaeger、Zipkin 等後端。",
+        "structuredLog": "结构化記錄",
+        "structuredLogDesc": "基于 Zap 的高效能结构化記錄，支持按級別输出。"
+      }
+    },
+    "terms": {
+      "title": "服務协议",
+      "description": "使用 Wavelet Platform 前，请仔细阅读以下服務條款。",
+      "section1": {
+        "title": "总则",
+        "subject": "协议主體",
+        "subjectDesc": "本协议是您與 Wavelet Platform 運营方之間關于使用平台服務所订立的协议。",
+        "readCarefully": "请仔细阅读",
+        "readCarefullyDesc": "请您在使用服務前仔细阅读本协议全部内容。如您不同意本协议的任何條款，请勿使用本平台服務。",
+        "composition": "协议构成",
+        "compositionDesc": "本协议正文包括协议正文、平台已經發佈或將來可能發佈的各類規則。所有規則為本协议不可分割的组成部分，與协议正文具有同等法律效力。"
+      },
+      "section2": {
+        "title": "服務内容",
+        "liability": "责任范围",
+        "liabilityDesc": "本平台僅提供技術基础设施和開發工具服務。使用者應自行承担使用平台過程中产生的所有责任。"
+      },
+      "section3": {
+        "title": "使用者帳號",
+        "accountSystem": "帳號體系",
+        "accountSystemDesc": "使用者在本平台注册並获得帳號後，應妥善保管其帳號和密碼。使用者應對其帳號项下的所有行為负责。",
+        "securityResponsibility": "安全责任",
+        "passwordSecurity": "密碼安全",
+        "passwordSecurityDesc": "使用者應使用安全强度足够的密碼，並定期更换。因使用者密碼保管不当導致的損失，由使用者自行承担。",
+        "tokenSecurity": "令牌安全",
+        "tokenSecurityDesc": "存取令牌（AccessToken）等同于帳號凭證，使用者應妥善保管。",
+        "tokenLeakLiability": "因令牌泄露導致的任何損失，由使用者自行承担。"
+      },
+      "section4": {
+        "title": "使用規范",
+        "desc": "使用者在使用本平台服務時，必須遵守以下規范：",
+        "redLine": "禁止行為红線",
+        "nationalSecurity": "危害国家安全",
+        "nationalSecurityDesc": "不得利用平台服務制作、複制、發佈含有危害国家安全的信息。",
+        "illegalInfo": "违法信息",
+        "illegalInfoDesc": "不得制作、複制、發佈违反国家法律法規的信息。",
+        "harmfulContent": "有害内容",
+        "harmfulContentDesc": "不得發佈含有骚扰、侮辱、恐吓或其他有害内容的信息。",
+        "ipInfringement": "知识产權侵權",
+        "ipInfringementDesc": "不得侵犯他人知识产權、商業秘密等合法權益。",
+        "otherIllegal": "其他违法行為",
+        "otherIllegalDesc": "不得利用平台服務從事其他违反法律法規的行為。",
+        "enforcement": "违規處理",
+        "enforcementDesc": "如使用者违反上述規范，平台有權采取以下措施：",
+        "enforcementAction": "警告、暂停或终止服務"
+      },
+      "section5": {
+        "title": "免责聲明",
+        "basicDisclaimer": "基本免责",
+        "basicDisclaimerDesc": "平台將盡最大努力确保服務的安全性和稳定性，但不對以下情形承担责任：",
+        "techInterruption": "技術中斷",
+        "techInterruptionDesc": "因以下原因導致的服務中斷或資料丢失：",
+        "naturalDisaster": "自然灾害等不可抗力",
+        "govAction": "政府行為或法律法規變更",
+        "telecomFailure": "電信運营商故障",
+        "hacking": "黑客攻擊或计算機病毒"
+      },
+      "section6": {
+        "title": "法律适用與争议解决",
+        "applicableLaw": "适用法律",
+        "applicableLawDesc": "本协议的签订、履行和解释均适用：",
+        "lawName": "中華人民共和国法律",
+        "lawScope": "不含冲突法規則",
+        "disputeResolution": "争议解决",
+        "disputeResolutionDesc": "因本协议引起的或與本协议有關的任何争议，双方應友好协商解决。协商不成的，任何一方均有權向有管辖權的人民法院提起诉讼。"
+      }
+    },
+    "privacy": {
+      "title": "隐私政策",
+      "description": "Wavelet Platform 重视使用者隐私保护。本政策說明我們如何收集、使用和保护您的個人信息。",
+      "descriptionRights": "请在使用我們的服務前仔细阅读本政策。",
+      "section1": {
+        "title": "信息收集",
+        "desc": "我們收集以下類型的信息：",
+        "authInfo": "認證信息",
+        "authInfoDesc": "包括使用者名、電子郵件位址、加密後的密碼哈希。",
+        "authInfoNote": "我們不会儲存您的明文密碼。",
+        "logInfo": "存取記錄",
+        "logInfoDesc": "包括 IP 位址、浏览器類型、存取時間、请求路径。"
+      },
+      "section2": {
+        "title": "信息使用",
+        "desc": "我們收集的信息用于以下目的：",
+        "storageSecurity": "儲存安全",
+        "storageSecurityDesc": "所有使用者資料均加密儲存于安全的服務器环境中。",
+        "encryption": "加密措施",
+        "encryptionDesc": "密碼使用 bcrypt 單向哈希加密，令牌使用 SHA-256 哈希儲存。",
+        "accessControl": "存取控制",
+        "accessControlDesc": "嚴格的權限管理機制确保只有授權人员才能存取使用者資料。"
+      },
+      "section3": {
+        "title": "信息使用目的",
+        "desc": "我們收集的信息將用于以下目的：",
+        "identity": "身份驗證",
+        "identityDesc": "驗證使用者身份，确保帳號安全。",
+        "business": "業務運营",
+        "businessDesc": "提供、维护和改進我們的服務。",
+        "riskControl": "风险控制",
+        "riskControlDesc": "检测、预防和處理安全风险及欺诈行為。",
+        "prohibited": "禁止用途",
+        "prohibitedDesc": "我們承诺不会將使用者信息用于以下用途：出售给第三方、發送未經许可的商業推廣。"
+      },
+      "section4": {
+        "title": "信息共享與披露",
+        "sharingPrinciple": "共享原则",
+        "sharingPrincipleDesc": "未經使用者同意，我們不会向第三方共享使用者個人信息，但以下情况除外：",
+        "sharingException1": "法律法規要求、政府機關依法定程序调取",
+        "sharingException2": "為保护平台或公眾的合法權益所必需",
+        "transfer": "信息转讓",
+        "transferDesc": "如平台發生合並、收购等情形，我們会要求新的持有者继续受本政策约束。"
+      },
+      "section5": {
+        "title": "使用者權利",
+        "desc": "使用者對其個人信息享有以下權利：",
+        "viewManage": "查看與管理",
+        "viewManageDesc": "使用者可随時在個人設定中查看和修改其個人信息。",
+        "deleteAccount": "帳號刪除",
+        "deleteAccountDesc": "使用者可申请刪除其帳號及關聯的所有個人資料。"
+      },
+      "section6": {
+        "title": "政策更新",
+        "desc": "我們可能会不時更新本隐私政策。政策更新後，我們会在平台上發佈通知。",
+        "notification": "重大變更將通過站内通知或邮件方式告知使用者。"
+      }
+    }
+  },
+  "files": {
+    "uploadSuccess": "檔案上傳成功",
+    "uploadFailed": "上傳失敗",
+    "deleteSuccess": "檔案已成功刪除",
+    "deleteFailed": "刪除失敗",
+    "searchPlaceholder": "搜尋檔案名...",
+    "private": "私有",
+    "public": "公開",
+    "uploading": "正在上傳...",
+    "uploadFile": "上傳檔案",
+    "noFiles": "還沒有上傳檔案",
+    "noMatchingFiles": "未搜尋到匹配的檔案",
+    "uploadFirstFile": "上傳您的第一個檔案，支持图片、视频、文档和压缩包等格式。",
+    "selectFileUpload": "选择檔案上傳",
+    "downloadFile": "下載檔案",
+    "deleteFile": "刪除檔案",
+    "prevPage": "上一頁",
+    "nextPage": "下一頁",
+    "confirmDeleteFile": "確認刪除檔案",
+    "confirmDeleteFileDesc": "确定要刪除檔案「{name}」吗？刪除後此檔案將无法恢複。",
+    "cancel": "取消",
+    "confirmDelete": "確認刪除",
+    "myFiles": "我的檔案"
+  },
+  "general": {
+    "manage": {
+      "saveSuccess": "儲存成功",
+      "saveFailed": "儲存失敗",
+      "unknownError": "未知錯誤",
+      "deleteSuccess": "刪除成功",
+      "deleteFailed": "刪除失敗",
+      "loading": "載入中",
+      "noData": "暫無資料",
+      "configList": "設定清單",
+      "confirmDelete": "確認刪除?",
+      "confirmDeleteDesc": "此操作无法撤销。這將永久刪除該設定。",
+      "cancel": "取消",
+      "confirmDeleteAction": "確認刪除",
+      "configInfo": "設定信息",
+      "selectConfigToView": "請選擇設定查看详情",
+      "updating": "更新中",
+      "update": "更新",
+      "actions": "操作"
+    },
+    "passwordDialog": {
+      "enterPassword": "請輸入密碼",
+      "enterPasswordDesc": "為了您的账戶安全，請輸入6位認證密碼進行驗證",
+      "cancel": "取消",
+      "verifying": "驗證中...",
+      "confirm": "確認"
+    }
+  },
+  "home": {
+    "banner": {
+      "description": "這是一個通用的二次開發基础平台，内置使用者管理、認證鉴權、檔案儲存、工作调度、通知推送和可觀测性等常用功能模块，說明開發者快速启动新项目。",
+      "getStarted": "快速開始",
+      "hideHint": "收起提示"
+    },
+    "navigation": {
+      "title": "導航"
+    },
+    "quickLinks": {
+      "profile": {
+        "title": "個人资料",
+        "description": "查看和編輯您的账戶信息"
+      },
+      "apiDocs": {
+        "title": "接口文档",
+        "description": "API 接口完整参考"
+      },
+      "userDocs": {
+        "title": "使用文档",
+        "description": "快速上手指南"
+      }
+    },
+    "adminLinks": {
+      "settings": {
+        "title": "系統設定",
+        "description": "設定系統安全、業務與外觀参數"
+      },
+      "systemConfig": {
+        "title": "系統設定",
+        "description": "管理 Key-Value 系統設定项"
+      },
+      "userManagement": {
+        "title": "使用者管理",
+        "description": "查看和管理所有注册使用者"
+      },
+      "tasks": {
+        "title": "工作管理",
+        "description": "异步工作队列與定時工作调度"
+      },
+      "logs": {
+        "title": "系統記錄",
+        "description": "使用者存取記錄與應用程式運行記錄"
+      }
+    },
+    "jumpNow": "立即跳转",
+    "enterNow": "立即進入",
+    "adminConsole": "管理後台",
+    "developerSection": {
+      "heading": "開發者友好",
+      "description": "内置完整的 RESTful API 文档、Swagger UI 與 TypeScript SDK 示例，說明您快速集成。",
+      "features": {
+        "restful": "完整 RESTful API",
+        "swagger": "在線 Swagger 文档",
+        "typescript": "TypeScript SDK 示例",
+        "examples": "丰富的使用示例"
+      },
+      "apiDocs": "查看接口文档",
+      "codeComment": "// 快速開始 — API 调用示例",
+      "codeQuickStart": "快速開始"
+    },
+    "hero": {
+      "subtitle": "内置使用者認證、檔案儲存、工作调度",
+      "subtitleLine2": "通知推送與可觀测性，說明您快速启动下一個项目。",
+      "getStarted": "快速開始",
+      "learnMore": "了解更多",
+      "features": {
+        "readyToUse": "開箱即用",
+        "highlyExtensible": "高度可扩展",
+        "industrialGrade": "工業級品质"
+      }
+    },
+    "footer": {
+      "description": "通用二次開發标准范式平台",
+      "product": "产品",
+      "dashboard": "控制台",
+      "personalSettings": "個人設定",
+      "development": "開發",
+      "quickStart": "快速開始",
+      "apiDocs": "接口文档",
+      "sourceCode": "源代码",
+      "community": "社區",
+      "discussions": "Discussions",
+      "privacyPolicy": "隐私政策",
+      "termsOfService": "服務條款"
+    }
+  },
+  "metadata": {
+    "title": "OpenFlare",
+    "description": "OpenFlare 邊缘節點與反向代理管理平台"
+  },
+  "forbidden": {
+    "label": "權限不足",
+    "description": "您沒有存取此頁面的權限。",
+    "previousPage": "上一頁",
+    "home": "首頁"
+  },
+  "notFound": {
+    "description": "抱歉，您訪問的頁面似已迷失在數位星雲中。請檢查路徑或返回安全地帶。",
+    "previousPage": "上一頁",
+    "home": "首頁"
+  },
+  "providers": {
+    "titleUpdater": {
+      "login": "登入",
+      "register": "注册",
+      "admin": "後台管理",
+      "dashboard": "控制台"
+    }
+  }
+}

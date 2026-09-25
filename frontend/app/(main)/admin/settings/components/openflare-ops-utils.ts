@@ -70,7 +70,8 @@ export function mapOptionsToOpsFields(
       true,
     ),
     node_offline_threshold: optionMap.node_offline_threshold ?? '60000',
-    agent_update_repo: optionMap.agent_update_repo ?? 'XiaoLong-Taiwan/openflare-longshang',
+    agent_update_repo:
+      optionMap.agent_update_repo ?? 'XiaoLong-Taiwan/openflare-longshang',
     geoip_provider: optionMap.geoip_provider ?? 'ipinfo',
     server_address: optionMap.server_address || serverAddress,
     uptime_kuma_enabled: toBoolean(optionMap.uptime_kuma_enabled, false),

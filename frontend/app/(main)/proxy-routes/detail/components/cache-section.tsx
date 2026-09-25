@@ -61,7 +61,7 @@ type CacheValues = {
   bypass_cookies_text: string;
 };
 
-const cacheTTLPattern = /^[1-9][0-9]*[smhdwMy]$/;
+const cacheTTLPattern = /^(?:unlimited|[1-9][0-9]*(?:s|m|h|d|w))$/;
 const cacheCookiePattern = /^[A-Za-z0-9_]{1,64}$/;
 
 interface CacheSectionProps {

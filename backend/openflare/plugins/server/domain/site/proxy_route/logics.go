@@ -6,6 +6,7 @@ package proxy_route
 import (
 	"context"
 	"errors"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -22,6 +23,20 @@ type CustomHeaderInput struct {
 	Value string `json:"value"`
 }
 
+type ProxyConfigInput struct {
+	ProxyConnectTimeout   string              `json:"proxy_connect_timeout"`
+	ProxySendTimeout      string              `json:"proxy_send_timeout"`
+	ProxyReadTimeout      string              `json:"proxy_read_timeout"`
+	ClientHeaderTimeout   string              `json:"client_header_timeout"`
+	ClientBodyTimeout     string              `json:"client_body_timeout"`
+	SendTimeout           string              `json:"send_timeout"`
+	ClientMaxBodySize     string              `json:"client_max_body_size"`
+	WebsocketEnabled      *bool               `json:"websocket_enabled"`
+	ProxyRequestBuffering *bool               `json:"proxy_request_buffering"`
+	ProxyBufferingEnabled *bool               `json:"proxy_buffering_enabled"`
+	CustomHeaders         []CustomHeaderInput `json:"custom_headers"`
+}
+
 type UpstreamTargetInput struct {
 	URL      string `json:"url"`
 	Priority int    `json:"priority"`
@@ -29,79 +44,81 @@ type UpstreamTargetInput struct {
 
 // Input 代理规则创建/更新请求。
 type Input struct {
-	SiteName             string              `json:"site_name"`
-	ZoneDomainIDs        []uint              `json:"zone_domain_ids"`
-	OriginID             *uint               `json:"origin_id"`
-	OriginURL            string              `json:"origin_url"`
-	OriginScheme         string              `json:"origin_scheme"`
-	OriginAddress        string              `json:"origin_address"`
-	OriginPort           string              `json:"origin_port"`
-	OriginURI            string              `json:"origin_uri"`
-	OriginHost           string              `json:"origin_host"`
+	SiteName             string                `json:"site_name"`
+	ZoneDomainIDs        []uint                `json:"zone_domain_ids"`
+	OriginID             *uint                 `json:"origin_id"`
+	OriginURL            string                `json:"origin_url"`
+	OriginScheme         string                `json:"origin_scheme"`
+	OriginAddress        string                `json:"origin_address"`
+	OriginPort           string                `json:"origin_port"`
+	OriginURI            string                `json:"origin_uri"`
+	OriginHost           string                `json:"origin_host"`
 	Upstreams            []string              `json:"upstreams"`
 	UpstreamTargets      []UpstreamTargetInput `json:"upstream_targets"`
 	LoadBalancing        string                `json:"load_balancing"`
 	Enabled              bool                  `json:"enabled"`
-	EnableHTTPS          bool                `json:"enable_https"`
-	RedirectHTTP         bool                `json:"redirect_http"`
-	LimitConnPerServer   int                 `json:"limit_conn_per_server"`
-	LimitConnPerIP       int                 `json:"limit_conn_per_ip"`
-	LimitRate            string              `json:"limit_rate"`
-	LimitReqPerIP        string              `json:"limit_req_per_ip"`
-	CacheEnabled         bool                `json:"cache_enabled"`
-	CachePolicy          string              `json:"cache_policy"`
-	CacheRules           []string            `json:"cache_rules"`
-	CacheConfig          CacheConfigInput     `json:"cache_config"`
-	CustomHeaders        []CustomHeaderInput `json:"custom_headers"`
-	BasicAuthEnabled     bool                `json:"basic_auth_enabled"`
-	BasicAuthUsername    string              `json:"basic_auth_username"`
-	BasicAuthPassword    string              `json:"basic_auth_password"`
-	UpstreamType         string              `json:"upstream_type"`
-	TunnelNodeID         *uint               `json:"tunnel_node_id"`
-	TunnelID             *uint               `json:"tunnel_id"`
-	TunnelTargetAddr     string              `json:"tunnel_target_addr"`
-	TunnelTargetProtocol string              `json:"tunnel_target_protocol"`
-	PagesProjectID       *uint               `json:"pages_project_id"`
+	EnableHTTPS          bool                  `json:"enable_https"`
+	RedirectHTTP         bool                  `json:"redirect_http"`
+	LimitConnPerServer   int                   `json:"limit_conn_per_server"`
+	LimitConnPerIP       int                   `json:"limit_conn_per_ip"`
+	LimitRate            string                `json:"limit_rate"`
+	LimitReqPerIP        string                `json:"limit_req_per_ip"`
+	CacheEnabled         bool                  `json:"cache_enabled"`
+	CachePolicy          string                `json:"cache_policy"`
+	CacheRules           []string              `json:"cache_rules"`
+	CacheConfig          CacheConfigInput      `json:"cache_config"`
+	ProxyConfig          ProxyConfigInput      `json:"proxy_config"`
+	CustomHeaders        []CustomHeaderInput   `json:"custom_headers"`
+	BasicAuthEnabled     bool                  `json:"basic_auth_enabled"`
+	BasicAuthUsername    string                `json:"basic_auth_username"`
+	BasicAuthPassword    string                `json:"basic_auth_password"`
+	UpstreamType         string                `json:"upstream_type"`
+	TunnelNodeID         *uint                 `json:"tunnel_node_id"`
+	TunnelID             *uint                 `json:"tunnel_id"`
+	TunnelTargetAddr     string                `json:"tunnel_target_addr"`
+	TunnelTargetProtocol string                `json:"tunnel_target_protocol"`
+	PagesProjectID       *uint                 `json:"pages_project_id"`
 }
 
 // View 代理规则视图。
 type View struct {
-	ID                   uint                `json:"id"`
-	SiteName             string              `json:"site_name"`
-	ZoneDomainIDs        []uint              `json:"zone_domain_ids"`
-	ZoneDomains          []ZoneDomainView    `json:"zone_domains"`
-	OriginID             *uint               `json:"origin_id"`
-	OriginURL            string              `json:"origin_url"`
-	OriginHost           string              `json:"origin_host"`
+	ID                   uint                  `json:"id"`
+	SiteName             string                `json:"site_name"`
+	ZoneDomainIDs        []uint                `json:"zone_domain_ids"`
+	ZoneDomains          []ZoneDomainView      `json:"zone_domains"`
+	OriginID             *uint                 `json:"origin_id"`
+	OriginURL            string                `json:"origin_url"`
+	OriginHost           string                `json:"origin_host"`
 	Upstreams            string                `json:"upstreams"`
 	UpstreamList         []string              `json:"upstream_list"`
 	UpstreamTargets      []UpstreamTargetInput `json:"upstream_targets"`
 	LoadBalancing        string                `json:"load_balancing"`
 	Enabled              bool                  `json:"enabled"`
-	EnableHTTPS          bool                `json:"enable_https"`
-	RedirectHTTP         bool                `json:"redirect_http"`
-	LimitConnPerServer   int                 `json:"limit_conn_per_server"`
-	LimitConnPerIP       int                 `json:"limit_conn_per_ip"`
-	LimitRate            string              `json:"limit_rate"`
-	LimitReqPerIP        string              `json:"limit_req_per_ip"`
-	CacheEnabled         bool                `json:"cache_enabled"`
-	CachePolicy          string              `json:"cache_policy"`
-	CacheRules           string              `json:"cache_rules"`
-	CacheRuleList        []string            `json:"cache_rule_list"`
-	CacheConfig          CacheConfigInput     `json:"cache_config"`
-	CustomHeaders        string              `json:"custom_headers"`
-	CustomHeaderList     []CustomHeaderInput `json:"custom_header_list"`
-	BasicAuthEnabled     bool                `json:"basic_auth_enabled"`
-	BasicAuthUsername    string              `json:"basic_auth_username"`
-	BasicAuthPassword    string              `json:"basic_auth_password"`
-	UpstreamType         string              `json:"upstream_type"`
-	TunnelNodeID         *uint               `json:"tunnel_node_id"`
-	TunnelID             *uint               `json:"tunnel_id"`
-	TunnelTargetAddr     string              `json:"tunnel_target_addr"`
-	TunnelTargetProtocol string              `json:"tunnel_target_protocol"`
-	PagesProjectID       *uint               `json:"pages_project_id"`
-	CreatedAt            time.Time           `json:"created_at"`
-	UpdatedAt            time.Time           `json:"updated_at"`
+	EnableHTTPS          bool                  `json:"enable_https"`
+	RedirectHTTP         bool                  `json:"redirect_http"`
+	LimitConnPerServer   int                   `json:"limit_conn_per_server"`
+	LimitConnPerIP       int                   `json:"limit_conn_per_ip"`
+	LimitRate            string                `json:"limit_rate"`
+	LimitReqPerIP        string                `json:"limit_req_per_ip"`
+	CacheEnabled         bool                  `json:"cache_enabled"`
+	CachePolicy          string                `json:"cache_policy"`
+	CacheRules           string                `json:"cache_rules"`
+	CacheRuleList        []string              `json:"cache_rule_list"`
+	CacheConfig          CacheConfigInput      `json:"cache_config"`
+	ProxyConfig          ProxyConfigInput      `json:"proxy_config"`
+	CustomHeaders        string                `json:"custom_headers"`
+	CustomHeaderList     []CustomHeaderInput   `json:"custom_header_list"`
+	BasicAuthEnabled     bool                  `json:"basic_auth_enabled"`
+	BasicAuthUsername    string                `json:"basic_auth_username"`
+	BasicAuthPassword    string                `json:"basic_auth_password"`
+	UpstreamType         string                `json:"upstream_type"`
+	TunnelNodeID         *uint                 `json:"tunnel_node_id"`
+	TunnelID             *uint                 `json:"tunnel_id"`
+	TunnelTargetAddr     string                `json:"tunnel_target_addr"`
+	TunnelTargetProtocol string                `json:"tunnel_target_protocol"`
+	PagesProjectID       *uint                 `json:"pages_project_id"`
+	CreatedAt            time.Time             `json:"created_at"`
+	UpdatedAt            time.Time             `json:"updated_at"`
 }
 
 // ZoneDomainView is the route-safe representation of a bound Zone domain.
@@ -179,6 +196,56 @@ func UpdateProxyRoute(ctx context.Context, id uint, input Input) (*View, error) 
 		return nil, err
 	}
 	return buildProxyRouteView(ctx, route)
+}
+
+var (
+	proxyHeaderNamePattern = regexp.MustCompile(`^[A-Za-z0-9!#$%&'*+.^_` + "`" + `|~-]+$`)
+	proxyBodySizePattern   = regexp.MustCompile(`^[1-9][0-9]*(?:[kKmMgG])?$`)
+	proxyTimeoutPattern    = regexp.MustCompile(`^[1-9][0-9]*(?:ms|s|m|h|d|w)$`)
+)
+
+func normalizeProxyConfig(input ProxyConfigInput) (ProxyConfigInput, error) {
+	for _, value := range []string{
+		input.ProxyConnectTimeout,
+		input.ProxySendTimeout,
+		input.ProxyReadTimeout,
+		input.ClientHeaderTimeout,
+		input.ClientBodyTimeout,
+		input.SendTimeout,
+	} {
+		trimmed := strings.TrimSpace(value)
+		if trimmed != "" && !proxyTimeoutPattern.MatchString(trimmed) {
+			return ProxyConfigInput{}, errors.New(errProxyRouteConfigInvalid)
+		}
+	}
+	input.ProxyConnectTimeout = strings.TrimSpace(input.ProxyConnectTimeout)
+	input.ProxySendTimeout = strings.TrimSpace(input.ProxySendTimeout)
+	input.ProxyReadTimeout = strings.TrimSpace(input.ProxyReadTimeout)
+	input.ClientHeaderTimeout = strings.TrimSpace(input.ClientHeaderTimeout)
+	input.ClientBodyTimeout = strings.TrimSpace(input.ClientBodyTimeout)
+	input.SendTimeout = strings.TrimSpace(input.SendTimeout)
+	input.ClientMaxBodySize = strings.TrimSpace(input.ClientMaxBodySize)
+	if input.ClientMaxBodySize != "" && !proxyBodySizePattern.MatchString(input.ClientMaxBodySize) {
+		return ProxyConfigInput{}, errors.New(errProxyRouteConfigInvalid)
+	}
+	if len(input.CustomHeaders) > 32 {
+		return ProxyConfigInput{}, errors.New(errProxyRouteConfigInvalid)
+	}
+	seen := make(map[string]struct{}, len(input.CustomHeaders))
+	for index := range input.CustomHeaders {
+		header := &input.CustomHeaders[index]
+		header.Key = strings.TrimSpace(header.Key)
+		header.Value = strings.TrimSpace(header.Value)
+		if header.Key == "" || len(header.Key) > 128 || !proxyHeaderNamePattern.MatchString(header.Key) || len(header.Value) > 1024 || strings.ContainsAny(header.Value, "\r\n") {
+			return ProxyConfigInput{}, errors.New(errProxyRouteConfigInvalid)
+		}
+		key := strings.ToLower(header.Key)
+		if _, exists := seen[key]; exists {
+			return ProxyConfigInput{}, errors.New(errProxyRouteConfigInvalid)
+		}
+		seen[key] = struct{}{}
+	}
+	return input, nil
 }
 
 func mapProxyRoutePersistError(err error) error {
@@ -273,7 +340,7 @@ func buildProxyRoute(ctx context.Context, route *model.ProxyRoute, input Input) 
 		input.OriginURL = upstreamTargets[0].URL
 		input.Upstreams = upstreamTargetURLs(upstreamTargets[1:])
 	}
-	_, originID, upstreams, err := resolveProxyRouteUpstreams(ctx, upstreamType, input)
+	originURL, originID, upstreams, err := resolveProxyRouteUpstreams(ctx, upstreamType, input)
 	if err != nil {
 		return nil, err
 	}
@@ -302,6 +369,10 @@ func buildProxyRoute(ctx context.Context, route *model.ProxyRoute, input Input) 
 	if err != nil {
 		return nil, err
 	}
+	proxyConfig, err := normalizeProxyConfig(input.ProxyConfig)
+	if err != nil {
+		return nil, err
+	}
 	limitConnPerServer, err := normalizeProxyRouteLimitConnValue(input.LimitConnPerServer, "limit_conn_per_server")
 	if err != nil {
 		return nil, err
@@ -321,7 +392,7 @@ func buildProxyRoute(ctx context.Context, route *model.ProxyRoute, input Input) 
 	if err := validateProxyRouteZoneDomainCertificates(ctx, domains, input.EnableHTTPS); err != nil {
 		return nil, err
 	}
-	jsonFields, err := marshalProxyRouteJSONFields(upstreams, upstreamTargets, cacheRules, cacheConfig, customHeaders)
+	jsonFields, err := marshalProxyRouteJSONFields(upstreams, upstreamTargets, cacheRules, cacheConfig, proxyConfig, customHeaders)
 	if err != nil {
 		return nil, err
 	}
@@ -350,9 +421,9 @@ func buildProxyRoute(ctx context.Context, route *model.ProxyRoute, input Input) 
 		route,
 		input,
 		siteName,
+		originURL,
 		jsonFields,
 		originID,
-		upstreams,
 		originHost,
 		cachePolicy,
 		limitConnPerServer,
@@ -404,6 +475,10 @@ func buildProxyRouteView(ctx context.Context, route *model.ProxyRoute) (*View, e
 	if err != nil {
 		return nil, err
 	}
+	proxyConfig, err := decodeStoredProxyConfig(route.ProxyConfig)
+	if err != nil {
+		return nil, err
+	}
 	customHeaders, err := decodeStoredCustomHeaders(route.CustomHeaders)
 	if err != nil {
 		return nil, err
@@ -438,6 +513,7 @@ func buildProxyRouteView(ctx context.Context, route *model.ProxyRoute) (*View, e
 		CacheRules:           route.CacheRules,
 		CacheRuleList:        cacheRules,
 		CacheConfig:          cacheConfig,
+		ProxyConfig:          proxyConfig,
 		CustomHeaders:        route.CustomHeaders,
 		CustomHeaderList:     customHeaders,
 		BasicAuthEnabled:     route.BasicAuthEnabled,

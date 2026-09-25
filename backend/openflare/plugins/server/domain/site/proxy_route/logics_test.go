@@ -46,6 +46,47 @@ func createZoneDomain(t *testing.T, ctx context.Context, domain string, certID *
 	return item
 }
 
+func TestNormalizeProxyConfigAcceptsNginxDurations(t *testing.T) {
+	cases := []struct {
+		name  string
+		value string
+		valid bool
+	}{
+		{name: "seconds", value: "30s", valid: true},
+		{name: "milliseconds", value: "500ms", valid: true},
+		{name: "minutes", value: "2m", valid: true},
+		{name: "trimmed", value: " 90s ", valid: true},
+		{name: "empty", value: "", valid: true},
+		{name: "bare integer", value: "30", valid: false},
+		{name: "zero", value: "0s", valid: false},
+		{name: "unlimited", value: "unlimited", valid: false},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := normalizeProxyConfig(ProxyConfigInput{ProxyReadTimeout: test.value})
+			if (err == nil) != test.valid {
+				t.Errorf("normalizeProxyConfig(%q) error = %v, want valid = %t", test.value, err, test.valid)
+			}
+			if err == nil && test.value == " 90s " && got.ProxyReadTimeout != "90s" {
+				t.Errorf("normalizeProxyConfig(%q) timeout = %q, want %q", test.value, got.ProxyReadTimeout, "90s")
+			}
+		})
+	}
+}
+
+func TestDecodeStoredProxyConfigConvertsLegacyNumericTimeouts(t *testing.T) {
+	got, err := decodeStoredProxyConfig(`{"proxy_read_timeout":30,"client_body_timeout":0}`)
+	if err != nil {
+		t.Fatalf("decodeStoredProxyConfig() error = %v, want nil", err)
+	}
+	if got.ProxyReadTimeout != "30s" {
+		t.Errorf("decodeStoredProxyConfig() proxy_read_timeout = %q, want %q", got.ProxyReadTimeout, "30s")
+	}
+	if got.ClientBodyTimeout != "" {
+		t.Errorf("decodeStoredProxyConfig() client_body_timeout = %q, want empty inherited value", got.ClientBodyTimeout)
+	}
+}
+
 func TestCreateProxyRouteBindsZoneDomains(t *testing.T) {
 	cleanup := setupProxyRouteTestDB(t)
 	defer cleanup()
@@ -67,8 +108,8 @@ func TestCreateProxyRouteStoresStructuredUpstreamTargets(t *testing.T) {
 	domain := createZoneDomain(t, ctx, "api.example.com", nil)
 
 	view, err := CreateProxyRoute(ctx, Input{
-		SiteName:       "api",
-		ZoneDomainIDs:  []uint{domain.ID},
+		SiteName:      "api",
+		ZoneDomainIDs: []uint{domain.ID},
 		UpstreamTargets: []UpstreamTargetInput{
 			{URL: "http://primary.example.com:8080", Priority: 0},
 			{URL: "http://backup.example.com:8080", Priority: 2},

@@ -3,6 +3,7 @@ import { defaultLocale } from './config';
 
 const localeToIntl: Record<AppLocale, string> = {
   'zh-CN': 'zh-CN',
+  'zh-TW': 'zh-TW',
   en: 'en-US',
 };
 

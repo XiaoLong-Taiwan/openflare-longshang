@@ -183,7 +183,7 @@ function isProxyBuffersValue(value: string) {
 }
 
 function isDurationToken(value: string) {
-  return /^\d+[smhdwSMHDW]$/.test(value.trim());
+  return /^[1-9]\d*(?:ms|s|m|h|d|w)$/.test(value.trim());
 }
 
 function isCacheLevelsValue(value: string) {

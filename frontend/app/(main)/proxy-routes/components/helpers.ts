@@ -410,6 +410,7 @@ export function buildPayloadFromRoute(
       bypass_authorization: false,
       bypass_cookies: [],
     },
+    proxy_config: route.proxy_config,
     custom_headers: route.custom_header_list ?? [],
     basic_auth_enabled: route.basic_auth_enabled,
     basic_auth_username: route.basic_auth_username,

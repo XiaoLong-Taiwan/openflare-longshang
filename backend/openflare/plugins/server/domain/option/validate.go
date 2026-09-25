@@ -22,7 +22,7 @@ var (
 	openRestySizePattern          = regexp.MustCompile(`^\d+[kKmMgG]?$`)
 	openRestyProxyBuffersPattern  = regexp.MustCompile(`^\d+\s+\d+[kKmMgG]?$`)
 	openRestyCacheLevelsPattern   = regexp.MustCompile(`^\d{1,2}(?::\d{1,2}){0,2}$`)
-	openRestyDurationTokenPattern = regexp.MustCompile(`^\d+[smhdwSMHDW]$`)
+	openRestyDurationTokenPattern = regexp.MustCompile(`^[1-9][0-9]*(?:ms|s|m|h|d|w)$`)
 )
 
 const optionValueTrue = "true"

@@ -17,20 +17,41 @@ function flatten(obj, prefix = '') {
   return keys;
 }
 
-const zh = JSON.parse(
-  readFileSync(resolve(root, 'messages/zh-CN.json'), 'utf8'),
+const locales = ['zh-CN', 'zh-TW', 'en'];
+const localeKeys = new Map(
+  locales.map((locale) => {
+    const messages = JSON.parse(
+      readFileSync(resolve(root, `messages/${locale}.json`), 'utf8'),
+    );
+    return [locale, flatten(messages)];
+  }),
 );
-const en = JSON.parse(readFileSync(resolve(root, 'messages/en.json'), 'utf8'));
-const zhKeys = flatten(zh);
-const enKeys = flatten(en);
-const onlyZh = [...zhKeys].filter((k) => !enKeys.has(k)).sort();
-const onlyEnFixed = [...enKeys].filter((k) => !zhKeys.has(k)).sort();
+const referenceKeys = localeKeys.get('zh-CN');
+const mismatches = [];
 
-if (onlyZh.length || onlyEnFixed.length) {
+for (const locale of locales) {
+  if (locale === 'zh-CN') continue;
+  const keys = localeKeys.get(locale);
+  const missing = [...referenceKeys].filter((key) => !keys.has(key)).sort();
+  const extra = [...keys].filter((key) => !referenceKeys.has(key)).sort();
+  if (missing.length || extra.length) {
+    mismatches.push({ locale, missing, extra });
+  }
+}
+
+if (mismatches.length) {
   console.error('i18n key mismatch');
-  if (onlyZh.length) console.error('only in zh-CN:', onlyZh);
-  if (onlyEnFixed.length) console.error('only in en:', onlyEnFixed);
+  for (const mismatch of mismatches) {
+    if (mismatch.missing.length) {
+      console.error(`missing in ${mismatch.locale}:`, mismatch.missing);
+    }
+    if (mismatch.extra.length) {
+      console.error(`only in ${mismatch.locale}:`, mismatch.extra);
+    }
+  }
   process.exit(1);
 }
 
-console.log(`i18n keys OK (${zhKeys.size} keys)`);
+console.log(
+  `i18n keys OK (${referenceKeys.size} keys across ${locales.length} locales)`,
+);

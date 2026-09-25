@@ -162,11 +162,11 @@ func DefaultPoWConfig() PoWConfig {
 // Route describes a single proxy or pages site entry in the OpenFlare config
 // document, including upstream, TLS, caching, rate-limiting and WAF settings.
 type Route struct {
-	ID                 uint                `json:"id,omitempty"`
-	SiteName           string              `json:"site_name,omitempty"`
-	Domains            []string            `json:"domains,omitempty"`
-	DomainNginxConfigs []DomainNginxConfig `json:"domain_nginx_configs,omitempty"`
-	OriginURL          string              `json:"origin_url"`
+	ID                 uint             `json:"id,omitempty"`
+	SiteName           string           `json:"site_name,omitempty"`
+	Domains            []string         `json:"domains,omitempty"`
+	ProxyConfig        ProxyConfig      `json:"proxy_config,omitempty"`
+	OriginURL          string           `json:"origin_url"`
 	OriginHost         string           `json:"origin_host,omitempty"`
 	Upstreams          []string         `json:"upstreams,omitempty"`
 	UpstreamTargets    []UpstreamTarget `json:"upstream_targets,omitempty"`
@@ -202,14 +202,13 @@ type RouteCacheConfig struct {
 	BypassCookies       []string `json:"bypass_cookies,omitempty"`
 }
 
-// DomainNginxConfig contains validated per-domain Nginx overrides.
-type DomainNginxConfig struct {
-	ProxyConnectTimeout   int            `json:"proxy_connect_timeout,omitempty"`
-	ProxySendTimeout      int            `json:"proxy_send_timeout,omitempty"`
-	ProxyReadTimeout      int            `json:"proxy_read_timeout,omitempty"`
-	ClientHeaderTimeout   int            `json:"client_header_timeout,omitempty"`
-	ClientBodyTimeout     int            `json:"client_body_timeout,omitempty"`
-	SendTimeout           int            `json:"send_timeout,omitempty"`
+type ProxyConfig struct {
+	ProxyConnectTimeout   string         `json:"proxy_connect_timeout,omitempty"`
+	ProxySendTimeout      string         `json:"proxy_send_timeout,omitempty"`
+	ProxyReadTimeout      string         `json:"proxy_read_timeout,omitempty"`
+	ClientHeaderTimeout   string         `json:"client_header_timeout,omitempty"`
+	ClientBodyTimeout     string         `json:"client_body_timeout,omitempty"`
+	SendTimeout           string         `json:"send_timeout,omitempty"`
 	ClientMaxBodySize     string         `json:"client_max_body_size,omitempty"`
 	WebsocketEnabled      *bool          `json:"websocket_enabled,omitempty"`
 	ProxyRequestBuffering *bool          `json:"proxy_request_buffering,omitempty"`

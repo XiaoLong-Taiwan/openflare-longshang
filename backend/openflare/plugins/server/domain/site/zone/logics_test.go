@@ -22,7 +22,7 @@ func setupZoneDB(t *testing.T) context.Context {
 	t.Helper()
 	conn, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{DisableForeignKeyConstraintWhenMigrating: true})
 	require.NoError(t, err)
-	require.NoError(t, conn.AutoMigrate(&model.Zone{}, &model.ZoneDomain{}, &model.TLSCertificate{}, &model.CFPointingGroup{}, &model.CFPointingMember{}))
+	require.NoError(t, conn.AutoMigrate(&model.Zone{}, &model.ZoneDomain{}, &model.TLSCertificate{}, &model.CFPointingGroup{}, &model.CFPointingMember{}, &model.CFPointingManagedRecord{}))
 	repository.SetDBForTest(conn)
 	t.Cleanup(func() { repository.SetDBForTest(nil) })
 	return context.Background()
@@ -36,66 +36,43 @@ func TestCreateZoneDomainRejectsWildcard(t *testing.T) {
 	require.EqualError(t, err, errDomainWildcardUnsupported)
 }
 
-func TestCreateAndUpdateDomainNginxConfig(t *testing.T) {
+func TestCreateUpdateDomainWithCertificate(t *testing.T) {
 	ctx := setupZoneDB(t)
 	zone, err := Create(ctx, Input{Domain: "example.com"})
 	require.NoError(t, err)
-	enabled := true
-	created, err := CreateDomain(ctx, zone.ID, DomainInput{
-		Domain: "api.example.com",
-		NginxConfig: &model.DomainNginxConfig{
-			ProxyReadTimeout: 120,
-			ClientMaxBodySize: "50m",
-			WebsocketEnabled:  &enabled,
-			CustomHeaders: []model.DomainHeader{
-				{Key: "X-Tenant", Value: "api"},
-			},
-		},
-	})
-	require.NoError(t, err)
-	require.Equal(t, 120, created.NginxConfig.ProxyReadTimeout)
-	require.Equal(t, "50m", created.NginxConfig.ClientMaxBodySize)
-	require.Equal(t, "X-Tenant", created.NginxConfig.CustomHeaders[0].Key)
+	certificate := &model.TLSCertificate{Name: "example", CertPEM: "cert", KeyPEM: "key"}
+	require.NoError(t, repository.CreateTLSCertificateRecord(ctx, certificate))
 
-	stored, err := repository.GetZoneDomainByZoneAndID(ctx, zone.ID, created.ID)
+	created, err := CreateDomain(ctx, zone.ID, DomainInput{Domain: "api.example.com", CertID: &certificate.ID})
 	require.NoError(t, err)
-	require.NotNil(t, stored.NginxConfig.WebsocketEnabled)
-	require.True(t, *stored.NginxConfig.WebsocketEnabled)
+	require.Equal(t, "api.example.com", created.Domain)
+	require.Equal(t, certificate.ID, *created.CertID)
 
-	updated, err := UpdateDomain(ctx, zone.ID, created.ID, DomainInput{Domain: created.Domain})
+	updated, err := UpdateDomain(ctx, zone.ID, created.ID, DomainInput{Domain: "www.example.com", CertID: nil})
 	require.NoError(t, err)
-	require.Equal(t, 120, updated.NginxConfig.ProxyReadTimeout)
-	require.Len(t, updated.NginxConfig.CustomHeaders, 1)
+	require.Equal(t, "www.example.com", updated.Domain)
+	require.Nil(t, updated.CertID)
 
-	cleared, err := UpdateDomain(ctx, zone.ID, created.ID, DomainInput{
-		Domain:      created.Domain,
-		NginxConfig: &model.DomainNginxConfig{},
-	})
-	require.NoError(t, err)
-	require.Zero(t, cleared.NginxConfig.ProxyReadTimeout)
-	require.Empty(t, cleared.NginxConfig.CustomHeaders)
+	_, err = CreateDomain(ctx, zone.ID, DomainInput{Domain: "secure.example.com", CertID: func() *uint { id := certificate.ID + 1; return &id }()})
+	require.EqualError(t, err, errCertificateNotFound)
 }
 
-func TestCreateDomainRejectsInvalidNginxConfig(t *testing.T) {
+func TestCreateDomainRejectsOutsideZoneAndDuplicate(t *testing.T) {
 	ctx := setupZoneDB(t)
 	zone, err := Create(ctx, Input{Domain: "example.com"})
 	require.NoError(t, err)
+	otherZone, err := Create(ctx, Input{Domain: "example.org"})
+	require.NoError(t, err)
 
-	_, err = CreateDomain(ctx, zone.ID, DomainInput{
-		Domain: "api.example.com",
-		NginxConfig: &model.DomainNginxConfig{
-			ProxyReadTimeout: -1,
-		},
-	})
-	require.EqualError(t, err, errNginxConfigInvalid)
+	_, err = CreateDomain(ctx, zone.ID, DomainInput{Domain: "api.example.org"})
+	require.EqualError(t, err, errDomainOutsideZone)
 
-	_, err = CreateDomain(ctx, zone.ID, DomainInput{
-		Domain: "api.example.com",
-		NginxConfig: &model.DomainNginxConfig{
-			CustomHeaders: []model.DomainHeader{{Key: "Bad Header", Value: "value"}},
-		},
-	})
-	require.EqualError(t, err, errNginxConfigInvalid)
+	_, err = CreateDomain(ctx, zone.ID, DomainInput{Domain: "api.example.com"})
+	require.NoError(t, err)
+	_, err = CreateDomain(ctx, zone.ID, DomainInput{Domain: "api.example.com"})
+	require.EqualError(t, err, errDomainExists)
+	_, err = CreateDomain(ctx, otherZone.ID, DomainInput{Domain: "api.example.com"})
+	require.EqualError(t, err, errDomainOutsideZone)
 }
 
 func TestDeleteDomainRejectsBoundRoute(t *testing.T) {

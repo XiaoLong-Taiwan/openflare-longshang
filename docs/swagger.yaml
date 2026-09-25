@@ -467,6 +467,10 @@ definitions:
         type: boolean
       name:
         type: string
+      nodes:
+        items:
+          $ref: '#/definitions/cloudflare.GroupNodeInput'
+        type: array
       primary_node_id:
         type: integer
     type: object
@@ -488,10 +492,32 @@ definitions:
         type: integer
       name:
         type: string
+      nodes:
+        items:
+          $ref: '#/definitions/cloudflare.GroupNodeItem'
+        type: array
       primary_node:
         $ref: '#/definitions/cloudflare.NodeOption'
       updated_at:
         type: string
+    type: object
+  cloudflare.GroupNodeInput:
+    properties:
+      node_id:
+        type: integer
+      priority:
+        type: integer
+    type: object
+  cloudflare.GroupNodeItem:
+    properties:
+      id:
+        type: integer
+      ip:
+        type: string
+      name:
+        type: string
+      priority:
+        type: integer
     type: object
   cloudflare.MemberCreateInput:
     properties:
@@ -504,6 +530,10 @@ definitions:
     properties:
       desired_ip:
         type: string
+      desired_ips:
+        items:
+          type: string
+        type: array
       domain:
         type: string
       group_id:
@@ -611,6 +641,8 @@ definitions:
         items:
           type: string
         type: array
+      support_files_changed:
+        type: boolean
       waf_config_changed:
         type: boolean
     type: object
@@ -2207,40 +2239,6 @@ definitions:
       website:
         type: string
     type: object
-  model.DomainHeader:
-    properties:
-      key:
-        type: string
-      value:
-        type: string
-    type: object
-  model.DomainNginxConfig:
-    properties:
-      client_body_timeout:
-        type: integer
-      client_header_timeout:
-        type: integer
-      client_max_body_size:
-        type: string
-      custom_headers:
-        items:
-          $ref: '#/definitions/model.DomainHeader'
-        type: array
-      proxy_buffering_enabled:
-        type: boolean
-      proxy_connect_timeout:
-        type: integer
-      proxy_read_timeout:
-        type: integer
-      proxy_request_buffering:
-        type: boolean
-      proxy_send_timeout:
-        type: integer
-      send_timeout:
-        type: integer
-      websocket_enabled:
-        type: boolean
-    type: object
   model.Zone:
     properties:
       created_at:
@@ -2262,8 +2260,6 @@ definitions:
         type: string
       id:
         type: integer
-      nginx_config:
-        $ref: '#/definitions/model.DomainNginxConfig'
       proxy_route_id:
         type: integer
       updated_at:
@@ -3526,13 +3522,6 @@ definitions:
       websocket_upgrade_enabled:
         type: boolean
     type: object
-  proxy_route.CustomHeaderInput:
-    properties:
-      key:
-        type: string
-      value:
-        type: string
-    type: object
   proxy_route.CacheConfigInput:
     properties:
       bypass_authorization:
@@ -3546,6 +3535,13 @@ definitions:
       redirect_ttl:
         type: string
       success_ttl:
+        type: string
+    type: object
+  proxy_route.CustomHeaderInput:
+    properties:
+      key:
+        type: string
+      value:
         type: string
     type: object
   proxy_route.Input:
@@ -3582,6 +3578,8 @@ definitions:
         type: string
       limit_req_per_ip:
         type: string
+      load_balancing:
+        type: string
       origin_address:
         type: string
       origin_host:
@@ -3598,6 +3596,8 @@ definitions:
         type: string
       pages_project_id:
         type: integer
+      proxy_config:
+        $ref: '#/definitions/proxy_route.ProxyConfigInput'
       redirect_http:
         type: boolean
       site_name:
@@ -3610,6 +3610,10 @@ definitions:
         type: string
       tunnel_target_protocol:
         type: string
+      upstream_targets:
+        items:
+          $ref: '#/definitions/proxy_route.UpstreamTargetInput'
+        type: array
       upstream_type:
         type: string
       upstreams:
@@ -3620,6 +3624,40 @@ definitions:
         items:
           type: integer
         type: array
+    type: object
+  proxy_route.ProxyConfigInput:
+    properties:
+      client_body_timeout:
+        type: string
+      client_header_timeout:
+        type: string
+      client_max_body_size:
+        type: string
+      custom_headers:
+        items:
+          $ref: '#/definitions/proxy_route.CustomHeaderInput'
+        type: array
+      proxy_buffering_enabled:
+        type: boolean
+      proxy_connect_timeout:
+        type: string
+      proxy_read_timeout:
+        type: string
+      proxy_request_buffering:
+        type: boolean
+      proxy_send_timeout:
+        type: string
+      send_timeout:
+        type: string
+      websocket_enabled:
+        type: boolean
+    type: object
+  proxy_route.UpstreamTargetInput:
+    properties:
+      priority:
+        type: integer
+      url:
+        type: string
     type: object
   proxy_route.View:
     properties:
@@ -3663,6 +3701,8 @@ definitions:
         type: string
       limit_req_per_ip:
         type: string
+      load_balancing:
+        type: string
       origin_host:
         type: string
       origin_id:
@@ -3671,6 +3711,8 @@ definitions:
         type: string
       pages_project_id:
         type: integer
+      proxy_config:
+        $ref: '#/definitions/proxy_route.ProxyConfigInput'
       redirect_http:
         type: boolean
       site_name:
@@ -3688,6 +3730,10 @@ definitions:
       upstream_list:
         items:
           type: string
+        type: array
+      upstream_targets:
+        items:
+          $ref: '#/definitions/proxy_route.UpstreamTargetInput'
         type: array
       upstream_type:
         type: string
@@ -4256,8 +4302,6 @@ definitions:
         type: integer
       domain:
         type: string
-      nginx_config:
-        $ref: '#/definitions/model.DomainNginxConfig'
     type: object
   zone.Input:
     properties:

@@ -9,7 +9,26 @@ import (
 
 const tableOfProxyRoutes = "of_proxy_routes"
 
-// ProxyRoute OpenFlare 代理规则实体。
+type ProxyRouteConfig struct {
+	ProxyConnectTimeout   string             `json:"proxy_connect_timeout,omitempty"`
+	ProxySendTimeout      string             `json:"proxy_send_timeout,omitempty"`
+	ProxyReadTimeout      string             `json:"proxy_read_timeout,omitempty"`
+	ClientHeaderTimeout   string             `json:"client_header_timeout,omitempty"`
+	ClientBodyTimeout     string             `json:"client_body_timeout,omitempty"`
+	SendTimeout           string             `json:"send_timeout,omitempty"`
+	ClientMaxBodySize     string             `json:"client_max_body_size,omitempty"`
+	WebsocketEnabled      *bool              `json:"websocket_enabled,omitempty"`
+	ProxyRequestBuffering *bool              `json:"proxy_request_buffering,omitempty"`
+	ProxyBufferingEnabled *bool              `json:"proxy_buffering_enabled,omitempty"`
+	CustomHeaders         []ProxyRouteHeader `json:"custom_headers,omitempty"`
+}
+
+type ProxyRouteHeader struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+// ProxyRoute OpenFlare 代理规则实体.
 // 域名与证书仅通过 of_zone_domains 关联，不再持久化在本表。
 type ProxyRoute struct {
 	ID                   uint         `json:"id" gorm:"primaryKey;autoIncrement"`
@@ -31,6 +50,7 @@ type ProxyRoute struct {
 	CachePolicy          string       `json:"cache_policy" gorm:"size:32;not null;default:''"`
 	CacheRules           string       `json:"cache_rules" gorm:"type:text;not null;default:'[]'"`
 	CacheConfig          string       `json:"cache_config" gorm:"type:text;not null;default:'{}'"`
+	ProxyConfig          string       `json:"proxy_config" gorm:"type:text;not null;default:'{}'"`
 	CustomHeaders        string       `json:"custom_headers" gorm:"type:text;not null;default:'[]'"`
 	BasicAuthEnabled     bool         `json:"basic_auth_enabled" gorm:"not null;default:false"`
 	BasicAuthUsername    string       `json:"basic_auth_username" gorm:"size:255;not null;default:''"`

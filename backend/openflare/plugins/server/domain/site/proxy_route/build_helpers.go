@@ -16,6 +16,7 @@ import (
 type proxyRouteJSONFields struct {
 	cacheRulesJSON      string
 	cacheConfigJSON     string
+	proxyConfigJSON     string
 	upstreamsJSON       string
 	upstreamTargetsJSON string
 	customHeadersJSON   string
@@ -49,6 +50,7 @@ func marshalProxyRouteJSONFields(
 	upstreamTargets []UpstreamTargetInput,
 	cacheRules []string,
 	cacheConfig CacheConfigInput,
+	proxyConfig ProxyConfigInput,
 	customHeaders []CustomHeaderInput,
 ) (*proxyRouteJSONFields, error) {
 	cacheRulesJSON, err := json.Marshal(cacheRules)
@@ -56,6 +58,10 @@ func marshalProxyRouteJSONFields(
 		return nil, err
 	}
 	cacheConfigJSON, err := json.Marshal(cacheConfig)
+	if err != nil {
+		return nil, err
+	}
+	proxyConfigJSON, err := json.Marshal(proxyConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -74,6 +80,7 @@ func marshalProxyRouteJSONFields(
 	return &proxyRouteJSONFields{
 		cacheRulesJSON:      string(cacheRulesJSON),
 		cacheConfigJSON:     string(cacheConfigJSON),
+		proxyConfigJSON:     string(proxyConfigJSON),
 		upstreamsJSON:       string(upstreamsJSON),
 		upstreamTargetsJSON: string(upstreamTargetsJSON),
 		customHeadersJSON:   string(customHeadersJSON),
@@ -98,16 +105,16 @@ func populateProxyRouteFields(
 	route *model.ProxyRoute,
 	input Input,
 	siteName string,
+	originURL string,
 	jsonFields *proxyRouteJSONFields,
 	originID *uint,
-	upstreams []string,
 	originHost, cachePolicy string,
 	limitConnPerServer, limitConnPerIP int,
 	limitRate, limitReqPerIP, upstreamType, loadBalancing string,
 ) {
 	route.SiteName = siteName
 	route.OriginID = originID
-	route.OriginURL = upstreams[0]
+	route.OriginURL = originURL
 	route.OriginHost = originHost
 	route.Upstreams = jsonFields.upstreamsJSON
 	route.UpstreamTargets = jsonFields.upstreamTargetsJSON
@@ -123,6 +130,7 @@ func populateProxyRouteFields(
 	route.CachePolicy = normalizeCachePolicy(input.CacheEnabled, cachePolicy)
 	route.CacheRules = jsonFields.cacheRulesJSON
 	route.CacheConfig = jsonFields.cacheConfigJSON
+	route.ProxyConfig = jsonFields.proxyConfigJSON
 	route.CustomHeaders = jsonFields.customHeadersJSON
 	route.BasicAuthEnabled = input.BasicAuthEnabled
 	route.BasicAuthUsername = input.BasicAuthUsername

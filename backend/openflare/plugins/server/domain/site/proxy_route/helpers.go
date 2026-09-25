@@ -537,6 +537,72 @@ func DecodeStoredUpstreamTargets(raw string, upstreams []string) ([]UpstreamTarg
 	return decodeStoredUpstreamTargets(raw, upstreams)
 }
 
+func decodeStoredProxyConfig(raw string) (ProxyConfigInput, error) {
+	text := strings.TrimSpace(raw)
+	if text == "" || text == "{}" {
+		return ProxyConfigInput{}, nil
+	}
+	var payload map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(text), &payload); err != nil {
+		return ProxyConfigInput{}, errors.New("proxy_config payload is invalid")
+	}
+	var config ProxyConfigInput
+	if err := decodeProxyConfigField(payload, "proxy_connect_timeout", &config.ProxyConnectTimeout); err != nil {
+		return ProxyConfigInput{}, err
+	}
+	if err := decodeProxyConfigField(payload, "proxy_send_timeout", &config.ProxySendTimeout); err != nil {
+		return ProxyConfigInput{}, err
+	}
+	if err := decodeProxyConfigField(payload, "proxy_read_timeout", &config.ProxyReadTimeout); err != nil {
+		return ProxyConfigInput{}, err
+	}
+	if err := decodeProxyConfigField(payload, "client_header_timeout", &config.ClientHeaderTimeout); err != nil {
+		return ProxyConfigInput{}, err
+	}
+	if err := decodeProxyConfigField(payload, "client_body_timeout", &config.ClientBodyTimeout); err != nil {
+		return ProxyConfigInput{}, err
+	}
+	if err := decodeProxyConfigField(payload, "send_timeout", &config.SendTimeout); err != nil {
+		return ProxyConfigInput{}, err
+	}
+	delete(payload, "proxy_connect_timeout")
+	delete(payload, "proxy_send_timeout")
+	delete(payload, "proxy_read_timeout")
+	delete(payload, "client_header_timeout")
+	delete(payload, "client_body_timeout")
+	delete(payload, "send_timeout")
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		return ProxyConfigInput{}, errors.New("proxy_config payload is invalid")
+	}
+	if err := json.Unmarshal(encoded, &config); err != nil {
+		return ProxyConfigInput{}, errors.New("proxy_config payload is invalid")
+	}
+	return normalizeProxyConfig(config)
+}
+
+func decodeProxyConfigField(payload map[string]json.RawMessage, key string, target *string) error {
+	value, ok := payload[key]
+	if !ok || string(value) == "null" {
+		return nil
+	}
+	if err := json.Unmarshal(value, target); err == nil {
+		return nil
+	}
+	var number json.Number
+	if err := json.Unmarshal(value, &number); err != nil {
+		return errors.New("proxy_config payload is invalid")
+	}
+	seconds, err := strconv.Atoi(number.String())
+	if err != nil || seconds < 0 {
+		return errors.New("proxy_config payload is invalid")
+	}
+	if seconds > 0 {
+		*target = strconv.Itoa(seconds) + "s"
+	}
+	return nil
+}
+
 func decodeStoredCustomHeaders(raw string) ([]CustomHeaderInput, error) {
 	text := strings.TrimSpace(raw)
 	if text == "" {

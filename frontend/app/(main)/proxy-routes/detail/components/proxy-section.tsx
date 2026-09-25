@@ -28,6 +28,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type {
   ProxyRouteItem,
   ProxyRouteLoadBalancing,
+  ProxyRouteProxyConfig,
   ProxyRouteUpstreamTarget,
 } from '@/lib/services/openflare';
 import { NodeService, PagesService } from '@/lib/services/openflare';
@@ -46,6 +47,8 @@ import { proxyRouteFormIds } from '../helpers';
 import { useRouteSectionSave } from '../hooks/use-route-section-save';
 import { SectionShell } from './section-shell';
 
+type ProxyBooleanValue = 'inherit' | 'on' | 'off';
+
 type ReverseProxyValues = {
   upstream_type: 'direct' | 'tunnel' | 'pages';
   upstream_targets: ProxyRouteUpstreamTarget[];
@@ -56,6 +59,16 @@ type ReverseProxyValues = {
   tunnel_target_protocol?: 'http' | 'https';
   pages_project_id?: string;
   custom_headers_text: string;
+  proxy_connect_timeout: string;
+  proxy_send_timeout: string;
+  proxy_read_timeout: string;
+  client_header_timeout: string;
+  client_body_timeout: string;
+  send_timeout: string;
+  client_max_body_size: string;
+  websocket_enabled: ProxyBooleanValue;
+  proxy_request_buffering: ProxyBooleanValue;
+  proxy_buffering_enabled: ProxyBooleanValue;
 };
 
 interface ProxySectionProps {
@@ -70,6 +83,7 @@ export function ProxySection({
   onSavingChange,
 }: ProxySectionProps) {
   const t = useTranslations('proxyRoutes');
+  const proxyTimeoutPattern = /^[1-9]\d*(?:ms|s|m|h|d|w)$/;
   const reverseProxySchema = z
     .object({
       upstream_type: z.enum(['direct', 'tunnel', 'pages']),
@@ -83,6 +97,16 @@ export function ProxySection({
       tunnel_target_protocol: z.enum(['http', 'https']).optional(),
       pages_project_id: z.string().optional(),
       custom_headers_text: z.string(),
+      proxy_connect_timeout: z.string(),
+      proxy_send_timeout: z.string(),
+      proxy_read_timeout: z.string(),
+      client_header_timeout: z.string(),
+      client_body_timeout: z.string(),
+      send_timeout: z.string(),
+      client_max_body_size: z.string(),
+      websocket_enabled: z.enum(['inherit', 'on', 'off']),
+      proxy_request_buffering: z.enum(['inherit', 'on', 'off']),
+      proxy_buffering_enabled: z.enum(['inherit', 'on', 'off']),
     })
     .superRefine((value, context) => {
       if (value.upstream_type === 'direct') {
@@ -148,6 +172,34 @@ export function ProxySection({
           message: headerError,
         });
       }
+
+      for (const field of [
+        'proxy_connect_timeout',
+        'proxy_send_timeout',
+        'proxy_read_timeout',
+        'client_header_timeout',
+        'client_body_timeout',
+        'send_timeout',
+      ] as const) {
+        if (value[field] && !proxyTimeoutPattern.test(value[field].trim())) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [field],
+            message: t('validation.timeoutInvalid'),
+          });
+        }
+      }
+
+      if (
+        value.client_max_body_size &&
+        !/^[1-9]\d*[kKmMgG]?$/.test(value.client_max_body_size)
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['client_max_body_size'],
+          message: t('validation.bodySizeInvalid'),
+        });
+      }
     });
   const { saving, save } = useRouteSectionSave(
     route,
@@ -190,6 +242,37 @@ export function ProxySection({
         ? String(route.pages_project_id)
         : '',
       custom_headers_text: customHeadersToText(route.custom_header_list),
+      proxy_connect_timeout: String(
+        route.proxy_config?.proxy_connect_timeout || '',
+      ),
+      proxy_send_timeout: String(route.proxy_config?.proxy_send_timeout || ''),
+      proxy_read_timeout: String(route.proxy_config?.proxy_read_timeout || ''),
+      client_header_timeout: String(
+        route.proxy_config?.client_header_timeout || '',
+      ),
+      client_body_timeout: String(
+        route.proxy_config?.client_body_timeout || '',
+      ),
+      send_timeout: String(route.proxy_config?.send_timeout || ''),
+      client_max_body_size: route.proxy_config?.client_max_body_size || '',
+      websocket_enabled:
+        route.proxy_config?.websocket_enabled == null
+          ? 'inherit'
+          : route.proxy_config.websocket_enabled
+            ? 'on'
+            : 'off',
+      proxy_request_buffering:
+        route.proxy_config?.proxy_request_buffering == null
+          ? 'inherit'
+          : route.proxy_config.proxy_request_buffering
+            ? 'on'
+            : 'off',
+      proxy_buffering_enabled:
+        route.proxy_config?.proxy_buffering_enabled == null
+          ? 'inherit'
+          : route.proxy_config.proxy_buffering_enabled
+            ? 'on'
+            : 'off',
     },
   });
 
@@ -210,6 +293,37 @@ export function ProxySection({
         ? String(route.pages_project_id)
         : '',
       custom_headers_text: customHeadersToText(route.custom_header_list),
+      proxy_connect_timeout: String(
+        route.proxy_config?.proxy_connect_timeout || '',
+      ),
+      proxy_send_timeout: String(route.proxy_config?.proxy_send_timeout || ''),
+      proxy_read_timeout: String(route.proxy_config?.proxy_read_timeout || ''),
+      client_header_timeout: String(
+        route.proxy_config?.client_header_timeout || '',
+      ),
+      client_body_timeout: String(
+        route.proxy_config?.client_body_timeout || '',
+      ),
+      send_timeout: String(route.proxy_config?.send_timeout || ''),
+      client_max_body_size: route.proxy_config?.client_max_body_size || '',
+      websocket_enabled:
+        route.proxy_config?.websocket_enabled == null
+          ? 'inherit'
+          : route.proxy_config.websocket_enabled
+            ? 'on'
+            : 'off',
+      proxy_request_buffering:
+        route.proxy_config?.proxy_request_buffering == null
+          ? 'inherit'
+          : route.proxy_config.proxy_request_buffering
+            ? 'on'
+            : 'off',
+      proxy_buffering_enabled:
+        route.proxy_config?.proxy_buffering_enabled == null
+          ? 'inherit'
+          : route.proxy_config.proxy_buffering_enabled
+            ? 'on'
+            : 'off',
     });
   }, [form, route]);
 
@@ -264,6 +378,28 @@ export function ProxySection({
               values.custom_headers_text,
               t,
             );
+            const proxyConfig: ProxyRouteProxyConfig = {
+              proxy_connect_timeout: values.proxy_connect_timeout.trim(),
+              proxy_send_timeout: values.proxy_send_timeout.trim(),
+              proxy_read_timeout: values.proxy_read_timeout.trim(),
+              client_header_timeout: values.client_header_timeout.trim(),
+              client_body_timeout: values.client_body_timeout.trim(),
+              send_timeout: values.send_timeout.trim(),
+              client_max_body_size: values.client_max_body_size.trim(),
+              websocket_enabled:
+                values.websocket_enabled === 'inherit'
+                  ? null
+                  : values.websocket_enabled === 'on',
+              proxy_request_buffering:
+                values.proxy_request_buffering === 'inherit'
+                  ? null
+                  : values.proxy_request_buffering === 'on',
+              proxy_buffering_enabled:
+                values.proxy_buffering_enabled === 'inherit'
+                  ? null
+                  : values.proxy_buffering_enabled === 'on',
+              custom_headers: headers,
+            };
 
             await save(
               {
@@ -277,6 +413,7 @@ export function ProxySection({
                 upstreams,
                 upstream_targets: upstreamTargets,
                 load_balancing: values.load_balancing,
+                proxy_config: proxyConfig,
                 custom_headers: headers,
                 upstream_type: values.upstream_type,
                 tunnel_node_id:
@@ -501,6 +638,94 @@ export function ProxySection({
               </FormItem>
             )}
           />
+
+          <div className='space-y-4 rounded-lg border border-dashed bg-muted/30 p-4'>
+            <div>
+              <h3 className='text-sm font-medium'>{t('proxyConfig')}</h3>
+              <p className='mt-1 text-xs text-muted-foreground'>
+                {t('proxyConfigHint')}
+              </p>
+            </div>
+            <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+              {(
+                [
+                  ['proxy_connect_timeout', 'proxyConnectTimeout'],
+                  ['proxy_send_timeout', 'proxySendTimeout'],
+                  ['proxy_read_timeout', 'proxyReadTimeout'],
+                  ['client_header_timeout', 'clientHeaderTimeout'],
+                  ['client_body_timeout', 'clientBodyTimeout'],
+                  ['send_timeout', 'sendTimeout'],
+                ] as const
+              ).map(([name, label]) => (
+                <FormField
+                  key={name}
+                  control={form.control}
+                  name={name}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t(label)}</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder={t('timeoutPlaceholder')}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ))}
+              <FormField
+                control={form.control}
+                name='client_max_body_size'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('clientMaxBodySize')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t('bodySizePlaceholder')}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            {(
+              [
+                ['websocket_enabled', 'websocketEnabled'],
+                ['proxy_request_buffering', 'proxyRequestBuffering'],
+                ['proxy_buffering_enabled', 'proxyBufferingEnabled'],
+              ] as const
+            ).map(([name, label]) => (
+              <FormField
+                key={name}
+                control={form.control}
+                name={name}
+                render={({ field }) => (
+                  <FormItem className='flex items-center justify-between gap-3'>
+                    <FormLabel>{t(label)}</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger className='w-36'>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value='inherit'>
+                          {t('inheritGlobal')}
+                        </SelectItem>
+                        <SelectItem value='on'>{t('enabled')}</SelectItem>
+                        <SelectItem value='off'>{t('disabled')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
+          </div>
 
           <FormField
             control={form.control}

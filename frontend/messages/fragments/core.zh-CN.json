@@ -463,6 +463,12 @@
     "title": "OpenFlare",
     "description": "OpenFlare 边缘节点与反向代理管理平台"
   },
+  "forbidden": {
+    "label": "权限不足",
+    "description": "您没有访问此页面的权限。",
+    "previousPage": "上一页",
+    "home": "首页"
+  },
   "notFound": {
     "description": "抱歉，您访问的页面似已迷失在数字星云中。请检查路径或返回安全地带。",
     "previousPage": "上一页",

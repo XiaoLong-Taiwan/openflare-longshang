@@ -38,5 +38,6 @@ function mergeLocale(locale) {
 }
 
 mergeLocale('zh-CN');
+mergeLocale('zh-TW');
 mergeLocale('en');
 console.log('fragments merged');

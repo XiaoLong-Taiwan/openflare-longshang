@@ -212,6 +212,20 @@ export interface ProxyRouteCacheConfig {
   bypass_cookies: string[];
 }
 
+export interface ProxyRouteProxyConfig {
+  proxy_connect_timeout: string;
+  proxy_send_timeout: string;
+  proxy_read_timeout: string;
+  client_header_timeout: string;
+  client_body_timeout: string;
+  send_timeout: string;
+  client_max_body_size: string;
+  websocket_enabled: boolean | null;
+  proxy_request_buffering: boolean | null;
+  proxy_buffering_enabled: boolean | null;
+  custom_headers: ProxyRouteCustomHeader[];
+}
+
 export interface ProxyRoutePoWListConfig {
   ips: string[];
   ip_cidrs: string[];
@@ -261,6 +275,7 @@ export interface ProxyRouteItem {
   cache_rules: string;
   cache_rule_list: string[];
   cache_config: ProxyRouteCacheConfig;
+  proxy_config: ProxyRouteProxyConfig;
   custom_headers: string;
   custom_header_list: ProxyRouteCustomHeader[];
   basic_auth_enabled: boolean;
@@ -300,6 +315,7 @@ export interface ProxyRouteMutationPayload {
   cache_policy: string;
   cache_rules: string[];
   cache_config?: ProxyRouteCacheConfig;
+  proxy_config?: ProxyRouteProxyConfig;
   custom_headers: ProxyRouteCustomHeader[];
   basic_auth_enabled: boolean;
   basic_auth_username?: string;
@@ -1319,27 +1335,12 @@ export interface ZoneMutationPayload {
   domain: string;
 }
 
-export interface ZoneDomainNginxConfig {
-  proxy_connect_timeout?: number;
-  proxy_send_timeout?: number;
-  proxy_read_timeout?: number;
-  client_header_timeout?: number;
-  client_body_timeout?: number;
-  send_timeout?: number;
-  client_max_body_size?: string;
-  websocket_enabled?: boolean;
-  proxy_request_buffering?: boolean;
-  proxy_buffering_enabled?: boolean;
-  custom_headers?: Array<{ key: string; value: string }>;
-}
-
 export interface ZoneDomainItem {
   id: number;
   zone_id: number;
   proxy_route_id: number | null;
   domain: string;
   cert_id: number | null;
-  nginx_config?: ZoneDomainNginxConfig;
   created_at: string;
   updated_at: string;
 }
@@ -1347,7 +1348,6 @@ export interface ZoneDomainItem {
 export interface ZoneDomainMutationPayload {
   domain: string;
   cert_id: number | null;
-  nginx_config?: ZoneDomainNginxConfig;
 }
 
 export interface ZoneOverview {

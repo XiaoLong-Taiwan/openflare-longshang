@@ -406,7 +406,7 @@ func flattenSnapshotRoutesByDomain(routes []snapshotRoute) map[string]snapshotRo
 func snapshotRouteConfigEqual(left snapshotRoute, right snapshotRoute) bool {
 	return snapshotRouteScalarsEqual(left, right) &&
 		slices.Equal(left.Domains, right.Domains) &&
-		reflect.DeepEqual(left.DomainNginxConfigs, right.DomainNginxConfigs) &&
+		reflect.DeepEqual(left.ProxyConfig, right.ProxyConfig) &&
 		slices.Equal(left.Upstreams, right.Upstreams) &&
 		slices.Equal(left.UpstreamTargets, right.UpstreamTargets) &&
 		slices.Equal(left.CacheRules, right.CacheRules) &&

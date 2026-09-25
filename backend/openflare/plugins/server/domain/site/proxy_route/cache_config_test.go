@@ -13,6 +13,7 @@ func TestNormalizeCacheConfig(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "valid", input: CacheConfigInput{SuccessTTL: " 2h ", RedirectTTL: "30m", NotFoundTTL: "1m", BypassCookies: []string{"session_id", "session_id"}}},
+		{name: "unlimited ttl", input: CacheConfigInput{SuccessTTL: "unlimited"}},
 		{name: "invalid ttl", input: CacheConfigInput{SuccessTTL: "2h; include bad"}, wantErr: true},
 		{name: "invalid cookie", input: CacheConfigInput{BypassCookies: []string{"session-id"}}, wantErr: true},
 	}

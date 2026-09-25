@@ -8,9 +8,11 @@ import { resolveClientLocale } from '@/i18n/client';
 import type { AppLocale } from '@/i18n/config';
 import enMessages from '@/messages/en.json';
 import zhCNMessages from '@/messages/zh-CN.json';
+import zhTWMessages from '@/messages/zh-TW.json';
 
 const messagesByLocale: Record<AppLocale, AbstractIntlMessages> = {
   'zh-CN': zhCNMessages,
+  'zh-TW': zhTWMessages,
   en: enMessages,
 };
 

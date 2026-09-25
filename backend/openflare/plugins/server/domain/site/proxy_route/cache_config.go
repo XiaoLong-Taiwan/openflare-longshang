@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	cacheTTLPattern    = regexp.MustCompile(`^[1-9][0-9]*[smhdwMy]$`)
+	cacheTTLPattern    = regexp.MustCompile(`^(?:unlimited|[1-9][0-9]*(?:s|m|h|d|w))$`)
 	cacheCookiePattern = regexp.MustCompile(`^[A-Za-z0-9_]{1,64}$`)
 )
 

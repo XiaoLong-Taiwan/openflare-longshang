@@ -550,22 +550,42 @@ func TestRenderRouteCacheBlockAppliesRouteConfig(t *testing.T) {
 	}
 }
 
-func TestRenderJSONAppliesDomainNginxConfig(t *testing.T) {
-	source := `{"routes":[{"site_name":"example.com","domains":["api.example.com","www.example.com"],"domain_nginx_configs":[{"proxy_read_timeout":120,"client_max_body_size":"50m","websocket_enabled":true,"custom_headers":[{"key":"X-Tenant","value":"api"}]},{}],"origin_url":"http://127.0.0.1:8080","enabled":true}],"openresty_config":{"websocket_enabled":false},"waf":{"rule_groups":[],"bindings":[]}}`
+func TestRenderJSONAppliesProxyConfigToAllRouteDomains(t *testing.T) {
+	source := `{"routes":[{"site_name":"example.com","domains":["api.example.com","www.example.com"],"proxy_config":{"proxy_connect_timeout":"10s","proxy_send_timeout":"90s","proxy_read_timeout":"2m","client_header_timeout":"20s","client_body_timeout":"30s","send_timeout":"40s","client_max_body_size":"50m","websocket_enabled":true,"proxy_request_buffering":false,"proxy_buffering_enabled":false,"custom_headers":[{"key":"X-Tenant","value":"shared"}]},"custom_headers":[{"key":"x-tenant","value":"legacy"}],"origin_url":"http://127.0.0.1:8080","enabled":true}],"openresty_config":{"websocket_enabled":false},"waf":{"rule_groups":[],"bindings":[]}}`
 	result, err := RenderJSON(source, nil)
 	if err != nil {
 		t.Fatalf("RenderJSON() error = %v, want nil", err)
 	}
-	for _, want := range []string{
-		"server_name api.example.com;",
-		"proxy_read_timeout 120s;",
-		"client_max_body_size 50m;",
-		"proxy_set_header X-Tenant \"api\";",
-		"server_name www.example.com;",
-	} {
-		if !strings.Contains(result.RouteConfig, want) {
-			t.Fatalf("RenderJSON() route config missing %q in:\n%s", want, result.RouteConfig)
+	blocks := strings.Split(result.RouteConfig, "server {\n")
+	if len(blocks) != 3 {
+		t.Fatalf("RenderJSON() server block count = %d, want 2", len(blocks)-1)
+	}
+	for index, domain := range []string{"api.example.com", "www.example.com"} {
+		block := blocks[index+1]
+		for _, want := range []string{
+			"server_name " + domain + ";",
+			"proxy_connect_timeout 10s;",
+			"proxy_send_timeout 90s;",
+			"proxy_read_timeout 2m;",
+			"client_header_timeout 20s;",
+			"client_body_timeout 30s;",
+			"send_timeout 40s;",
+			"client_max_body_size 50m;",
+			"proxy_request_buffering off;",
+			"proxy_buffering off;",
+			"proxy_set_header Upgrade $http_upgrade;",
+			"proxy_set_header X-Tenant \"shared\";",
+		} {
+			if !strings.Contains(block, want) {
+				t.Errorf("RenderJSON() domain %s missing %q in:\n%s", domain, want, block)
+			}
 		}
+		if strings.Contains(block, "legacy") {
+			t.Errorf("RenderJSON() domain %s retained overridden header in:\n%s", domain, block)
+		}
+	}
+	if strings.ReplaceAll(blocks[1], "api.example.com", "www.example.com") != blocks[2] {
+		t.Errorf("RenderJSON() server blocks differ beyond domain names:\n%s", result.RouteConfig)
 	}
 }
 
@@ -583,6 +603,17 @@ func TestRenderJSONAppliesRouteCacheConfig(t *testing.T) {
 		if !strings.Contains(result.RouteConfig, want) {
 			t.Errorf("RenderJSON() route config missing %q in:\n%s", want, result.RouteConfig)
 		}
+	}
+}
+
+func TestRenderJSONAppliesUnlimitedCacheTTL(t *testing.T) {
+	source := `{"routes":[{"site_name":"example.com","domains":["example.com"],"origin_url":"http://127.0.0.1:8080","enabled":true,"cache_enabled":true,"cache_policy":"all","cache_config":{"success_ttl":"unlimited"}}],"openresty_config":{"cache_enabled":true},"waf":{"rule_groups":[],"bindings":[]}}`
+	result, err := RenderJSON(source, nil)
+	if err != nil {
+		t.Fatalf("RenderJSON() error = %v, want nil", err)
+	}
+	if !strings.Contains(result.RouteConfig, "proxy_cache_valid 200 206 301 3650d;") {
+		t.Errorf("RenderJSON() missing unlimited cache TTL mapping in:\n%s", result.RouteConfig)
 	}
 }
 

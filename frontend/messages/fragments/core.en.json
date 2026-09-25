@@ -463,6 +463,12 @@
     "title": "OpenFlare",
     "description": "OpenFlare edge node and reverse proxy control plane"
   },
+  "forbidden": {
+    "label": "Access denied",
+    "description": "You do not have permission to access this page.",
+    "previousPage": "Previous page",
+    "home": "Home"
+  },
   "notFound": {
     "description": "Sorry, the page you're looking for seems lost in the digital nebula. Please check the path or return to safety.",
     "previousPage": "Previous page",

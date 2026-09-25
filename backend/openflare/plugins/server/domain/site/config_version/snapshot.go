@@ -46,12 +46,12 @@ const (
 type snapshotRoute struct {
 	ID                 uint                             `json:"id,omitempty"`
 	SiteName           string                           `json:"site_name,omitempty"`
-	Domains            []string                               `json:"domains,omitempty"`
-	DomainNginxConfigs  []openrestyrender.DomainNginxConfig    `json:"domain_nginx_configs,omitempty"`
-	OriginURL           string                                `json:"origin_url"`
+	Domains            []string                         `json:"domains,omitempty"`
+	ProxyConfig        openrestyrender.ProxyConfig      `json:"proxy_config,omitempty"`
+	OriginURL          string                           `json:"origin_url"`
 	OriginHost         string                           `json:"origin_host,omitempty"`
 	Upstreams          []string                         `json:"upstreams,omitempty"`
-	UpstreamTargets    []snapshotUpstreamTarget          `json:"upstream_targets,omitempty"`
+	UpstreamTargets    []snapshotUpstreamTarget         `json:"upstream_targets,omitempty"`
 	LoadBalancing      string                           `json:"load_balancing,omitempty"`
 	Enabled            bool                             `json:"enabled"`
 	EnableHTTPS        bool                             `json:"enable_https"`
@@ -238,7 +238,7 @@ func buildCurrentConfigBundle(ctx context.Context, requireRoutes bool) (*configB
 	}, nil
 }
 
-func domainHeadersToRenderHeaders(headers []model.DomainHeader) []openrestyrender.CustomHeader {
+func proxyHeadersToRenderHeaders(headers []proxy_route.CustomHeaderInput) []openrestyrender.CustomHeader {
 	result := make([]openrestyrender.CustomHeader, 0, len(headers))
 	for _, header := range headers {
 		result = append(result, openrestyrender.CustomHeader{Key: header.Key, Value: header.Value})
@@ -257,23 +257,9 @@ func buildSnapshotRoutes(ctx context.Context, routes []*model.ProxyRoute) ([]sna
 			return nil, fmt.Errorf("route %s has no zone domains", route.SiteName)
 		}
 		domains := make([]string, 0, len(zoneDomains))
-		domainNginxConfigs := make([]openrestyrender.DomainNginxConfig, 0, len(zoneDomains))
 		domainCertIDs := make([]uint, 0, len(zoneDomains))
 		for _, zoneDomain := range zoneDomains {
 			domains = append(domains, zoneDomain.Domain)
-			domainNginxConfigs = append(domainNginxConfigs, openrestyrender.DomainNginxConfig{
-				ProxyConnectTimeout:   zoneDomain.NginxConfig.ProxyConnectTimeout,
-				ProxySendTimeout:      zoneDomain.NginxConfig.ProxySendTimeout,
-				ProxyReadTimeout:      zoneDomain.NginxConfig.ProxyReadTimeout,
-				ClientHeaderTimeout:   zoneDomain.NginxConfig.ClientHeaderTimeout,
-				ClientBodyTimeout:     zoneDomain.NginxConfig.ClientBodyTimeout,
-				SendTimeout:           zoneDomain.NginxConfig.SendTimeout,
-				ClientMaxBodySize:     zoneDomain.NginxConfig.ClientMaxBodySize,
-				WebsocketEnabled:      zoneDomain.NginxConfig.WebsocketEnabled,
-				ProxyRequestBuffering: zoneDomain.NginxConfig.ProxyRequestBuffering,
-				ProxyBufferingEnabled: zoneDomain.NginxConfig.ProxyBufferingEnabled,
-				CustomHeaders:         domainHeadersToRenderHeaders(zoneDomain.NginxConfig.CustomHeaders),
-			})
 			if zoneDomain.CertID == nil {
 				domainCertIDs = append(domainCertIDs, 0)
 				continue
@@ -283,6 +269,10 @@ func buildSnapshotRoutes(ctx context.Context, routes []*model.ProxyRoute) ([]sna
 		customHeaders, err := decodeStoredCustomHeaders(route.CustomHeaders)
 		if err != nil {
 			return nil, fmt.Errorf("路由 %s 自定义请求头无效", route.SiteName)
+		}
+		proxyConfig, err := proxy_route.DecodeStoredProxyConfig(route.ProxyConfig)
+		if err != nil {
+			return nil, fmt.Errorf("路由 %s 代理配置无效", route.SiteName)
 		}
 		upstreamType := normalizeUpstreamType(route.UpstreamType)
 		originURL := route.OriginURL
@@ -327,10 +317,22 @@ func buildSnapshotRoutes(ctx context.Context, routes []*model.ProxyRoute) ([]sna
 			return nil, fmt.Errorf("路由 %s 缓存参数无效", route.SiteName)
 		}
 		items = append(items, snapshotRoute{
-			ID:                 route.ID,
-			SiteName:           route.SiteName,
-			Domains:            domains,
-			DomainNginxConfigs: domainNginxConfigs,
+			ID:       route.ID,
+			SiteName: route.SiteName,
+			Domains:  domains,
+			ProxyConfig: openrestyrender.ProxyConfig{
+				ProxyConnectTimeout:   proxyConfig.ProxyConnectTimeout,
+				ProxySendTimeout:      proxyConfig.ProxySendTimeout,
+				ProxyReadTimeout:      proxyConfig.ProxyReadTimeout,
+				ClientHeaderTimeout:   proxyConfig.ClientHeaderTimeout,
+				ClientBodyTimeout:     proxyConfig.ClientBodyTimeout,
+				SendTimeout:           proxyConfig.SendTimeout,
+				ClientMaxBodySize:     proxyConfig.ClientMaxBodySize,
+				WebsocketEnabled:      proxyConfig.WebsocketEnabled,
+				ProxyRequestBuffering: proxyConfig.ProxyRequestBuffering,
+				ProxyBufferingEnabled: proxyConfig.ProxyBufferingEnabled,
+				CustomHeaders:         proxyHeadersToRenderHeaders(proxyConfig.CustomHeaders),
+			},
 			OriginURL:          originURL,
 			OriginHost:         route.OriginHost,
 			Upstreams:          upstreams,

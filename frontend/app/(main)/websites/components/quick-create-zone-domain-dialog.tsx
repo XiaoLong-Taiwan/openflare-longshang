@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -48,32 +47,7 @@ type Values = {
   zone_id: string;
   domain_input: string;
   cert_id: string;
-  proxy_connect_timeout: string;
-  proxy_send_timeout: string;
-  proxy_read_timeout: string;
-  client_max_body_size: string;
-  websocket_enabled: 'inherit' | 'on' | 'off';
-  proxy_request_buffering: 'inherit' | 'on' | 'off';
-  proxy_buffering_enabled: 'inherit' | 'on' | 'off';
-  custom_headers: string;
 };
-
-const headersToText = (headers?: Array<{ key: string; value: string }>) =>
-  (headers ?? []).map(({ key, value }) => `${key}: ${value}`).join('\n');
-
-const textToHeaders = (value: string) =>
-  value
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const separator = line.indexOf(':');
-      if (separator <= 0) throw new Error('invalidHeader');
-      return {
-        key: line.slice(0, separator).trim(),
-        value: line.slice(separator + 1).trim(),
-      };
-    });
 
 export function QuickCreateZoneDomainDialog({
   open,
@@ -137,29 +111,10 @@ export function QuickCreateZoneDomainDialog({
     );
   }, [fixedZoneId, fixedZoneRoot, zones]);
 
-  const optionalSeconds = z
-    .string()
-    .refine(
-      (value) => value === '' || /^[1-9]\d*$/.test(value),
-      t('positiveSeconds'),
-    );
   const schema = z.object({
     zone_id: z.string().min(1, t('selectZone')),
     domain_input: z.string().trim().min(1, t('enterDomain')),
     cert_id: z.string(),
-    proxy_connect_timeout: optionalSeconds,
-    proxy_send_timeout: optionalSeconds,
-    proxy_read_timeout: optionalSeconds,
-    client_max_body_size: z
-      .string()
-      .refine(
-        (value) => value === '' || /^[1-9]\d*[kKmMgG]?$/.test(value),
-        t('bodySizeInvalid'),
-      ),
-    websocket_enabled: z.enum(['inherit', 'on', 'off']),
-    proxy_request_buffering: z.enum(['inherit', 'on', 'off']),
-    proxy_buffering_enabled: z.enum(['inherit', 'on', 'off']),
-    custom_headers: z.string(),
   });
   const form = useForm<Values>({
     resolver: zodResolver(schema),
@@ -167,14 +122,6 @@ export function QuickCreateZoneDomainDialog({
       zone_id: fixedZoneId ? String(fixedZoneId) : '',
       domain_input: '',
       cert_id: '',
-      proxy_connect_timeout: '',
-      proxy_send_timeout: '',
-      proxy_read_timeout: '',
-      client_max_body_size: '',
-      websocket_enabled: 'inherit',
-      proxy_request_buffering: 'inherit',
-      proxy_buffering_enabled: 'inherit',
-      custom_headers: '',
     },
   });
 
@@ -182,40 +129,10 @@ export function QuickCreateZoneDomainDialog({
     if (!open) {
       return;
     }
-    const config = editingDomain?.nginx_config ?? {};
     form.reset({
       zone_id: fixedZoneId ? String(fixedZoneId) : '',
       domain_input: editingDomain?.domain ?? '',
       cert_id: editingDomain?.cert_id ? String(editingDomain.cert_id) : '',
-      proxy_connect_timeout: config.proxy_connect_timeout
-        ? String(config.proxy_connect_timeout)
-        : '',
-      proxy_send_timeout: config.proxy_send_timeout
-        ? String(config.proxy_send_timeout)
-        : '',
-      proxy_read_timeout: config.proxy_read_timeout
-        ? String(config.proxy_read_timeout)
-        : '',
-      client_max_body_size: config.client_max_body_size ?? '',
-      websocket_enabled:
-        config.websocket_enabled == null
-          ? 'inherit'
-          : config.websocket_enabled
-            ? 'on'
-            : 'off',
-      proxy_request_buffering:
-        config.proxy_request_buffering == null
-          ? 'inherit'
-          : config.proxy_request_buffering
-            ? 'on'
-            : 'off',
-      proxy_buffering_enabled:
-        config.proxy_buffering_enabled == null
-          ? 'inherit'
-          : config.proxy_buffering_enabled
-            ? 'on'
-            : 'off',
-      custom_headers: headersToText(config.custom_headers),
     });
   }, [editingDomain, fixedZoneId, form, open]);
 
@@ -244,37 +161,9 @@ export function QuickCreateZoneDomainDialog({
       if (resolved.error || !resolved.domain) {
         throw new Error(domainErrorMessage(resolved.error, zone.domain));
       }
-      let customHeaders: Array<{ key: string; value: string }>;
-      try {
-        customHeaders = textToHeaders(values.custom_headers);
-      } catch {
-        throw new Error(t('domainHeadersInvalid'));
-      }
       const payload = {
         domain: resolved.domain,
         cert_id: values.cert_id ? Number(values.cert_id) : null,
-        nginx_config: {
-          proxy_connect_timeout: Number(values.proxy_connect_timeout) || 0,
-          proxy_send_timeout: Number(values.proxy_send_timeout) || 0,
-          proxy_read_timeout: Number(values.proxy_read_timeout) || 0,
-          client_max_body_size: values.client_max_body_size.trim(),
-          ...(values.websocket_enabled === 'inherit'
-            ? {}
-            : { websocket_enabled: values.websocket_enabled === 'on' }),
-          ...(values.proxy_request_buffering === 'inherit'
-            ? {}
-            : {
-                proxy_request_buffering:
-                  values.proxy_request_buffering === 'on',
-              }),
-          ...(values.proxy_buffering_enabled === 'inherit'
-            ? {}
-            : {
-                proxy_buffering_enabled:
-                  values.proxy_buffering_enabled === 'on',
-              }),
-          custom_headers: customHeaders,
-        },
       };
       return editingDomain
         ? ZoneDomainService.update(zone.id, editingDomain.id, payload)
@@ -425,99 +314,6 @@ export function QuickCreateZoneDomainDialog({
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          <div className='flex flex-col gap-3 border-t pt-4'>
-            <div>
-              <Label>{t('domainNginxRules')}</Label>
-              <p className='mt-1 text-xs text-muted-foreground'>
-                {t('domainNginxRulesDesc')}
-              </p>
-            </div>
-            <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
-              {(
-                [
-                  ['proxy_connect_timeout', 'proxyConnectTimeout'],
-                  ['proxy_send_timeout', 'proxySendTimeout'],
-                  ['proxy_read_timeout', 'proxyReadTimeout'],
-                ] as const
-              ).map(([field, label]) => (
-                <div key={field} className='flex flex-col gap-1.5'>
-                  <Label htmlFor={field}>{t(label)}</Label>
-                  <Input
-                    id={field}
-                    inputMode='numeric'
-                    placeholder={t('inheritGlobal')}
-                    {...form.register(field)}
-                  />
-                  {form.formState.errors[field] ? (
-                    <p className='text-xs text-destructive'>
-                      {form.formState.errors[field]?.message}
-                    </p>
-                  ) : null}
-                </div>
-              ))}
-              <div className='flex flex-col gap-1.5'>
-                <Label htmlFor='client_max_body_size'>
-                  {t('clientMaxBodySize')}
-                </Label>
-                <Input
-                  id='client_max_body_size'
-                  placeholder={t('bodySizePlaceholder')}
-                  {...form.register('client_max_body_size')}
-                />
-                {form.formState.errors.client_max_body_size ? (
-                  <p className='text-xs text-destructive'>
-                    {form.formState.errors.client_max_body_size.message}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-            {(
-              [
-                ['websocket_enabled', 'websocketEnabled'],
-                ['proxy_request_buffering', 'proxyRequestBuffering'],
-                ['proxy_buffering_enabled', 'proxyBufferingEnabled'],
-              ] as const
-            ).map(([field, label]) => (
-              <div
-                key={field}
-                className='flex items-center justify-between gap-3'
-              >
-                <Label htmlFor={field}>{t(label)}</Label>
-                <Select
-                  value={form.watch(field)}
-                  onValueChange={(value) =>
-                    form.setValue(field, value as Values[typeof field])
-                  }
-                >
-                  <SelectTrigger id={field} className='w-36'>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value='inherit'>
-                      {t('inheritGlobal')}
-                    </SelectItem>
-                    <SelectItem value='on'>{t('enabled')}</SelectItem>
-                    <SelectItem value='off'>{t('disabled')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            ))}
-            <div className='flex flex-col gap-1.5'>
-              <Label htmlFor='domain-custom-headers'>
-                {t('domainCustomHeaders')}
-              </Label>
-              <Textarea
-                id='domain-custom-headers'
-                className='min-h-20 font-mono'
-                placeholder={'X-Header: value'}
-                {...form.register('custom_headers')}
-              />
-              <p className='text-xs text-muted-foreground'>
-                {t('domainCustomHeadersDesc')}
-              </p>
-            </div>
           </div>
         </form>
 

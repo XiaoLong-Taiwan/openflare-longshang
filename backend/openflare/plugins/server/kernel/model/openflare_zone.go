@@ -7,27 +7,6 @@ import (
 	"time"
 )
 
-// DomainNginxConfig contains optional Nginx overrides for one Zone domain.
-type DomainNginxConfig struct {
-	ProxyConnectTimeout   int            `json:"proxy_connect_timeout,omitempty"`
-	ProxySendTimeout      int            `json:"proxy_send_timeout,omitempty"`
-	ProxyReadTimeout      int            `json:"proxy_read_timeout,omitempty"`
-	ClientHeaderTimeout   int            `json:"client_header_timeout,omitempty"`
-	ClientBodyTimeout     int            `json:"client_body_timeout,omitempty"`
-	SendTimeout           int            `json:"send_timeout,omitempty"`
-	ClientMaxBodySize     string         `json:"client_max_body_size,omitempty"`
-	WebsocketEnabled      *bool          `json:"websocket_enabled,omitempty"`
-	ProxyRequestBuffering *bool          `json:"proxy_request_buffering,omitempty"`
-	ProxyBufferingEnabled *bool          `json:"proxy_buffering_enabled,omitempty"`
-	CustomHeaders         []DomainHeader `json:"custom_headers,omitempty"`
-}
-
-// DomainHeader describes one domain-level upstream request header.
-type DomainHeader struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
-}
-
 const (
 	tableOfZones       = "of_zones"
 	tableOfZoneDomains = "of_zone_domains"
@@ -52,9 +31,8 @@ type ZoneDomain struct {
 	ZoneID       uint      `json:"zone_id" gorm:"not null;index:idx_of_zone_domains_zone_id"`
 	ProxyRouteID *uint     `json:"proxy_route_id" gorm:"index:idx_of_zone_domains_proxy_route_id"`
 	Domain       string    `json:"domain" gorm:"uniqueIndex:idx_of_zone_domains_domain;size:255;not null"`
-	CertID       *uint             `json:"cert_id" gorm:"index:idx_of_zone_domains_cert_id"`
-	NginxConfig  DomainNginxConfig `json:"nginx_config" gorm:"serializer:json;type:text;not null;default:'{}'"`
-	CreatedAt    time.Time         `json:"created_at" gorm:"autoCreateTime"`
+	CertID       *uint     `json:"cert_id" gorm:"index:idx_of_zone_domains_cert_id"`
+	CreatedAt    time.Time `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt    time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 }
 

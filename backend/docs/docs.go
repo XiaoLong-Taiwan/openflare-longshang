@@ -15716,6 +15716,12 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "nodes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/cloudflare.GroupNodeInput"
+                    }
+                },
                 "primary_node_id": {
                     "type": "integer"
                 }
@@ -15748,11 +15754,45 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "nodes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/cloudflare.GroupNodeItem"
+                    }
+                },
                 "primary_node": {
                     "$ref": "#/definitions/cloudflare.NodeOption"
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "cloudflare.GroupNodeInput": {
+            "type": "object",
+            "properties": {
+                "node_id": {
+                    "type": "integer"
+                },
+                "priority": {
+                    "type": "integer"
+                }
+            }
+        },
+        "cloudflare.GroupNodeItem": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "ip": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "integer"
                 }
             }
         },
@@ -15772,6 +15812,12 @@ const docTemplate = `{
             "properties": {
                 "desired_ip": {
                     "type": "string"
+                },
+                "desired_ips": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "domain": {
                     "type": "string"
@@ -15936,6 +15982,9 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                },
+                "support_files_changed": {
+                    "type": "boolean"
                 },
                 "waf_config_changed": {
                     "type": "boolean"
@@ -18332,58 +18381,6 @@ const docTemplate = `{
                 }
             }
         },
-        "model.DomainHeader": {
-            "type": "object",
-            "properties": {
-                "key": {
-                    "type": "string"
-                },
-                "value": {
-                    "type": "string"
-                }
-            }
-        },
-        "model.DomainNginxConfig": {
-            "type": "object",
-            "properties": {
-                "client_body_timeout": {
-                    "type": "integer"
-                },
-                "client_header_timeout": {
-                    "type": "integer"
-                },
-                "client_max_body_size": {
-                    "type": "string"
-                },
-                "custom_headers": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/model.DomainHeader"
-                    }
-                },
-                "proxy_buffering_enabled": {
-                    "type": "boolean"
-                },
-                "proxy_connect_timeout": {
-                    "type": "integer"
-                },
-                "proxy_read_timeout": {
-                    "type": "integer"
-                },
-                "proxy_request_buffering": {
-                    "type": "boolean"
-                },
-                "proxy_send_timeout": {
-                    "type": "integer"
-                },
-                "send_timeout": {
-                    "type": "integer"
-                },
-                "websocket_enabled": {
-                    "type": "boolean"
-                }
-            }
-        },
         "model.Zone": {
             "type": "object",
             "properties": {
@@ -18415,9 +18412,6 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
-                },
-                "nginx_config": {
-                    "$ref": "#/definitions/model.DomainNginxConfig"
                 },
                 "proxy_route_id": {
                     "type": "integer"
@@ -20339,17 +20333,6 @@ const docTemplate = `{
                 }
             }
         },
-        "proxy_route.CustomHeaderInput": {
-            "type": "object",
-            "properties": {
-                "key": {
-                    "type": "string"
-                },
-                "value": {
-                    "type": "string"
-                }
-            }
-        },
         "proxy_route.CacheConfigInput": {
             "type": "object",
             "properties": {
@@ -20369,6 +20352,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "success_ttl": {
+                    "type": "string"
+                }
+            }
+        },
+        "proxy_route.CustomHeaderInput": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "value": {
                     "type": "string"
                 }
             }
@@ -20424,6 +20418,9 @@ const docTemplate = `{
                 "limit_req_per_ip": {
                     "type": "string"
                 },
+                "load_balancing": {
+                    "type": "string"
+                },
                 "origin_address": {
                     "type": "string"
                 },
@@ -20448,6 +20445,9 @@ const docTemplate = `{
                 "pages_project_id": {
                     "type": "integer"
                 },
+                "proxy_config": {
+                    "$ref": "#/definitions/proxy_route.ProxyConfigInput"
+                },
                 "redirect_http": {
                     "type": "boolean"
                 },
@@ -20466,6 +20466,12 @@ const docTemplate = `{
                 "tunnel_target_protocol": {
                     "type": "string"
                 },
+                "upstream_targets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/proxy_route.UpstreamTargetInput"
+                    }
+                },
                 "upstream_type": {
                     "type": "string"
                 },
@@ -20480,6 +20486,58 @@ const docTemplate = `{
                     "items": {
                         "type": "integer"
                     }
+                }
+            }
+        },
+        "proxy_route.ProxyConfigInput": {
+            "type": "object",
+            "properties": {
+                "client_body_timeout": {
+                    "type": "string"
+                },
+                "client_header_timeout": {
+                    "type": "string"
+                },
+                "client_max_body_size": {
+                    "type": "string"
+                },
+                "custom_headers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/proxy_route.CustomHeaderInput"
+                    }
+                },
+                "proxy_buffering_enabled": {
+                    "type": "boolean"
+                },
+                "proxy_connect_timeout": {
+                    "type": "string"
+                },
+                "proxy_read_timeout": {
+                    "type": "string"
+                },
+                "proxy_request_buffering": {
+                    "type": "boolean"
+                },
+                "proxy_send_timeout": {
+                    "type": "string"
+                },
+                "send_timeout": {
+                    "type": "string"
+                },
+                "websocket_enabled": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "proxy_route.UpstreamTargetInput": {
+            "type": "object",
+            "properties": {
+                "priority": {
+                    "type": "integer"
+                },
+                "url": {
+                    "type": "string"
                 }
             }
         },
@@ -20546,6 +20604,9 @@ const docTemplate = `{
                 "limit_req_per_ip": {
                     "type": "string"
                 },
+                "load_balancing": {
+                    "type": "string"
+                },
                 "origin_host": {
                     "type": "string"
                 },
@@ -20557,6 +20618,9 @@ const docTemplate = `{
                 },
                 "pages_project_id": {
                     "type": "integer"
+                },
+                "proxy_config": {
+                    "$ref": "#/definitions/proxy_route.ProxyConfigInput"
                 },
                 "redirect_http": {
                     "type": "boolean"
@@ -20583,6 +20647,12 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "type": "string"
+                    }
+                },
+                "upstream_targets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/proxy_route.UpstreamTargetInput"
                     }
                 },
                 "upstream_type": {
@@ -21431,9 +21501,6 @@ const docTemplate = `{
                 },
                 "domain": {
                     "type": "string"
-                },
-                "nginx_config": {
-                    "$ref": "#/definitions/model.DomainNginxConfig"
                 }
             }
         },
