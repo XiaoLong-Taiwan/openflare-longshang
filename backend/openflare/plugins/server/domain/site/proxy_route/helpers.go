@@ -537,6 +537,10 @@ func DecodeStoredUpstreamTargets(raw string, upstreams []string) ([]UpstreamTarg
 	return decodeStoredUpstreamTargets(raw, upstreams)
 }
 
+func DecodeStoredProxyConfig(raw string) (ProxyConfigInput, error) {
+	return decodeStoredProxyConfig(raw)
+}
+
 func decodeStoredProxyConfig(raw string) (ProxyConfigInput, error) {
 	text := strings.TrimSpace(raw)
 	if text == "" || text == "{}" {
