@@ -257,6 +257,66 @@ func RunSelectSQL(ctx context.Context, sqlStr string) ([]string, []map[string]an
 	return cols, results, nil
 }
 
+// CountExpiredTaskExecutions counts task executions older than before.
+func CountExpiredTaskExecutions(ctx context.Context, before time.Time) (int64, error) {
+	gormDB := GetDB(ctx)
+	if gormDB == nil {
+		return 0, errs.ErrDatabaseUninitialized
+	}
+	var count int64
+	if err := gormDB.Model(&model.TaskExecution{}).Where("created_at < ?", before).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// DeleteExpiredTaskExecutions deletes task executions older than before.
+func DeleteExpiredTaskExecutions(ctx context.Context, before time.Time) (int64, error) {
+	gormDB := GetDB(ctx)
+	if gormDB == nil {
+		return 0, errs.ErrDatabaseUninitialized
+	}
+	result := gormDB.Where("created_at < ?", before).Delete(&model.TaskExecution{})
+	return result.RowsAffected, result.Error
+}
+
+// OptimizeDatabase refreshes planner statistics and reclaims database space.
+func OptimizeDatabase(ctx context.Context, postgres bool) ([]string, error) {
+	gormDB := GetDB(ctx)
+	if gormDB == nil {
+		return nil, errs.ErrDatabaseUninitialized
+	}
+	operations := make([]string, 0, 3)
+	if postgres {
+		if err := gormDB.Exec("REINDEX SCHEMA public").Error; err != nil {
+			return operations, err
+		}
+		operations = append(operations, "reindex schema public")
+		if err := gormDB.Exec("ANALYZE").Error; err != nil {
+			return operations, err
+		}
+		operations = append(operations, "analyze")
+		if err := gormDB.Exec("VACUUM").Error; err != nil {
+			return operations, err
+		}
+		operations = append(operations, "vacuum")
+		return operations, nil
+	}
+	if err := gormDB.Exec("PRAGMA optimize").Error; err != nil {
+		return operations, err
+	}
+	operations = append(operations, "pragma optimize")
+	if err := gormDB.Exec("ANALYZE").Error; err != nil {
+		return operations, err
+	}
+	operations = append(operations, "analyze")
+	if err := gormDB.Exec("VACUUM").Error; err != nil {
+		return operations, err
+	}
+	operations = append(operations, "vacuum")
+	return operations, nil
+}
+
 // RunMutationSQL executes a non-query statement and reports affected rows.
 func RunMutationSQL(ctx context.Context, sqlStr string) (int64, error) {
 	gormDB := GetDB(ctx)

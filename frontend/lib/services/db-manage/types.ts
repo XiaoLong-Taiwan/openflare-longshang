@@ -29,3 +29,18 @@ export interface ExecuteSQLResponse {
   affected_rows: number;
   execution_time_ms: number;
 }
+
+export interface DatabaseMaintenancePreview {
+  database_type: string;
+  expired_task_executions: number;
+  cache_keys: number;
+  cache_bytes: number;
+  operations: string[];
+}
+
+export interface DatabaseMaintenanceResult {
+  expired_task_executions: number;
+  cache_cleared: boolean;
+  database_optimized: boolean;
+  operations: string[];
+}

@@ -7,6 +7,8 @@ import (
 	"Wavelet/core/contracts"
 	"Wavelet/pkg/logger"
 	"Wavelet/plugins/domain/admin/model"
+	"Wavelet/plugins/domain/admin/repository"
+	pkgcache "Wavelet/pkg/cache/disk"
 	"context"
 	"errors"
 	"fmt"
@@ -35,8 +37,89 @@ var SystemCleanupMeta = contracts.TaskMetaDTO{
 	Retryable:    true,
 }
 
+// DatabaseMaintenanceTask identifies the full database maintenance task.
+const DatabaseMaintenanceTask = "database:maintenance"
+
+// TaskTypeDatabaseMaintenance identifies the admin task metadata type.
+const TaskTypeDatabaseMaintenance = "database_maintenance"
+
+// DatabaseMaintenanceMeta describes the full database maintenance task.
+var DatabaseMaintenanceMeta = contracts.TaskMetaDTO{
+	Type:        TaskTypeDatabaseMaintenance,
+	AsynqTask:   DatabaseMaintenanceTask,
+	Name:        "資料庫完整維護",
+	DisplayName: "資料庫完整維護",
+	Description: "清理過期任務記錄、清空磁碟快取並更新資料庫統計與空間",
+	Category:    "maintenance",
+	MaxRetry:    1,
+	Queue:       taskQueueDefault,
+	Retryable:   true,
+}
+
 // SystemCleanupHandler handles the system-wide garbage cleanup task.
 type SystemCleanupHandler struct{}
+
+// PreviewDatabaseMaintenance reports the pending cleanup and maintenance operations.
+func PreviewDatabaseMaintenance(ctx context.Context) (model.DatabaseMaintenancePreview, error) {
+	before := time.Now().Add(-7 * 24 * time.Hour)
+	count, err := repository.CountExpiredTaskExecutions(ctx, before)
+	if err != nil {
+		return model.DatabaseMaintenancePreview{}, err
+	}
+	status := pkgcache.Default().Status()
+	postgres := GetDBConfig().Enabled
+	operations := []string{"clear disk cache", "analyze", "vacuum"}
+	if postgres {
+		operations = []string{"clear disk cache", "reindex schema public", "analyze", "vacuum"}
+	}
+	return model.DatabaseMaintenancePreview{
+		DatabaseType:          map[bool]string{true: "postgres", false: "sqlite"}[postgres],
+		ExpiredTaskExecutions: count,
+		CacheKeys:             status.KeysCount,
+		CacheBytes:            status.TotalSize,
+		Operations:            operations,
+	}, nil
+}
+
+// RunDatabaseMaintenance performs the confirmed cleanup and database maintenance.
+func RunDatabaseMaintenance(ctx context.Context) (model.DatabaseMaintenanceResult, error) {
+	before := time.Now().Add(-7 * 24 * time.Hour)
+	if err := EmitEvent(ctx, contracts.EventTopicSystemCleanup, contracts.SystemCleanupEvent{
+		TriggeredAt: time.Now().Format(time.RFC3339),
+	}); err != nil {
+		return model.DatabaseMaintenanceResult{}, err
+	}
+	deleted, err := repository.DeleteExpiredTaskExecutions(ctx, before)
+	if err != nil {
+		return model.DatabaseMaintenanceResult{}, err
+	}
+	if err := pkgcache.Default().Clear(); err != nil {
+		return model.DatabaseMaintenanceResult{ExpiredTaskExecutions: deleted}, err
+	}
+	operations, err := repository.OptimizeDatabase(ctx, GetDBConfig().Enabled)
+	if err != nil {
+		return model.DatabaseMaintenanceResult{ExpiredTaskExecutions: deleted, CacheCleared: true, Operations: operations}, err
+	}
+	logger.InfoF(ctx, "資料庫完整維護完成，清理任務記錄 %d 條", deleted)
+	return model.DatabaseMaintenanceResult{
+		ExpiredTaskExecutions: deleted,
+		CacheCleared:          true,
+		DatabaseOptimized:     true,
+		Operations:            operations,
+	}, nil
+}
+
+// DatabaseMaintenanceHandler handles the full database maintenance task.
+type DatabaseMaintenanceHandler struct{}
+
+// Execute runs the full database maintenance task.
+func (h *DatabaseMaintenanceHandler) Execute(ctx context.Context, _ []byte) (*contracts.TaskResultDTO, error) {
+	result, err := RunDatabaseMaintenance(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &contracts.TaskResultDTO{Message: "資料庫完整維護完成", Detail: result}, nil
+}
 
 // Execute executes system cleanup: clears old task executions and emits EventTopicSystemCleanup.
 func (h *SystemCleanupHandler) Execute(ctx context.Context, _ []byte) (*contracts.TaskResultDTO, error) {

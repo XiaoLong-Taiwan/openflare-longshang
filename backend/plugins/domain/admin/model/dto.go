@@ -105,6 +105,28 @@ type DatabaseInfoResponse struct {
 	Version string `json:"version"`
 }
 
+// DatabaseMaintenancePreview describes the data that a maintenance run would remove.
+type DatabaseMaintenancePreview struct {
+	DatabaseType          string   `json:"database_type"`
+	ExpiredTaskExecutions int64    `json:"expired_task_executions"`
+	CacheKeys             int      `json:"cache_keys"`
+	CacheBytes            int64    `json:"cache_bytes"`
+	Operations            []string `json:"operations"`
+}
+
+// DatabaseMaintenanceResult describes the result of a completed maintenance run.
+type DatabaseMaintenanceResult struct {
+	ExpiredTaskExecutions int64    `json:"expired_task_executions"`
+	CacheCleared          bool     `json:"cache_cleared"`
+	DatabaseOptimized     bool     `json:"database_optimized"`
+	Operations            []string `json:"operations"`
+}
+
+// DatabaseMaintenanceRequest confirms a destructive maintenance request.
+type DatabaseMaintenanceRequest struct {
+	Confirmed bool `json:"confirmed" binding:"eq=true"`
+}
+
 // SystemStatusResponse 系统状态响应结构体
 type SystemStatusResponse struct {
 	Uptime       string `json:"uptime"`

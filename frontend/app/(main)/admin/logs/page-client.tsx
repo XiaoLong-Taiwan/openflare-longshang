@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { Activity, BarChart3, Terminal } from 'lucide-react';
+import { Activity, BarChart3, Database, Terminal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -23,6 +23,11 @@ const AccessLogs = dynamic(
 
 const AppLogs = dynamic(
   () => import('./components/app-logs').then((mod) => mod.AppLogs),
+  { loading: () => tabFallback },
+);
+
+const LogStorage = dynamic(
+  () => import('./components/log-storage').then((mod) => mod.LogStorage),
   { loading: () => tabFallback },
 );
 
@@ -63,6 +68,13 @@ export function LogsPageClient() {
             <Terminal className='size-3.5' />
             {t('appRuntimeLogs')}
           </TabsTrigger>
+          <TabsTrigger
+            value='storage'
+            className='px-0 pb-2 text-xs font-semibold flex items-center gap-1.5'
+          >
+            <Database className='size-3.5' />
+            {t('logStorage')}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value='analytics' className='mt-0 outline-none flex-1'>
@@ -73,6 +85,9 @@ export function LogsPageClient() {
         </TabsContent>
         <TabsContent value='app' className='mt-0 outline-none flex-1'>
           <AppLogs />
+        </TabsContent>
+        <TabsContent value='storage' className='mt-0 outline-none flex-1'>
+          <LogStorage />
         </TabsContent>
       </Tabs>
     </div>

@@ -172,10 +172,21 @@ func (t *EventTrigger) enqueueSingleCustomPushChannelTask(ctx context.Context, m
 	case consts.ChannelLark:
 		config = pkgpush.Config{Channel: consts.ChannelLark, URL: channel.URL, Secret: channel.Token}
 		renderedTemplate = channel.Other
+	case consts.ChannelDingTalk:
+		config = pkgpush.Config{Channel: consts.ChannelDingTalk, URL: channel.URL, Secret: channel.Token}
+	case consts.ChannelDiscord:
+		config = pkgpush.Config{Channel: consts.ChannelDiscord, URL: channel.URL, Other: channel.Other}
+		renderedTemplate = channel.Other
+	case consts.ChannelTelegram:
+		config = pkgpush.Config{Channel: consts.ChannelTelegram, URL: channel.URL, Secret: channel.Token, Other: channel.Other}
+	case consts.ChannelBark:
+		config = pkgpush.Config{Channel: consts.ChannelBark, URL: channel.URL, Key: channel.Token, Other: channel.Other}
+	case consts.ChannelSlack:
+		config = pkgpush.Config{Channel: consts.ChannelSlack, URL: channel.URL, Key: channel.Token, Secret: channel.Other}
+	case consts.ChannelPushover:
+		config = pkgpush.Config{Channel: consts.ChannelPushover, URL: channel.URL, Key: channel.Token, Other: channel.Other}
 	case consts.ChannelEmail:
 		config = pkgpush.Config{Channel: consts.ChannelEmail, URL: channel.URL, Key: channel.Token, Secret: channel.Other}
-	case consts.ChannelTelegram:
-		config = pkgpush.Config{Channel: consts.ChannelTelegram, URL: channel.URL, Secret: channel.Token, Key: channel.Other}
 	default:
 		config = pkgpush.Config{Channel: consts.ChannelCustom, URL: channel.URL}
 		customPushReq := do.CustomPushRequest{

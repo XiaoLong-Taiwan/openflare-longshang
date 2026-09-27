@@ -301,8 +301,8 @@ var defaultPushDefinitions = []PushDefinition{
 	},
 	{
 		Type:        consts.ChannelDiscord,
-		Name:        "Discord 频道",
-		Description: "配置 Discord 频道的 Incoming Webhook 消息推送。",
+		Name:        "Discord Webhook",
+		Description: "使用 Discord Incoming Webhook 发送完全自定义的消息与 Embed。",
 		Fields: []PushField{
 			{
 				Key:         consts.KeyURL,
@@ -310,7 +310,15 @@ var defaultPushDefinitions = []PushDefinition{
 				Type:        consts.TypeText,
 				Required:    true,
 				Placeholder: "https://discord.com/api/webhooks/...",
-				Description: "从 Discord 频道集成设置中复制的 Webhook URL",
+				Description: "从 Discord 频道的整合设置中复制 Incoming Webhook URL",
+			},
+			{
+				Key:         consts.KeyOther,
+				Label:       "Discord Payload JSON (可选)",
+				Type:        consts.TypeTextarea,
+				Required:    false,
+				Placeholder: "{\"content\": \"{{content}}\", \"embeds\": [{\"title\": \"{{title}}\", \"description\": \"{{content}}\"}]}",
+				Description: "支援 content、username、avatar_url、embeds、components、allowed_mentions、tts 等 Discord Webhook 欄位；所有字串值都支援 {{變數}}。",
 			},
 		},
 	},

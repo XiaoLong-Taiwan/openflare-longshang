@@ -4,69 +4,80 @@
 package push
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"strings"
 
-	"github.com/nikoksr/notify"
-	"github.com/nikoksr/notify/service/discord"
+	"Wavelet/pkg/httppool"
 )
 
 func init() {
 	Register("discord", &DiscordPusher{})
 }
 
-// DiscordPusher 基于 nikoksr/notify 的 Discord 推送实现
+// DiscordPusher 使用 Discord Incoming Webhook 发送推送。
 type DiscordPusher struct{}
 
-// Send 发送 Discord 通知
-func (p *DiscordPusher) Send(ctx context.Context, cfg Config, target string, body map[string]any, _ string, _ map[string]any) (string, error) {
-	botToken := cfg.Key
-	if botToken == "" {
-		botToken = cfg.Secret
-	}
-	channelID := cfg.URL
-	if target != "" {
-		channelID = target
-	}
-	if channelID == "" {
-		channelID = cfg.Other
+// Send 发送 Discord webhook 通知。
+func (p *DiscordPusher) Send(ctx context.Context, cfg Config, _ string, body map[string]any, template string, _ map[string]any) (string, error) {
+	if cfg.URL == "" {
+		return "", errors.New("discord: webhook URL is required")
 	}
 
-	if botToken == "" {
-		return "", errors.New("discord: bot token is required")
+	payload := template
+	if payload == "" {
+		payload = cfg.Other
 	}
-	if channelID == "" {
-		return "", errors.New("discord: channel ID is required")
+	if payload != "" {
+		payload = ParseTemplate(payload, body)
+	} else {
+		payloadBytes, err := json.Marshal(map[string]any{
+			"content": bodyContent(body, "**%s**: %v", "\n"),
+		})
+		if err != nil {
+			return "", fmt.Errorf("discord: marshal payload failed: %w", err)
+		}
+		payload = string(payloadBytes)
 	}
-
-	title := bodyTitle(body)
-	content := bodyContent(body, "**%s**: %v", "\n")
-
-	discordService := discord.New()
-	if err := discordService.AuthenticateWithBotToken(botToken); err != nil {
-		return "", fmt.Errorf("discord: auth failed: %w", err)
-	}
-	discordService.AddReceivers(channelID)
-
-	notifier := notify.New()
-	notifier.UseServices(discordService)
-
-	if err := notifier.Send(ctx, title, content); err != nil {
-		return "", fmt.Errorf("discord: notify send failed: %w", err)
+	if !json.Valid([]byte(payload)) {
+		return "", errors.New("discord: payload must be valid JSON")
 	}
 
-	return "ok", nil
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, cfg.URL, bytes.NewReader([]byte(payload)))
+	if err != nil {
+		return "", fmt.Errorf("discord: create http request failed: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := httppool.NewClient(defaultHTTPClientTimeout).Do(req)
+	if err != nil {
+		return "", fmt.Errorf("discord: webhook request failed: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	responseBody, _ := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodyBytes))
+	upstreamResp := strings.TrimSpace(string(responseBody))
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return upstreamResp, fmt.Errorf("discord: webhook returned %s", resp.Status)
+	}
+	return upstreamResp, nil
 }
 
-// ValidateConfig 校验 Discord 配置
+// ValidateConfig 校验 Discord Webhook 配置。
 func (p *DiscordPusher) ValidateConfig(cfg Config) error {
-	botToken := cfg.Key
-	if botToken == "" {
-		botToken = cfg.Secret
+	if cfg.URL == "" {
+		return errors.New("webhook URL is required")
 	}
-	if botToken == "" {
-		return errors.New("bot token is required")
+	if !strings.HasPrefix(cfg.URL, "https://") {
+		return errors.New("webhook URL must use https:// protocol")
+	}
+	if cfg.Other != "" && !json.Valid([]byte(cfg.Other)) {
+		return errors.New("payload must be valid JSON")
 	}
 	return nil
 }

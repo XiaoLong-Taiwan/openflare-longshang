@@ -25,6 +25,7 @@ var (
 	taskService        contracts.TaskService
 	storageSvc         contracts.StorageService
 	riskControlService contracts.RiskControlService
+	logStorageService  contracts.LogStorageService
 	eventEmitter       func(ctx context.Context, topic string, payload any) error
 )
 
@@ -79,6 +80,12 @@ func SetRiskControlService(s contracts.RiskControlService) {
 	riskControlService = s
 }
 
+func SetLogStorageService(s contracts.LogStorageService) {
+	servicesMu.Lock()
+	defer servicesMu.Unlock()
+	logStorageService = s
+}
+
 // SetEventEmitter sets the event emission callback.
 func SetEventEmitter(fn func(ctx context.Context, topic string, payload any) error) {
 	servicesMu.Lock()
@@ -107,6 +114,7 @@ func ResetServices() {
 	taskService = nil
 	storageSvc = nil
 	riskControlService = nil
+	logStorageService = nil
 	eventEmitter = nil
 	repository.ResetServices()
 }

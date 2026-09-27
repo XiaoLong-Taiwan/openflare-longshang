@@ -23,6 +23,8 @@ func RegisterRoutes(adminRouter extpoints.RouterExtension) {
 		dbGroup.GET("/tables", ListDBTables)
 		dbGroup.GET("/table-data", GetDBTableData)
 		dbGroup.POST("/query", ExecuteSQL)
+		dbGroup.GET("/maintenance/preview", PreviewDatabaseMaintenance)
+		dbGroup.POST("/maintenance", RunDatabaseMaintenance)
 	}
 
 	// Cache Management
@@ -46,6 +48,8 @@ func RegisterRoutes(adminRouter extpoints.RouterExtension) {
 		logsGroup.GET("", GetLogs)
 		logsGroup.GET("/access", GetAccessLogs)
 		logsGroup.GET("/analytics", GetLogsAnalytics)
+		logsGroup.GET("/storage", GetLogStorage)
+		logsGroup.POST("/storage/cleanup", CleanupLogStorage)
 		logsGroup.GET("/ws", HandleLogWebSocket)
 	}
 

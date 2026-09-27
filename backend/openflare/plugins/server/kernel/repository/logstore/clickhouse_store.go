@@ -669,6 +669,14 @@ func (s *clickhouseUserAccessLogStore) DeleteAll(ctx context.Context) (int64, er
 	return analyticsrepo.DeleteAllUserAccessLogs(ctx)
 }
 
+// DeleteBefore 删除早于 cutoff 的用户访问日志。
+func (s *clickhouseUserAccessLogStore) DeleteBefore(ctx context.Context, cutoff time.Time) (int64, error) {
+	if err := s.ensureWritable(ctx); err != nil {
+		return 0, err
+	}
+	return analyticsrepo.DeleteUserAccessLogsBefore(ctx, cutoff)
+}
+
 // ListForMigration 按 id 升序分页读取（迁移复制用）。
 func (s *clickhouseUserAccessLogStore) ListForMigration(ctx context.Context, afterID uint64, limit int) ([]analyticsmodel.UserAccessLog, error) {
 	return chListForMigration(ctx, afterID, limit,

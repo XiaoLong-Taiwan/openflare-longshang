@@ -4,6 +4,7 @@
 package user
 
 import (
+	"Wavelet/core"
 	"Wavelet/core/contracts"
 	"Wavelet/pkg/idgen"
 	"Wavelet/pkg/logger"
@@ -26,6 +27,8 @@ import (
 var (
 	authMu  sync.RWMutex
 	authSvc contracts.AuthService
+	eventMu sync.RWMutex
+	events  *core.EventBus
 )
 
 // SetAuthService binds the AuthService for cache synchronization.
@@ -39,6 +42,18 @@ func getAuthService() contracts.AuthService {
 	authMu.RLock()
 	defer authMu.RUnlock()
 	return authSvc
+}
+
+func setEventBus(bus *core.EventBus) {
+	eventMu.Lock()
+	defer eventMu.Unlock()
+	events = bus
+}
+
+func getEventBus() *core.EventBus {
+	eventMu.RLock()
+	defer eventMu.RUnlock()
+	return events
 }
 
 func getUserIDFromSession(c *gin.Context) uint64 {
@@ -150,6 +165,17 @@ func Login(c *gin.Context) {
 	sess.Set("need_change_password", needChange)
 	if err := sess.Save(); err != nil {
 		logger.ErrorF(ctx, "save session failed on login: %v", err)
+	}
+
+	if user.IsAdmin {
+		if bus := getEventBus(); bus != nil {
+			if err := bus.Emit(ctx, contracts.EventTopicAdminLoggedIn, contracts.AdminLoggedIn{
+				User: toUserDTO(user),
+				IP:   clientIP,
+			}); err != nil {
+				logger.WarnF(ctx, "emit admin login event failed: %v", err)
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, response.OK(user))

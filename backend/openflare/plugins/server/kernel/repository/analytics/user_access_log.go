@@ -42,6 +42,22 @@ func DeleteAllUserAccessLogs(ctx context.Context) (int64, error) {
 	return 0, err
 }
 
+// DeleteUserAccessLogsBefore removes user access logs older than cutoff.
+func DeleteUserAccessLogsBefore(ctx context.Context, cutoff time.Time) (int64, error) {
+	conn, err := ChConn(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var count int64
+	if err := conn.QueryRow(ctx, fmt.Sprintf("SELECT count() FROM %s WHERE created_at < ?", analyticsmodel.UserAccessLog{}.TableName()), cutoff).Scan(&count); err != nil {
+		return 0, err
+	}
+	if err := conn.Exec(ctx, fmt.Sprintf("ALTER TABLE %s DELETE WHERE created_at < ?", analyticsmodel.UserAccessLog{}.TableName()), cutoff); err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // CountAccessLogs counts user access logs.
 func CountAccessLogs(ctx context.Context, filter analyticsmodel.AccessLogFilter) (uint64, error) {
 	return 0, nil

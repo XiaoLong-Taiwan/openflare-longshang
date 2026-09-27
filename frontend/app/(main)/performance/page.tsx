@@ -150,7 +150,7 @@ export default function PerformancePage() {
   }
 
   return (
-    <div className='py-6 px-1 space-y-6'>
+    <div className='flex flex-col gap-6 py-6 px-1'>
       <div className='flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between'>
         <div className='flex items-center gap-2'>
           <Gauge className='size-5 text-primary' />
@@ -211,24 +211,24 @@ export default function PerformancePage() {
         </CardHeader>
         <CardContent className='grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
           <FieldInput
-            label='worker_processes'
+            label={t('fields.workerProcesses')}
             value={fields.openresty_worker_processes}
             onChange={(v) => updateField('openresty_worker_processes', v)}
           />
           <FieldInput
-            label='worker_connections'
+            label={t('fields.workerConnections')}
             value={fields.openresty_worker_connections}
             onChange={(v) => updateField('openresty_worker_connections', v)}
             type='number'
           />
           <FieldInput
-            label='worker_rlimit_nofile'
+            label={t('fields.workerRlimitNofile')}
             value={fields.openresty_worker_rlimit_nofile}
             onChange={(v) => updateField('openresty_worker_rlimit_nofile', v)}
             type='number'
           />
-          <div className='space-y-1.5'>
-            <Label>events use</Label>
+          <div className='flex flex-col gap-1.5'>
+            <Label>{t('fields.eventsUse')}</Label>
             <Select
               value={fields.openresty_events_use}
               onValueChange={(v) => updateField('openresty_events_use', v)}
@@ -245,31 +245,31 @@ export default function PerformancePage() {
             </Select>
           </div>
           <ToggleRow
-            label='multi_accept'
+            label={t('fields.multiAccept')}
             checked={fields.openresty_events_multi_accept_enabled}
             onChange={(v) =>
               updateField('openresty_events_multi_accept_enabled', v)
             }
           />
           <FieldInput
-            label='keepalive_timeout'
+            label={t('fields.keepaliveTimeout')}
             value={fields.openresty_keepalive_timeout}
             onChange={(v) => updateField('openresty_keepalive_timeout', v)}
             type='number'
           />
           <FieldInput
-            label='client_max_body_size'
+            label={t('fields.clientMaxBodySize')}
             value={fields.openresty_client_max_body_size}
             onChange={(v) => updateField('openresty_client_max_body_size', v)}
           />
           <FieldInput
-            label='resolvers'
+            label={t('fields.resolvers')}
             value={fields.openresty_resolvers}
             onChange={(v) => updateField('openresty_resolvers', v)}
             placeholder='1.1.1.1 8.8.8.8'
           />
           <FieldInput
-            label='default_server_return_status'
+            label={t('fields.defaultServerReturnStatus')}
             value={fields.openresty_default_server_return_status}
             onChange={(v) =>
               updateField('openresty_default_server_return_status', v)
@@ -317,36 +317,36 @@ export default function PerformancePage() {
         </CardHeader>
         <CardContent className='grid gap-4 md:grid-cols-2'>
           <FieldInput
-            label='proxy_connect_timeout'
+            label={t('fields.proxyConnectTimeout')}
             value={fields.openresty_proxy_connect_timeout}
             onChange={(v) => updateField('openresty_proxy_connect_timeout', v)}
             type='number'
           />
           <FieldInput
-            label='proxy_read_timeout'
+            label={t('fields.proxyReadTimeout')}
             value={fields.openresty_proxy_read_timeout}
             onChange={(v) => updateField('openresty_proxy_read_timeout', v)}
             type='number'
           />
           <ToggleRow
-            label='websocket'
+            label={t('fields.websocket')}
             checked={fields.openresty_websocket_enabled}
             onChange={(v) => updateField('openresty_websocket_enabled', v)}
           />
           <ToggleRow
-            label='http3'
+            label={t('fields.http3')}
             checked={fields.openresty_http3_enabled}
             onChange={(v) => updateField('openresty_http3_enabled', v)}
           />
           <ToggleRow
-            label='proxy_buffering'
+            label={t('fields.proxyBuffering')}
             checked={fields.openresty_proxy_buffering_enabled}
             onChange={(v) =>
               updateField('openresty_proxy_buffering_enabled', v)
             }
           />
           <FieldInput
-            label='proxy_buffers'
+            label={t('fields.proxyBuffers')}
             value={fields.openresty_proxy_buffers}
             onChange={(v) => updateField('openresty_proxy_buffers', v)}
           />
@@ -356,7 +356,10 @@ export default function PerformancePage() {
       <div className='grid gap-6 xl:grid-cols-2'>
         <Card className='border-dashed shadow-none'>
           <CardHeader className='flex flex-row items-center justify-between'>
-            <CardTitle className='text-base'>{t('gzipTitle')}</CardTitle>
+            <div>
+              <CardTitle className='text-base'>{t('gzipTitle')}</CardTitle>
+              <CardDescription>{t('gzipDesc')}</CardDescription>
+            </div>
             <Button
               size='sm'
               disabled={savingSection === 'gzip'}
@@ -375,20 +378,20 @@ export default function PerformancePage() {
               {tc('save')}
             </Button>
           </CardHeader>
-          <CardContent className='space-y-4'>
+          <CardContent className='flex flex-col gap-4'>
             <ToggleRow
-              label='gzip'
+              label={t('fields.gzip')}
               checked={fields.openresty_gzip_enabled}
               onChange={(v) => updateField('openresty_gzip_enabled', v)}
             />
             <FieldInput
-              label='gzip_min_length'
+              label={t('fields.gzipMinLength')}
               value={fields.openresty_gzip_min_length}
               onChange={(v) => updateField('openresty_gzip_min_length', v)}
               type='number'
             />
             <FieldInput
-              label='gzip_comp_level'
+              label={t('fields.gzipCompLevel')}
               value={fields.openresty_gzip_comp_level}
               onChange={(v) => updateField('openresty_gzip_comp_level', v)}
               type='number'
@@ -426,26 +429,26 @@ export default function PerformancePage() {
               {tc('save')}
             </Button>
           </CardHeader>
-          <CardContent className='space-y-4'>
+          <CardContent className='flex flex-col gap-4'>
             <ToggleRow
-              label='cache_enabled'
+              label={t('fields.cacheEnabled')}
               checked={fields.openresty_cache_enabled}
               onChange={(v) => updateField('openresty_cache_enabled', v)}
             />
             <FieldInput
-              label='proxy_cache_path'
+              label={t('fields.proxyCachePath')}
               value={fields.openresty_cache_path}
               onChange={(v) => updateField('openresty_cache_path', v)}
               disabled={!fields.openresty_cache_enabled}
             />
             <FieldInput
-              label='levels'
+              label={t('fields.cacheLevels')}
               value={fields.openresty_cache_levels}
               onChange={(v) => updateField('openresty_cache_levels', v)}
               disabled={!fields.openresty_cache_enabled}
             />
             <FieldInput
-              label='max_size'
+              label={t('fields.cacheMaxSize')}
               value={fields.openresty_cache_max_size}
               onChange={(v) => updateField('openresty_cache_max_size', v)}
               disabled={!fields.openresty_cache_enabled}
@@ -473,7 +476,7 @@ function FieldInput({
   disabled?: boolean;
 }) {
   return (
-    <div className='space-y-1.5'>
+    <div className='flex flex-col gap-1.5'>
       <Label className='text-xs text-muted-foreground'>{label}</Label>
       <Input
         type={type}

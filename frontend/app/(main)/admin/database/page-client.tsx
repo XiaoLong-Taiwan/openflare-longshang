@@ -49,6 +49,12 @@ const SQLConsole = dynamic(
   { ssr: false },
 );
 
+const MaintenanceCard = dynamic(
+  () =>
+    import('./components/maintenance-card').then((mod) => mod.MaintenanceCard),
+  { loading: () => sectionFallback },
+);
+
 /**
  * 格式化数字，每3位加逗号
  */
@@ -306,6 +312,8 @@ export function DatabasePageClient() {
 
       {/* 3. 缓存管理区块 */}
       <CacheManager refreshTrigger={refreshTrigger} />
+
+      <MaintenanceCard onCompleted={handleRefreshAll} />
 
       {/* 4. 底部功能卡片区 */}
       <Card className='border-border/40 bg-card/50 backdrop-blur-sm shadow-sm'>

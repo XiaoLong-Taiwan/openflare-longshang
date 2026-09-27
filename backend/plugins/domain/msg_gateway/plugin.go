@@ -199,13 +199,35 @@ func (p *Plugin) Apply(ctx *core.Context) error {
 		return nil
 	})
 
-	// 8. Register task completed event listener
+	// 8. Register built-in domain event listeners
+	ctx.Events().On(contracts.EventTopicAdminLoggedIn, func(c context.Context, e contracts.AdminLoggedIn) error {
+		service.HandleAdminLoggedIn(c, e)
+		return nil
+	})
+	ctx.Events().On(contracts.EventTopicUserCreated, func(c context.Context, e contracts.UserCreatedEvent) error {
+		service.HandleUserCreated(c, e)
+		return nil
+	})
+	ctx.Events().On(contracts.EventTopicUserStatusChanged, func(c context.Context, e contracts.UserStatusChangedEvent) error {
+		service.HandleUserStatusChanged(c, e)
+		return nil
+	})
+	ctx.Events().On(contracts.EventTopicUserDeleted, func(c context.Context, e contracts.UserDeletedEvent) error {
+		service.HandleUserDeleted(c, e)
+		return nil
+	})
+	ctx.Events().On(contracts.EventTopicConfigChanged, func(c context.Context, e contracts.ConfigChangedEvent) error {
+		service.HandleConfigChanged(c, e)
+		return nil
+	})
+
+	// 8.1 Register task completed event listener
 	ctx.Events().On(contracts.EventTopicTaskCompleted, func(c context.Context, e contracts.TaskCompletedEvent) error {
 		service.HandleTaskCompleted(c, e)
 		return nil
 	})
 
-	// 8.1 Register system cleanup event listener
+	// 8.2 Register system cleanup event listener
 	ctx.Events().On(contracts.EventTopicSystemCleanup, func(c context.Context, _ contracts.SystemCleanupEvent) error {
 		const defaultPushHistoryRetention = 30 * 24 * time.Hour
 		_, err := service.CleanupPushHistories(c, defaultPushHistoryRetention)

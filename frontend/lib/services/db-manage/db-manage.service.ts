@@ -4,6 +4,8 @@ import apiClient from '@/lib/services/core/api-client';
 import { BaseService } from '@/lib/services/core';
 import type {
   DBOverview,
+  DatabaseMaintenancePreview,
+  DatabaseMaintenanceResult,
   ExecuteSQLResponse,
   TableDataResponse,
 } from './types';
@@ -47,6 +49,16 @@ export class DbManageService extends BaseService {
    */
   static async executeSQL(sql: string): Promise<ExecuteSQLResponse> {
     return this.post<ExecuteSQLResponse>('/query', { sql });
+  }
+
+  static async getMaintenancePreview(): Promise<DatabaseMaintenancePreview> {
+    return this.get<DatabaseMaintenancePreview>('/maintenance/preview');
+  }
+
+  static async runMaintenance(): Promise<DatabaseMaintenanceResult> {
+    return this.post<DatabaseMaintenanceResult>('/maintenance', {
+      confirmed: true,
+    });
   }
 
   /**

@@ -102,6 +102,7 @@ type UserAccessLogStore interface {
 	BatchInsert(ctx context.Context, logs []analyticsmodel.UserAccessLog) error
 	// DeleteAll 清空全部用户访问日志（迁移「覆盖目标库已有日志」幂等前提用）。
 	DeleteAll(ctx context.Context) (int64, error)
+	DeleteBefore(ctx context.Context, cutoff time.Time) (int64, error)
 	Count(ctx context.Context, filter analyticsmodel.AccessLogFilter) (uint64, error)
 	List(ctx context.Context, filter analyticsmodel.AccessLogFilter, page, pageSize int) ([]analyticsmodel.UserAccessLog, uint64, error)
 	GetDailyTrend(ctx context.Context, days int) ([]analyticsmodel.DailyTrend, error)

@@ -62,7 +62,7 @@ func TestDiscordPusher(t *testing.T) {
 		t.Fatalf("failed to get discord pusher: %v", err)
 	}
 
-	err = pusher.ValidateConfig(Config{Key: "bot_token_123"})
+	err = pusher.ValidateConfig(Config{URL: "https://discord.com/api/webhooks/id/token"})
 	if err != nil {
 		t.Errorf("ValidateConfig failed: %v", err)
 	}

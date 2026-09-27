@@ -272,7 +272,55 @@ var AdminLogin = do.EventMetadata{
 	Description: "当管理员成功登录系统时触发此通知",
 }
 
-// HandleAdminLoggedIn 处理管理员登录事件并触发通知
+// UserCreated is the metadata definition for the user created event.
+var UserCreated = do.EventMetadata{
+	Key:  "user_created",
+	Name: "用户创建",
+	DefaultTemplate: do.NotificationMessage{
+		Title:   "用户创建通知",
+		Content: "用户 {{user.username}} 于 {{time}} 创建成功。",
+		Level:   consts.DefaultLevelInfo,
+	},
+	Description: "当新用户账号创建成功时触发此通知",
+}
+
+// UserStatusChanged is the metadata definition for the user status changed event.
+var UserStatusChanged = do.EventMetadata{
+	Key:  "user_status_changed",
+	Name: "用户状态变更",
+	DefaultTemplate: do.NotificationMessage{
+		Title:   "用户状态变更通知",
+		Content: "用户 ID {{user.id}} 于 {{time}} 状态变更为 {{status}}。",
+		Level:   consts.DefaultLevelInfo,
+	},
+	Description: "当用户账号启用或停用时触发此通知",
+}
+
+// UserDeleted is the metadata definition for the user deleted event.
+var UserDeleted = do.EventMetadata{
+	Key:  "user_deleted",
+	Name: "用户删除",
+	DefaultTemplate: do.NotificationMessage{
+		Title:   "用户删除通知",
+		Content: "用户 ID {{user.id}} 于 {{time}} 已删除。",
+		Level:   consts.DefaultLevelInfo,
+	},
+	Description: "当用户账号删除成功时触发此通知",
+}
+
+// ConfigChanged is the metadata definition for the configuration changed event.
+var ConfigChanged = do.EventMetadata{
+	Key:  "config_changed",
+	Name: "配置变更",
+	DefaultTemplate: do.NotificationMessage{
+		Title:   "系统配置变更通知",
+		Content: "系统配置 {{key}} 于 {{time}} 已变更。",
+		Level:   consts.DefaultLevelInfo,
+	},
+	Description: "当系统配置值变更时触发此通知",
+}
+
+// HandleAdminLoggedIn handles admin login events and triggers a notification.
 func HandleAdminLoggedIn(ctx context.Context, event contracts.AdminLoggedIn) {
 	if event.User == nil {
 		return
@@ -284,6 +332,45 @@ func HandleAdminLoggedIn(ctx context.Context, event contracts.AdminLoggedIn) {
 		"time": time.Now().Format("2006-01-02 15:04:05"),
 	}
 	DefaultTrigger.Trigger(ctx, AdminLogin, body)
+}
+
+// HandleUserCreated handles user creation events and triggers a notification.
+func HandleUserCreated(ctx context.Context, event contracts.UserCreatedEvent) {
+	if event.User == nil {
+		return
+	}
+	DefaultTrigger.Trigger(ctx, UserCreated, map[string]any{
+		"user": event.User,
+		"time": time.Now().Format("2006-01-02 15:04:05"),
+	})
+}
+
+// HandleUserStatusChanged handles user status changes and triggers a notification.
+func HandleUserStatusChanged(ctx context.Context, event contracts.UserStatusChangedEvent) {
+	DefaultTrigger.Trigger(ctx, UserStatusChanged, map[string]any{
+		"user": map[string]any{"id": event.UserID},
+		"status": map[bool]string{true: "启用", false: "停用"}[event.IsActive],
+		"time": time.Now().Format("2006-01-02 15:04:05"),
+	})
+}
+
+// HandleUserDeleted handles user deletion events and triggers a notification.
+func HandleUserDeleted(ctx context.Context, event contracts.UserDeletedEvent) {
+	DefaultTrigger.Trigger(ctx, UserDeleted, map[string]any{
+		"user": map[string]any{"id": event.TargetUserID},
+		"operator_id": event.CurrentUserID,
+		"time": time.Now().Format("2006-01-02 15:04:05"),
+	})
+}
+
+// HandleConfigChanged handles configuration changes and triggers a notification.
+func HandleConfigChanged(ctx context.Context, event contracts.ConfigChangedEvent) {
+	DefaultTrigger.Trigger(ctx, ConfigChanged, map[string]any{
+		"key":     event.Key,
+		"old_val": event.OldVal,
+		"new_val": event.NewVal,
+		"time":    time.Now().Format("2006-01-02 15:04:05"),
+	})
 }
 
 // HandleTaskCompleted handles task completion notifications.
@@ -335,5 +422,13 @@ func HandleTaskCompleted(ctx context.Context, e contracts.TaskCompletedEvent) {
 
 // RegisterCustomEvents registers default domain push notification events.
 func RegisterCustomEvents() {
-	RegisterBuiltInEvent(AdminLogin)
+	for _, meta := range []do.EventMetadata{
+		AdminLogin,
+		UserCreated,
+		UserStatusChanged,
+		UserDeleted,
+		ConfigChanged,
+	} {
+		RegisterBuiltInEvent(meta)
+	}
 }

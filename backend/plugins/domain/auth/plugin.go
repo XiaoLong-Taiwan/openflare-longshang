@@ -124,7 +124,7 @@ func (p *Plugin) Apply(ctx *core.Context) error {
 		core.Provide[contracts.AuthRegistry](ctx, svc.AuthRegistry)
 	}
 
-	ctrl := controller.New(svc)
+	ctrl := controller.New(svc, ctx.Events())
 	setDefaultRuntime(d, svc, ctrl)
 
 	// Register CaptchaService

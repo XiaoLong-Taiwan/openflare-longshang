@@ -76,6 +76,12 @@ func (p *Plugin) Manifest() core.Manifest {
 
 // Apply registers user migrations, services, routes, tasks, schedules, and settings into the Context.
 func (p *Plugin) Apply(ctx *core.Context) error {
+	setEventBus(ctx.Events())
+	ctx.OnDispose(func() error {
+		setEventBus(nil)
+		return nil
+	})
+
 	core.Bind[contracts.DBService](ctx, SetDBService)
 	core.Bind[contracts.CacheService](ctx, SetCacheService)
 	core.Bind[contracts.TaskService](ctx, SetTaskService)

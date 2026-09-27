@@ -34,6 +34,9 @@ func TestBotDispatchValidatePayload(t *testing.T) {
 func TestBotDispatchNoChannels(t *testing.T) {
 	testDB, err := gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "dispatch.db")), &gorm.Config{})
 	require.NoError(t, err)
+	db, err := testDB.DB()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
 	require.NoError(t, testDB.AutoMigrate(&entity.MessageChannel{}, &entity.MessageBinding{}))
 	dao.SetDBServiceForTest(&dispatchTestDB{db: testDB})
 	t.Cleanup(func() { dao.SetDBServiceForTest(nil) })

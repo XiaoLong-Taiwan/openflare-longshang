@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   ChevronDown,
+  CircleHelp,
   Edit2,
   Layers,
   Loader2,
@@ -190,6 +191,7 @@ export function EventsTab() {
   const [newEventTargets, setNewEventTargets] = React.useState('');
   const [newEventTemplate, setNewEventTemplate] = React.useState('');
   const [newEventEnabled, setNewEventEnabled] = React.useState(true);
+  const [templateHelpOpen, setTemplateHelpOpen] = React.useState(false);
 
   const availableBuiltInEvents = React.useMemo(() => {
     const configuredKeys = new Set(
@@ -706,15 +708,27 @@ export function EventsTab() {
             </div>
 
             <div className='space-y-1.5'>
-              <div className='flex justify-between items-center'>
+              <div className='flex justify-between items-center gap-2'>
                 <Label className='text-xs font-semibold'>
                   {t('contentTemplate')}
                 </Label>
-                <span className='text-[10px] text-muted-foreground font-mono flex items-center'>
-                  {newEventType === 'task'
-                    ? t.raw('taskTemplateVars')
-                    : t.raw('eventTemplateVars')}
-                </span>
+                <div className='flex items-center gap-2'>
+                  <span className='text-[10px] text-muted-foreground font-mono flex items-center'>
+                    {newEventType === 'task'
+                      ? t.raw('taskTemplateVars')
+                      : t.raw('eventTemplateVars')}
+                  </span>
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon'
+                    className='size-6'
+                    aria-label={t('templateHelp')}
+                    onClick={() => setTemplateHelpOpen(true)}
+                  >
+                    <CircleHelp className='size-3.5' />
+                  </Button>
+                </div>
               </div>
               <Textarea
                 value={newEventTemplate}
@@ -886,15 +900,27 @@ export function EventsTab() {
               </div>
 
               <div className='space-y-1.5'>
-                <div className='flex justify-between items-center'>
+                <div className='flex justify-between items-center gap-2'>
                   <Label className='text-xs font-semibold'>
                     {t('contentTemplate')}
                   </Label>
-                  <span className='text-[10px] text-muted-foreground font-mono flex items-center'>
-                    {selectedEvent.task_type
-                      ? t.raw('taskTemplateVars')
-                      : t.raw('eventTemplateVars')}
-                  </span>
+                  <div className='flex items-center gap-2'>
+                    <span className='text-[10px] text-muted-foreground font-mono flex items-center'>
+                      {selectedEvent.task_type
+                        ? t.raw('taskTemplateVars')
+                        : t.raw('eventTemplateVars')}
+                    </span>
+                    <Button
+                      type='button'
+                      variant='ghost'
+                      size='icon'
+                      className='size-6'
+                      aria-label={t('templateHelp')}
+                      onClick={() => setTemplateHelpOpen(true)}
+                    >
+                      <CircleHelp className='size-3.5' />
+                    </Button>
+                  </div>
                 </div>
                 <Textarea
                   value={eventTemplate}
@@ -929,6 +955,82 @@ export function EventsTab() {
               {t('saveChanges')}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={templateHelpOpen} onOpenChange={setTemplateHelpOpen}>
+        <DialogContent className='sm:max-w-[560px] max-h-[85vh] overflow-y-auto'>
+          <DialogHeader>
+            <DialogTitle>{t('templateHelpTitle')}</DialogTitle>
+            <DialogDescription>
+              {t('templateHelpDescription')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className='space-y-4 text-sm'>
+            <section className='space-y-2'>
+              <h3 className='font-medium'>{t('commonVariables')}</h3>
+              <div className='grid gap-1.5 sm:grid-cols-2'>
+                {[
+                  '{{time}}',
+                  '{{user.id}}',
+                  '{{user.username}}',
+                  '{{user.nickname}}',
+                  '{{user.email}}',
+                  '{{user.phone}}',
+                  '{{user.bio}}',
+                  '{{user.gender}}',
+                  '{{user.location}}',
+                  '{{user.website}}',
+                ].map((variable) => (
+                  <code
+                    key={variable}
+                    className='rounded bg-muted px-2 py-1 text-xs'
+                  >
+                    {variable}
+                  </code>
+                ))}
+              </div>
+            </section>
+            <section className='space-y-2'>
+              <h3 className='font-medium'>{t('eventVariables')}</h3>
+              <div className='flex flex-wrap gap-1.5'>
+                {[
+                  '{{ip}}',
+                  '{{task_name}}',
+                  '{{task_status}}',
+                  '{{task_duration}}',
+                ].map((variable) => (
+                  <code
+                    key={variable}
+                    className='rounded bg-muted px-2 py-1 text-xs'
+                  >
+                    {variable}
+                  </code>
+                ))}
+              </div>
+            </section>
+            <section className='space-y-2'>
+              <h3 className='font-medium'>{t('templateFunctions')}</h3>
+              <div className='flex flex-wrap gap-1.5'>
+                {[
+                  'default "fallback" .value',
+                  'toJson .payload',
+                  '.title | upper',
+                  '.content | lower',
+                  '.content | trim',
+                  'dateFormat "2006-01-02" .time',
+                  'if / else / end',
+                ].map((fn) => (
+                  <code key={fn} className='rounded bg-muted px-2 py-1 text-xs'>
+                    {fn}
+                  </code>
+                ))}
+              </div>
+              <p className='text-xs text-muted-foreground'>
+                {t('templateFunctionsDescription')}
+              </p>
+            </section>
+          </div>
         </DialogContent>
       </Dialog>
 

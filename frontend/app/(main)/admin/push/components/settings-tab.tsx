@@ -668,6 +668,49 @@ export function SettingsTab() {
                         className='h-7 text-[10px] px-2 py-0'
                         type='button'
                         onClick={() => {
+                          setChannelUrl(
+                            'https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN',
+                          );
+                          setChannelOther(
+                            JSON.stringify(
+                              {
+                                username: '{{user.nickname}}',
+                                content: '{{content}}',
+                                embeds: [
+                                  {
+                                    title: '{{title}}',
+                                    description: '{{content}}',
+                                    color: 3447003,
+                                    fields: [
+                                      {
+                                        name: '事件時間',
+                                        value: '{{time}}',
+                                        inline: true,
+                                      },
+                                      {
+                                        name: '觸發使用者',
+                                        value: '{{user.username}}',
+                                        inline: true,
+                                      },
+                                    ],
+                                  },
+                                ],
+                              },
+                              null,
+                              2,
+                            ),
+                          );
+                          toast.success(t('loadedDiscordTemplate'));
+                        }}
+                      >
+                        Discord Webhook
+                      </Button>
+                      <Button
+                        variant='outline'
+                        size='sm'
+                        className='h-7 text-[10px] px-2 py-0'
+                        type='button'
+                        onClick={() => {
                           setChannelUrl('https://api.day.app/push');
                           setChannelOther(
                             JSON.stringify(

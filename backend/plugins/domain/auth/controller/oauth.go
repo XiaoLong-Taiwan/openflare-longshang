@@ -5,6 +5,7 @@
 package controller
 
 import (
+	"Wavelet/core"
 	"Wavelet/core/contracts"
 	"Wavelet/pkg/logger"
 	"Wavelet/pkg/response"
@@ -30,14 +31,20 @@ type OAuthHandler struct {
 	oauthSvc   *service.OAuthService
 	sessionSvc *service.SessionService
 	dao        *dao.DAO
+	events     *core.EventBus
 }
 
 // NewOAuthHandler creates a new OAuthHandler.
-func NewOAuthHandler(oauthSvc *service.OAuthService, sessionSvc *service.SessionService, d *dao.DAO) *OAuthHandler {
+func NewOAuthHandler(oauthSvc *service.OAuthService, sessionSvc *service.SessionService, d *dao.DAO, events ...*core.EventBus) *OAuthHandler {
+	var bus *core.EventBus
+	if len(events) > 0 {
+		bus = events[0]
+	}
 	return &OAuthHandler{
 		oauthSvc:   oauthSvc,
 		sessionSvc: sessionSvc,
 		dao:        d,
+		events:     bus,
 	}
 }
 
@@ -355,6 +362,14 @@ func (h *OAuthHandler) handleCallbackLogin(ctx context.Context, c *gin.Context, 
 	}
 
 	h.dao.SetCachedUser(ctx, user.ID, user)
+	if user.IsAdmin && h.events != nil {
+		if err := h.events.Emit(ctx, contracts.EventTopicAdminLoggedIn, contracts.AdminLoggedIn{
+			User: user,
+			IP:   c.ClientIP(),
+		}); err != nil {
+			logger.WarnF(ctx, "emit admin login event failed: %v", err)
+		}
+	}
 	logger.InfoF(ctx, "[LoginAudit] successful OAuth login via source: %s, external ID: %s, user: %s, ID: %d, IP: %s", source.Name, userInfo.Sub, user.Username, user.ID, c.ClientIP())
 
 	c.JSON(http.StatusOK, response.OK(buildCallbackResult(user, "logged_in")))

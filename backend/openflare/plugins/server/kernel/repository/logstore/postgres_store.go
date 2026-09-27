@@ -1434,6 +1434,15 @@ func (s *userAccessLogGormStore) DeleteAll(ctx context.Context) (int64, error) {
 	return res.RowsAffected, res.Error
 }
 
+// DeleteBefore 删除早于 cutoff 的用户访问日志。
+func (s *userAccessLogGormStore) DeleteBefore(ctx context.Context, cutoff time.Time) (int64, error) {
+	if err := s.ensureWritable(ctx); err != nil {
+		return 0, err
+	}
+	res := s.db.WithContext(ctx).Where("created_at < ?", cutoff).Delete(&analyticsmodel.UserAccessLog{})
+	return res.RowsAffected, res.Error
+}
+
 // ListForMigration 按 id 升序分页读取（迁移复制用）。
 func (s *userAccessLogGormStore) ListForMigration(ctx context.Context, afterID uint64, limit int) ([]analyticsmodel.UserAccessLog, error) {
 	var rows []analyticsmodel.UserAccessLog

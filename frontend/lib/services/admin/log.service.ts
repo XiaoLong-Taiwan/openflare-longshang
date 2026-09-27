@@ -41,6 +41,30 @@ export class AdminLogService extends BaseService {
     return this.get('/logs/access', params as Record<string, unknown>);
   }
 
+  static async getLogStorage(): Promise<{
+    database: string;
+    total_rows: number;
+    total_bytes: number;
+    categories: Array<{
+      key: string;
+      name: string;
+      table: string;
+      rows: number;
+      bytes: number;
+      clearable: boolean;
+      description: string;
+    }>;
+  }> {
+    return this.get('/logs/storage');
+  }
+
+  static async cleanupLogStorage(params: {
+    category: string;
+    days?: number;
+  }): Promise<Array<{ category: string; deleted: number }>> {
+    return this.post('/logs/storage/cleanup', params);
+  }
+
   static async getLogsAnalytics(): Promise<{
     trend: Array<{ date: string; count: number }>;
     browsers: Array<{ browser: string; count: number }>;

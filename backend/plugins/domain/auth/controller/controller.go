@@ -5,6 +5,7 @@
 package controller
 
 import (
+	"Wavelet/core"
 	"Wavelet/core/extpoints"
 	"Wavelet/plugins/domain/auth/service"
 
@@ -22,9 +23,9 @@ type Controller struct {
 }
 
 // New creates a new Controller instance.
-func New(svc *service.Service) *Controller {
+func New(svc *service.Service, events ...*core.EventBus) *Controller {
 	wl := extpoints.NewPathWhitelist()
-	oauthHandler := NewOAuthHandler(svc.OAuth, svc.Session, svc.DAO)
+	oauthHandler := NewOAuthHandler(svc.OAuth, svc.Session, svc.DAO, events...)
 	userInfoHandler := NewUserInfoHandler()
 	captchaHandler := NewCaptchaHandler(svc.CapManager)
 

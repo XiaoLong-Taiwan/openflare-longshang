@@ -92,6 +92,7 @@ func (p *Plugin) Apply(ctx *core.Context) error {
 
 	registerOpenFlareTasks(ctx)
 	bindLogstore(ctx)
+	core.Provide[contracts.LogStorageService](ctx, logstore.NewLogStorageService())
 
 	if err := ofgeoip.EnsureRuntimeProvider(ctx.GoContext()); err != nil {
 		logger.ErrorF(ctx.GoContext(), "[server] init GeoIP provider failed: %v", err)

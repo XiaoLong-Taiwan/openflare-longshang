@@ -120,6 +120,59 @@ func ExecuteSQL(c *gin.Context) {
 	c.JSON(http.StatusOK, response.OK(resp))
 }
 
+// PreviewDatabaseMaintenance previews the pending database maintenance operations.
+// @Summary 預覽資料庫維護
+// @Description 顯示即將清理的任務記錄、磁碟快取與資料庫維護操作
+// @Tags admin
+// @Produce json
+// @Security SessionCookie
+// @Success 200 {object} response.Any{data=model.DatabaseMaintenancePreview} "預覽成功"
+// @Failure 401 {object} response.Any "未登入"
+// @Failure 403 {object} response.Any "無管理員權限"
+// @Failure 500 {object} response.Any "內部錯誤"
+// @Router /api/v1/admin/db-manage/maintenance/preview [get]
+func PreviewDatabaseMaintenance(c *gin.Context) {
+	preview, err := service.PreviewDatabaseMaintenance(c.Request.Context())
+	if err != nil {
+		response.AbortInternal(c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, response.OK(preview))
+}
+
+// RunDatabaseMaintenance executes the confirmed database maintenance operation.
+// @Summary 執行資料庫維護
+// @Description 清理過期任務記錄、清空磁碟快取，並執行資料庫統計更新、索引整理及空間回收
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Security SessionCookie
+// @Param request body model.DatabaseMaintenanceRequest true "確認請求"
+// @Success 200 {object} response.Any{data=model.DatabaseMaintenanceResult} "維護成功"
+// @Failure 400 {object} response.Any "需要確認"
+// @Failure 401 {object} response.Any "未登入"
+// @Failure 403 {object} response.Any "無管理員權限"
+// @Failure 500 {object} response.Any "內部錯誤"
+// @Router /api/v1/admin/db-manage/maintenance [post]
+func RunDatabaseMaintenance(c *gin.Context) {
+	var req model.DatabaseMaintenanceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.AbortBadRequest(c, err.Error())
+		return
+	}
+	if !req.Confirmed {
+		response.AbortBadRequest(c, "需要確認資料庫維護操作")
+		return
+	}
+
+	result, err := service.RunDatabaseMaintenance(c.Request.Context())
+	if err != nil {
+		response.AbortInternal(c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, response.OK(result))
+}
+
 // GetDatabaseInfo 获取当前数据库类型及版本信息
 // @Summary 获取数据库信息
 // @Description 返回当前使用的数据库类型（sqlite/postgres）、名称/路径及版本字符串，需要管理员权限

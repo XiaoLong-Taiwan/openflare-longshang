@@ -1369,6 +1369,13 @@ definitions:
       total:
         type: integer
     type: object
+  handler.logStorageCleanupRequest:
+    properties:
+      category:
+        type: string
+      days:
+        type: integer
+    type: object
   handler.trendItem:
     properties:
       count:
@@ -1625,6 +1632,39 @@ definitions:
         type: string
       version:
         type: string
+    type: object
+  model.DatabaseMaintenancePreview:
+    properties:
+      cache_bytes:
+        type: integer
+      cache_keys:
+        type: integer
+      database_type:
+        type: string
+      expired_task_executions:
+        type: integer
+      operations:
+        items:
+          type: string
+        type: array
+    type: object
+  model.DatabaseMaintenanceRequest:
+    properties:
+      confirmed:
+        type: boolean
+    type: object
+  model.DatabaseMaintenanceResult:
+    properties:
+      cache_cleared:
+        type: boolean
+      database_optimized:
+        type: boolean
+      expired_task_executions:
+        type: integer
+      operations:
+        items:
+          type: string
+        type: array
     type: object
   model.DispatchTaskRequest:
     properties:
@@ -4730,6 +4770,83 @@ paths:
       summary: 获取数据库信息
       tags:
       - admin
+  /api/v1/admin/db-manage/maintenance:
+    post:
+      consumes:
+      - application/json
+      description: 清理過期任務記錄、清空磁碟快取，並執行資料庫統計更新、索引整理及空間回收
+      parameters:
+      - description: 確認請求
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.DatabaseMaintenanceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 維護成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Any'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.DatabaseMaintenanceResult'
+              type: object
+        "400":
+          description: 需要確認
+          schema:
+            $ref: '#/definitions/response.Any'
+        "401":
+          description: 未登入
+          schema:
+            $ref: '#/definitions/response.Any'
+        "403":
+          description: 無管理員權限
+          schema:
+            $ref: '#/definitions/response.Any'
+        "500":
+          description: 內部錯誤
+          schema:
+            $ref: '#/definitions/response.Any'
+      security:
+      - SessionCookie: []
+      summary: 執行資料庫維護
+      tags:
+      - admin
+  /api/v1/admin/db-manage/maintenance/preview:
+    get:
+      description: 顯示即將清理的任務記錄、磁碟快取與資料庫維護操作
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 預覽成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Any'
+            - properties:
+                data:
+                  $ref: '#/definitions/model.DatabaseMaintenancePreview'
+              type: object
+        "401":
+          description: 未登入
+          schema:
+            $ref: '#/definitions/response.Any'
+        "403":
+          description: 無管理員權限
+          schema:
+            $ref: '#/definitions/response.Any'
+        "500":
+          description: 內部錯誤
+          schema:
+            $ref: '#/definitions/response.Any'
+      security:
+      - SessionCookie: []
+      summary: 預覽資料庫維護
+      tags:
+      - admin
   /api/v1/admin/db-manage/overview:
     get:
       description: 获取数据库类型、版本、名称、文件大小、表数量及当前连接数，需要管理员权限
@@ -4973,6 +5090,67 @@ paths:
       security:
       - SessionCookie: []
       summary: 获取访问日志分析数据
+      tags:
+      - admin
+  /api/v1/admin/logs/storage:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Any'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Any'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Any'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.Any'
+      security:
+      - SessionCookie: []
+      summary: Get log storage overview
+      tags:
+      - admin
+  /api/v1/admin/logs/storage/cleanup:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Cleanup request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.logStorageCleanupRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Any'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Any'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.Any'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.Any'
+      security:
+      - SessionCookie: []
+      summary: Cleanup log storage
       tags:
       - admin
   /api/v1/admin/logs/ws:
