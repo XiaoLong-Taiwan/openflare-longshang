@@ -313,7 +313,7 @@ export function DatabasePageClient() {
       {/* 3. 缓存管理区块 */}
       <CacheManager refreshTrigger={refreshTrigger} />
 
-      <MaintenanceCard onCompleted={handleRefreshAll} />
+      <MaintenanceCard />
 
       {/* 4. 底部功能卡片区 */}
       <Card className='border-border/40 bg-card/50 backdrop-blur-sm shadow-sm'>

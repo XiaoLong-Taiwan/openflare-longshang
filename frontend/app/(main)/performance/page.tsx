@@ -258,9 +258,40 @@ export default function PerformancePage() {
             type='number'
           />
           <FieldInput
+            label={t('fields.keepaliveRequests')}
+            value={fields.openresty_keepalive_requests}
+            onChange={(v) => updateField('openresty_keepalive_requests', v)}
+            type='number'
+          />
+          <FieldInput
+            label={t('fields.clientHeaderTimeout')}
+            value={fields.openresty_client_header_timeout}
+            onChange={(v) => updateField('openresty_client_header_timeout', v)}
+            type='number'
+          />
+          <FieldInput
+            label={t('fields.clientBodyTimeout')}
+            value={fields.openresty_client_body_timeout}
+            onChange={(v) => updateField('openresty_client_body_timeout', v)}
+            type='number'
+          />
+          <FieldInput
             label={t('fields.clientMaxBodySize')}
             value={fields.openresty_client_max_body_size}
             onChange={(v) => updateField('openresty_client_max_body_size', v)}
+          />
+          <FieldInput
+            label={t('fields.largeClientHeaderBuffers')}
+            value={fields.openresty_large_client_header_buffers}
+            onChange={(v) =>
+              updateField('openresty_large_client_header_buffers', v)
+            }
+          />
+          <FieldInput
+            label={t('fields.sendTimeout')}
+            value={fields.openresty_send_timeout}
+            onChange={(v) => updateField('openresty_send_timeout', v)}
+            type='number'
           />
           <FieldInput
             label={t('fields.resolvers')}
@@ -323,6 +354,12 @@ export default function PerformancePage() {
             type='number'
           />
           <FieldInput
+            label={t('fields.proxySendTimeout')}
+            value={fields.openresty_proxy_send_timeout}
+            onChange={(v) => updateField('openresty_proxy_send_timeout', v)}
+            type='number'
+          />
+          <FieldInput
             label={t('fields.proxyReadTimeout')}
             value={fields.openresty_proxy_read_timeout}
             onChange={(v) => updateField('openresty_proxy_read_timeout', v)}
@@ -339,6 +376,13 @@ export default function PerformancePage() {
             onChange={(v) => updateField('openresty_http3_enabled', v)}
           />
           <ToggleRow
+            label={t('fields.proxyRequestBuffering')}
+            checked={fields.openresty_proxy_request_buffering_enabled}
+            onChange={(v) =>
+              updateField('openresty_proxy_request_buffering_enabled', v)
+            }
+          />
+          <ToggleRow
             label={t('fields.proxyBuffering')}
             checked={fields.openresty_proxy_buffering_enabled}
             onChange={(v) =>
@@ -349,6 +393,18 @@ export default function PerformancePage() {
             label={t('fields.proxyBuffers')}
             value={fields.openresty_proxy_buffers}
             onChange={(v) => updateField('openresty_proxy_buffers', v)}
+          />
+          <FieldInput
+            label={t('fields.proxyBufferSize')}
+            value={fields.openresty_proxy_buffer_size}
+            onChange={(v) => updateField('openresty_proxy_buffer_size', v)}
+          />
+          <FieldInput
+            label={t('fields.proxyBusyBuffersSize')}
+            value={fields.openresty_proxy_busy_buffers_size}
+            onChange={(v) =>
+              updateField('openresty_proxy_busy_buffers_size', v)
+            }
           />
         </CardContent>
       </Card>
@@ -448,9 +504,38 @@ export default function PerformancePage() {
               disabled={!fields.openresty_cache_enabled}
             />
             <FieldInput
+              label={t('fields.cacheInactive')}
+              value={fields.openresty_cache_inactive}
+              onChange={(v) => updateField('openresty_cache_inactive', v)}
+              disabled={!fields.openresty_cache_enabled}
+            />
+            <FieldInput
               label={t('fields.cacheMaxSize')}
               value={fields.openresty_cache_max_size}
               onChange={(v) => updateField('openresty_cache_max_size', v)}
+              disabled={!fields.openresty_cache_enabled}
+            />
+            <FieldInput
+              label={t('fields.cacheKeyTemplate')}
+              value={fields.openresty_cache_key_template}
+              onChange={(v) => updateField('openresty_cache_key_template', v)}
+              disabled={!fields.openresty_cache_enabled}
+            />
+            <ToggleRow
+              label={t('fields.cacheLock')}
+              checked={fields.openresty_cache_lock_enabled}
+              onChange={(v) => updateField('openresty_cache_lock_enabled', v)}
+            />
+            <FieldInput
+              label={t('fields.cacheLockTimeout')}
+              value={fields.openresty_cache_lock_timeout}
+              onChange={(v) => updateField('openresty_cache_lock_timeout', v)}
+              disabled={!fields.openresty_cache_enabled}
+            />
+            <FieldInput
+              label={t('fields.cacheUseStale')}
+              value={fields.openresty_cache_use_stale}
+              onChange={(v) => updateField('openresty_cache_use_stale', v)}
               disabled={!fields.openresty_cache_enabled}
             />
           </CardContent>

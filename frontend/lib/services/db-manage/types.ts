@@ -37,10 +37,3 @@ export interface DatabaseMaintenancePreview {
   cache_bytes: number;
   operations: string[];
 }
-
-export interface DatabaseMaintenanceResult {
-  expired_task_executions: number;
-  cache_cleared: boolean;
-  database_optimized: boolean;
-  operations: string[];
-}

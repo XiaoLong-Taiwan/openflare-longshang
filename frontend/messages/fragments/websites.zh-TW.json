@@ -130,7 +130,16 @@
     "loadingList": "載入憑證清單中...",
     "requestFailed": "请求失敗，请稍後重試。",
     "emptyList": "暫無憑證，點擊右上角「匯入憑證」或「申请憑證」開始录入。",
+    "columns": {
+      "name": "名稱",
+      "validity": "有效期",
+      "source": "來源",
+      "status": "狀態",
+      "remark": "備注",
+      "actions": "操作"
+    },
     "notBeforeLabel": "生效：{value}",
+    "notAfter": "到期時間",
     "notAfterLabel": "到期：{value}",
     "sourceLabel": "來源：{value}",
     "sourceAcme": "ACME 申请",
@@ -271,6 +280,15 @@
     "loadFailed": "載入失敗",
     "emptyTitle": "暫無來源站台",
     "emptyDesc": "點擊右上角新增來源站台，後续規則可直接複用這些位址。",
+    "listTitle": "來源站台清單",
+    "listDesc": "集中查看來源站台位址、關聯規則與最近更新時間。",
+    "columns": {
+      "name": "名稱",
+      "address": "位址",
+      "routes": "關聯規則",
+      "updatedAt": "更新時間",
+      "actions": "操作"
+    },
     "routeCount": "{count} 條規則",
     "noRemark": "暫無備注",
     "lastUpdated": "最後更新：{date}",

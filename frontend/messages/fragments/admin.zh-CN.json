@@ -1186,9 +1186,9 @@
         "cancel": "取消",
         "running": "维护中...",
         "confirm": "确认执行",
-        "success": "数据库维护完成",
-        "successDesc": "已清理 {deleted} 条过期任务记录并完成数据库优化。",
-        "failed": "数据库维护失败"
+        "queued": "数据库维护已加入后台任务",
+        "queuedDesc": "任务 ID：{taskID}。可在任务管理中查看执行进度。",
+        "failed": "数据库维护排程失败"
       }
     },
     "logs": {

@@ -127,10 +127,7 @@ export function mapOptionsToFields(
       optionMap.openresty_websocket_enabled,
       true,
     ),
-    openresty_http3_enabled: toBoolean(
-      optionMap.openresty_http3_enabled,
-      false,
-    ),
+    openresty_http3_enabled: toBoolean(optionMap.openresty_http3_enabled, true),
     openresty_proxy_request_buffering_enabled: toBoolean(
       optionMap.openresty_proxy_request_buffering_enabled,
       false,

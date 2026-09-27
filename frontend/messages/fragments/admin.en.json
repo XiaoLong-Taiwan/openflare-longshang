@@ -1186,9 +1186,9 @@
         "cancel": "Cancel",
         "running": "Maintaining...",
         "confirm": "Confirm and run",
-        "success": "Database maintenance completed",
-        "successDesc": "Removed {deleted} expired task records and completed database optimization.",
-        "failed": "Database maintenance failed"
+        "queued": "Database maintenance queued",
+        "queuedDesc": "Task ID: {taskID}. View progress in Task Management.",
+        "failed": "Failed to queue database maintenance"
       }
     },
     "logs": {

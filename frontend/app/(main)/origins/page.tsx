@@ -21,6 +21,21 @@ import { ErrorInline } from '@/components/layout/error';
 import { LoadingStateWithBorder } from '@/components/layout/loading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { type OriginItem, OriginService } from '@/lib/services/openflare';
 import { formatDateTime } from '@/lib/utils';
 
@@ -58,7 +73,7 @@ export default function OriginsPage() {
   });
 
   return (
-    <div className='py-6 px-1 space-y-6'>
+    <div className='flex w-full flex-col gap-6 py-6 px-1'>
       <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
         <div className='flex items-center gap-2'>
           <MapPin className='size-5 text-primary' />
@@ -105,77 +120,89 @@ export default function OriginsPage() {
         />
       ) : null}
 
-      <div className='border border-dashed rounded-lg overflow-hidden bg-background'>
-        {originsQuery.isLoading ? (
-          <LoadingStateWithBorder />
-        ) : origins.length === 0 ? (
-          <EmptyStateWithBorder
-            title={t('emptyTitle')}
-            description={t('emptyDesc')}
-          />
-        ) : (
-          <div className='grid gap-0 md:grid-cols-2'>
-            {origins.map((origin) => (
-              <article
-                key={origin.id}
-                className='border-b border-dashed p-4 md:[&:nth-child(odd)]:border-r'
-              >
-                <div className='flex flex-col gap-4'>
-                  <div className='space-y-2'>
-                    <div className='flex flex-wrap items-center gap-2'>
-                      <h2 className='text-base font-semibold'>{origin.name}</h2>
-                      <Badge
-                        variant='outline'
-                        className={`text-[10px] ${
-                          origin.route_count > 0
-                            ? 'text-emerald-600 border-emerald-500/20'
-                            : 'text-amber-600 border-amber-500/20'
-                        }`}
-                      >
+      <Card className='border-dashed shadow-none'>
+        <CardHeader className='pb-3'>
+          <CardTitle className='text-base font-semibold'>
+            {t('listTitle')}
+          </CardTitle>
+          <CardDescription>{t('listDesc')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {originsQuery.isLoading ? (
+            <LoadingStateWithBorder />
+          ) : origins.length === 0 ? (
+            <EmptyStateWithBorder
+              title={t('emptyTitle')}
+              description={t('emptyDesc')}
+            />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('columns.name')}</TableHead>
+                  <TableHead>{t('columns.address')}</TableHead>
+                  <TableHead>{t('columns.routes')}</TableHead>
+                  <TableHead>{t('columns.updatedAt')}</TableHead>
+                  <TableHead className='w-[180px] text-right'>
+                    {t('columns.actions')}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {origins.map((origin) => (
+                  <TableRow key={origin.id}>
+                    <TableCell className='font-medium'>
+                      <div className='flex flex-col gap-1'>
+                        <span>{origin.name}</span>
+                        <span className='text-sm text-muted-foreground'>
+                          {origin.remark || t('noRemark')}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{origin.address}</TableCell>
+                    <TableCell>
+                      <Badge variant='outline'>
                         {t('routeCount', { count: origin.route_count })}
                       </Badge>
-                    </div>
-                    <p className='text-sm'>{origin.address}</p>
-                    <p className='text-sm text-muted-foreground'>
-                      {origin.remark || t('noRemark')}
-                    </p>
-                    <p className='text-xs text-muted-foreground'>
-                      {t('lastUpdated', {
-                        date: formatDateTime(origin.updated_at),
-                      })}
-                    </p>
-                  </div>
-                  <div className='flex flex-wrap gap-2'>
-                    <Button variant='outline' size='sm' asChild>
-                      <Link href={`/origins/detail?id=${origin.id}`}>
-                        {t('detail')}
-                      </Link>
-                    </Button>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      onClick={() => {
-                        setEditingOrigin(origin);
-                        setEditorOpen(true);
-                      }}
-                    >
-                      {t('edit')}
-                    </Button>
-                    <Button
-                      variant='destructive'
-                      size='sm'
-                      onClick={() => setDeleteTarget(origin)}
-                    >
-                      <Trash2 className='size-3.5 mr-1' />
-                      {tc('delete')}
-                    </Button>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </div>
+                    </TableCell>
+                    <TableCell className='text-sm text-muted-foreground'>
+                      {formatDateTime(origin.updated_at)}
+                    </TableCell>
+                    <TableCell>
+                      <div className='flex items-center justify-end gap-1'>
+                        <Button variant='outline' size='sm' asChild>
+                          <Link href={`/origins/detail?id=${origin.id}`}>
+                            {t('detail')}
+                          </Link>
+                        </Button>
+                        <Button
+                          variant='outline'
+                          size='sm'
+                          onClick={() => {
+                            setEditingOrigin(origin);
+                            setEditorOpen(true);
+                          }}
+                        >
+                          {t('edit')}
+                        </Button>
+                        <Button
+                          variant='destructive'
+                          size='icon'
+                          aria-label={tc('delete')}
+                          title={tc('delete')}
+                          onClick={() => setDeleteTarget(origin)}
+                        >
+                          <Trash2 />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       <OriginEditorDialog
         open={editorOpen}

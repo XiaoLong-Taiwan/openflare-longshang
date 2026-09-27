@@ -14,6 +14,8 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { formatDateTime } from '@/lib/utils';
+
 import { GroupDialog } from '@/app/(main)/cloudflare/components/group-dialog';
 import { SyncTasksPanel } from '@/app/(main)/cloudflare/components/sync-tasks-panel';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -30,12 +32,13 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { EmptyStateWithBorder } from '@/components/layout/empty';
 import { ErrorInline } from '@/components/layout/error';
 import { LoadingStateWithBorder } from '@/components/layout/loading';
@@ -174,64 +177,72 @@ export default function CloudflarePage() {
             onAction={() => setCreateOpen(true)}
           />
         ) : (
-          <div className='grid gap-4 lg:grid-cols-2'>
-            {(groupsQuery.data ?? []).map((group) => (
-              <Card key={group.id} className='border-dashed shadow-none'>
-                <CardHeader>
-                  <div className='flex items-start justify-between gap-3'>
-                    <div>
-                      <CardTitle className='text-base'>{group.name}</CardTitle>
-                      <CardDescription>
-                        {t('nodeSummary', {
-                          count: group.nodes?.length ?? 1,
-                          priority:
-                            group.nodes?.find(
-                              (node) => node.id === group.active_node.id,
-                            )?.priority ?? 0,
-                        })}
-                      </CardDescription>
-                    </div>
-                    <Badge variant={group.enabled ? 'default' : 'secondary'}>
-                      {group.enabled ? t('enabled') : t('disabled')}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className='flex flex-col gap-4'>
-                  <p className='text-sm text-muted-foreground'>
-                    {t('memberSummary', {
-                      count: group.member_count,
-                      proxy: group.default_proxied
-                        ? t('proxyOn')
-                        : t('proxyOff'),
-                    })}
-                  </p>
-                  <div className='flex flex-wrap gap-2'>
-                    <Button asChild size='sm'>
-                      <Link href={`/cloudflare/group?id=${group.id}`}>
-                        <Settings data-icon='inline-start' />
-                        {t('manage')}
-                      </Link>
-                    </Button>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      onClick={() => syncMutation.mutate(group.id)}
-                    >
-                      <RefreshCw data-icon='inline-start' />
-                      {t('sync')}
-                    </Button>
-                    <Button
-                      variant='destructive'
-                      size='sm'
-                      onClick={() => setDeleteTarget(group)}
-                    >
-                      <Trash2 data-icon='inline-start' />
-                      {t('delete')}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          <div className='overflow-x-auto rounded-lg border border-dashed'>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('columns.name')}</TableHead>
+                  <TableHead>{t('columns.status')}</TableHead>
+                  <TableHead>{t('columns.nodes')}</TableHead>
+                  <TableHead>{t('columns.members')}</TableHead>
+                  <TableHead>{t('columns.updatedAt')}</TableHead>
+                  <TableHead className='w-[180px] text-right'>
+                    {t('columns.actions')}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(groupsQuery.data ?? []).map((group) => (
+                  <TableRow key={group.id}>
+                    <TableCell className='font-medium'>{group.name}</TableCell>
+                    <TableCell>
+                      <Badge variant={group.enabled ? 'default' : 'secondary'}>
+                        {group.enabled ? t('enabled') : t('disabled')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{group.nodes?.length ?? 1}</TableCell>
+                    <TableCell>{group.member_count}</TableCell>
+                    <TableCell className='text-sm text-muted-foreground'>
+                      {formatDateTime(group.updated_at)}
+                    </TableCell>
+                    <TableCell className='text-right'>
+                      <div className='flex justify-end gap-1'>
+                        <Button
+                          asChild
+                          variant='ghost'
+                          size='icon'
+                          title={t('manage')}
+                          aria-label={t('manage')}
+                        >
+                          <Link href={`/cloudflare/group?id=${group.id}`}>
+                            <Settings />
+                          </Link>
+                        </Button>
+                        <Button
+                          variant='ghost'
+                          size='icon'
+                          title={t('sync')}
+                          aria-label={t('sync')}
+                          onClick={() => syncMutation.mutate(group.id)}
+                        >
+                          <RefreshCw />
+                        </Button>
+                        <Button
+                          variant='ghost'
+                          size='icon'
+                          className='text-destructive hover:text-destructive'
+                          title={t('delete')}
+                          aria-label={t('delete')}
+                          onClick={() => setDeleteTarget(group)}
+                        >
+                          <Trash2 />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>

@@ -130,6 +130,14 @@
     "loadingList": "Loading certificate list...",
     "requestFailed": "Request failed. Please try again later.",
     "emptyList": "No certificates yet. Click “Import certificate” or “Apply for certificate” in the top right to get started.",
+    "columns": {
+      "name": "Name",
+      "validity": "Validity",
+      "source": "Source",
+      "status": "Status",
+      "remark": "Remark",
+      "actions": "Actions"
+    },
     "notBeforeLabel": "Valid from: {value}",
     "notAfterLabel": "Expires: {value}",
     "sourceLabel": "Source: {value}",
@@ -271,6 +279,15 @@
     "loadFailed": "Load failed",
     "emptyTitle": "No origins",
     "emptyDesc": "Click Add origin in the top right. Later routes can reuse these addresses directly.",
+    "listTitle": "Origin list",
+    "listDesc": "Review origin addresses, related routes, and recent updates in one place.",
+    "columns": {
+      "name": "Name",
+      "address": "Address",
+      "routes": "Routes",
+      "updatedAt": "Updated",
+      "actions": "Actions"
+    },
     "routeCount": "{count} routes",
     "noRemark": "No remark",
     "lastUpdated": "Last updated: {date}",

@@ -26,11 +26,7 @@ import {
 import services from '@/lib/services';
 import type { DatabaseMaintenancePreview } from '@/lib/services/db-manage';
 
-interface MaintenanceCardProps {
-  onCompleted: () => void;
-}
-
-export function MaintenanceCard({ onCompleted }: MaintenanceCardProps) {
+export function MaintenanceCard() {
   const t = useTranslations('admin.database');
   const [preview, setPreview] = useState<DatabaseMaintenancePreview | null>(
     null,
@@ -58,14 +54,10 @@ export function MaintenanceCard({ onCompleted }: MaintenanceCardProps) {
   const runMaintenance = async () => {
     setRunning(true);
     try {
-      const result = await services.dbManage.runMaintenance();
-      toast.success(t('maintenance.success'), {
-        description: t('maintenance.successDesc', {
-          deleted: result.expired_task_executions,
-        }),
+      const taskID = await services.dbManage.runMaintenance();
+      toast.success(t('maintenance.queued'), {
+        description: t('maintenance.queuedDesc', { taskID }),
       });
-      await loadPreview();
-      onCompleted();
     } catch (error) {
       toast.error(t('maintenance.failed'), {
         description: error instanceof Error ? error.message : t('unknownError'),

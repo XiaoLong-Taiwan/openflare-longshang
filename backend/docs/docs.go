@@ -606,7 +606,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "維護成功",
+                        "description": "維護任務已入隊",
                         "schema": {
                             "allOf": [
                                 {
@@ -616,7 +616,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/model.DatabaseMaintenanceResult"
+                                            "type": "string"
                                         }
                                     }
                                 }
@@ -642,7 +642,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "內部錯誤",
+                        "description": "任務入隊失敗",
                         "schema": {
                             "$ref": "#/definitions/response.Any"
                         }
@@ -17733,26 +17733,6 @@ const docTemplate = `{
             "properties": {
                 "confirmed": {
                     "type": "boolean"
-                }
-            }
-        },
-        "model.DatabaseMaintenanceResult": {
-            "type": "object",
-            "properties": {
-                "cache_cleared": {
-                    "type": "boolean"
-                },
-                "database_optimized": {
-                    "type": "boolean"
-                },
-                "expired_task_executions": {
-                    "type": "integer"
-                },
-                "operations": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
                 }
             }
         },

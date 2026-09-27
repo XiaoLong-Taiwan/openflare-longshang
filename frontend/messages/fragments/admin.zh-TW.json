@@ -1186,9 +1186,9 @@
         "cancel": "取消",
         "running": "維護中...",
         "confirm": "確認執行",
-        "success": "資料庫維護完成",
-        "successDesc": "已清理 {deleted} 筆過期任務記錄並完成資料庫最佳化。",
-        "failed": "資料庫維護失敗"
+        "queued": "資料庫維護已排入背景工作",
+        "queuedDesc": "工作 ID：{taskID}。可到工作管理查看執行進度。",
+        "failed": "資料庫維護排程失敗"
       }
     },
     "logs": {

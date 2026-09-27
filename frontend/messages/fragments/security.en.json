@@ -813,11 +813,17 @@
     "membersDesc": "Per-member orange-cloud is the only source of truth during sync.",
     "noMembers": "No domain members yet.",
     "columns": {
+      "name": "Name",
+      "nodes": "Nodes",
+      "members": "Members",
+      "status": "Status",
+      "updatedAt": "Updated",
+      "actions": "Actions",
+
       "domain": "Domain",
       "desiredIp": "Desired IP",
-      "status": "Status",
-      "proxied": "Orange cloud",
-      "actions": "Actions"
+      "proxied": "Proxied",
+      "memberActions": "Actions"
     },
     "pendingSync": "Pending sync",
     "remove": "Remove",

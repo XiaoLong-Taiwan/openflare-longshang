@@ -148,11 +148,11 @@ func PreviewDatabaseMaintenance(c *gin.Context) {
 // @Produce json
 // @Security SessionCookie
 // @Param request body model.DatabaseMaintenanceRequest true "確認請求"
-// @Success 200 {object} response.Any{data=model.DatabaseMaintenanceResult} "維護成功"
+// @Success 200 {object} response.Any{data=string} "維護任務已入隊"
 // @Failure 400 {object} response.Any "需要確認"
 // @Failure 401 {object} response.Any "未登入"
 // @Failure 403 {object} response.Any "無管理員權限"
-// @Failure 500 {object} response.Any "內部錯誤"
+// @Failure 500 {object} response.Any "任務入隊失敗"
 // @Router /api/v1/admin/db-manage/maintenance [post]
 func RunDatabaseMaintenance(c *gin.Context) {
 	var req model.DatabaseMaintenanceRequest
@@ -165,12 +165,15 @@ func RunDatabaseMaintenance(c *gin.Context) {
 		return
 	}
 
-	result, err := service.RunDatabaseMaintenance(c.Request.Context())
+	taskID, err := service.DispatchTask(c.Request.Context(), model.DispatchTaskRequest{
+		TaskType: service.DatabaseMaintenanceTask,
+		Payload:  "{}",
+	})
 	if err != nil {
 		response.AbortInternal(c, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, response.OK(result))
+	c.JSON(http.StatusOK, response.OK(taskID))
 }
 
 // GetDatabaseInfo 获取当前数据库类型及版本信息

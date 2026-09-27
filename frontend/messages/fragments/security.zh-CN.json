@@ -813,11 +813,17 @@
     "membersDesc": "成员级橙云是同步时的唯一依据。",
     "noMembers": "暂无域名成员。",
     "columns": {
+      "name": "名称",
+      "nodes": "节点",
+      "members": "成员",
+      "status": "状态",
+      "updatedAt": "更新时间",
+      "actions": "操作",
+
       "domain": "域名",
       "desiredIp": "期望 IP",
-      "status": "状态",
       "proxied": "橙云",
-      "actions": "操作"
+      "memberActions": "操作"
     },
     "pendingSync": "待同步",
     "remove": "移出",

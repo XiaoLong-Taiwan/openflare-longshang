@@ -17,12 +17,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { EmptyStateWithBorder } from '@/components/layout/empty';
 import { ErrorInline } from '@/components/layout/error';
 import { LoadingStateWithBorder } from '@/components/layout/loading';
@@ -146,106 +147,69 @@ export default function CertificatesPage() {
         </div>
       </div>
 
-      <Card className='border-dashed shadow-none'>
-        <CardHeader className='pb-3'>
-          <CardTitle className='text-base font-semibold'>
-            {t('listTitle')}
-          </CardTitle>
-          <CardDescription>{t('listDesc')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {certificatesQuery.isLoading ? (
-            <LoadingStateWithBorder
-              icon={FileKey}
-              description={t('loadingList')}
+      <div className='overflow-x-auto rounded-lg border border-dashed'>
+        {certificatesQuery.isLoading ? (
+          <LoadingStateWithBorder
+            icon={FileKey}
+            description={t('loadingList')}
+          />
+        ) : certificatesQuery.isError ? (
+          <div className='p-8'>
+            <ErrorInline
+              message={getErrorMessage(
+                certificatesQuery.error,
+                t('requestFailed'),
+              )}
+              onRetry={() => void certificatesQuery.refetch()}
+              className='justify-center'
             />
-          ) : certificatesQuery.isError ? (
-            <div className='p-8 border border-dashed rounded-lg'>
-              <ErrorInline
-                message={getErrorMessage(
-                  certificatesQuery.error,
-                  t('requestFailed'),
-                )}
-                onRetry={() => void certificatesQuery.refetch()}
-                className='justify-center'
-              />
-            </div>
-          ) : certificates.length === 0 ? (
-            <EmptyStateWithBorder icon={FileKey} description={t('emptyList')} />
-          ) : (
-            <div className='space-y-3'>
+          </div>
+        ) : certificates.length === 0 ? (
+          <EmptyStateWithBorder icon={FileKey} description={t('emptyList')} />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('columns.name')}</TableHead>
+                <TableHead>{t('columns.status')}</TableHead>
+                <TableHead>{t('notAfter')}</TableHead>
+                <TableHead>{t('columns.source')}</TableHead>
+                <TableHead>{t('columns.remark')}</TableHead>
+                <TableHead className='w-[220px] text-right'>
+                  {t('columns.actions')}
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {certificates.map((certificate) => {
                 const status = getCertificateStatus(certificate, t);
-
                 return (
-                  <div
-                    key={certificate.id}
-                    className='rounded-lg border bg-card px-4 py-3'
-                  >
-                    <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
-                      <div className='space-y-2'>
-                        <div className='flex flex-wrap items-center gap-2'>
-                          <p className='text-sm font-semibold'>
-                            {certificate.name}
-                          </p>
-                          <WebsiteStatusBadge
-                            label={status.label}
-                            tone={status.tone}
-                          />
-                        </div>
-                        <div className='text-xs leading-5 text-muted-foreground space-y-0.5'>
-                          <p>
-                            {t('notBeforeLabel', {
-                              value: formatDateTime(certificate.not_before),
-                            })}
-                          </p>
-                          <p>
-                            {t('notAfterLabel', {
-                              value: formatDateTime(certificate.not_after),
-                            })}
-                          </p>
-                          <p>
-                            {t('sourceLabel', {
-                              value:
-                                certificate.provider === 'acme'
-                                  ? t('sourceAcme')
-                                  : t('sourceUpload'),
-                            })}
-                          </p>
-                          {certificate.apply_status === 'applying' ? (
-                            <p className='text-blue-600'>
-                              {t('statusLabel', {
-                                value:
-                                  certificate.provider === 'upload'
-                                    ? t('converting')
-                                    : t('applying'),
-                              })}
-                            </p>
-                          ) : null}
-                          {certificate.apply_status === 'error' ? (
-                            <p className='text-destructive'>
-                              {t('statusError', {
-                                value:
-                                  certificate.provider === 'upload'
-                                    ? t('convertFailed')
-                                    : t('applyFailed'),
-                                message: certificate.apply_message,
-                              })}
-                            </p>
-                          ) : null}
-                          <p>
-                            {t('remarkLabel', {
-                              value: certificate.remark || t('noRemark'),
-                            })}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className='flex flex-wrap gap-1'>
+                  <TableRow key={certificate.id}>
+                    <TableCell className='font-medium'>
+                      {certificate.name}
+                    </TableCell>
+                    <TableCell>
+                      <WebsiteStatusBadge
+                        label={status.label}
+                        tone={status.tone}
+                      />
+                    </TableCell>
+                    <TableCell className='text-sm text-muted-foreground'>
+                      {formatDateTime(certificate.not_after)}
+                    </TableCell>
+                    <TableCell>
+                      {certificate.provider === 'acme'
+                        ? t('sourceAcme')
+                        : t('sourceUpload')}
+                    </TableCell>
+                    <TableCell className='max-w-[240px] truncate text-sm text-muted-foreground'>
+                      {certificate.remark || t('noRemark')}
+                    </TableCell>
+                    <TableCell className='text-right'>
+                      <div className='flex justify-end gap-1'>
                         <Button
-                          variant='outline'
+                          variant='ghost'
                           size='sm'
-                          className='h-7 text-xs'
                           onClick={() => {
                             setSelectedCertificateId(certificate.id);
                             setDetailOpen(true);
@@ -254,18 +218,16 @@ export default function CertificatesPage() {
                           {t('view')}
                         </Button>
                         <Button
-                          variant='outline'
+                          variant='ghost'
                           size='sm'
-                          className='h-7 text-xs'
                           onClick={() => handleOpenEditor(certificate)}
                         >
                           {t('edit')}
                         </Button>
                         {certificate.provider === 'acme' ? (
                           <Button
-                            variant='outline'
+                            variant='ghost'
                             size='sm'
-                            className='h-7 text-xs'
                             disabled={renewMutation.isPending}
                             onClick={() => renewMutation.mutate(certificate.id)}
                           >
@@ -273,22 +235,24 @@ export default function CertificatesPage() {
                           </Button>
                         ) : null}
                         <Button
-                          variant='outline'
-                          size='sm'
-                          className='h-7 text-xs text-destructive'
+                          variant='ghost'
+                          size='icon'
+                          className='text-destructive hover:text-destructive'
+                          title={t('deleteCert')}
+                          aria-label={t('deleteCert')}
                           onClick={() => setDeleteTarget(certificate)}
                         >
-                          <Trash2 className='size-3' />
+                          <Trash2 />
                         </Button>
                       </div>
-                    </div>
-                  </div>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            </TableBody>
+          </Table>
+        )}
+      </div>
 
       <CertificateImportDialog
         open={importOpen}

@@ -1653,19 +1653,6 @@ definitions:
       confirmed:
         type: boolean
     type: object
-  model.DatabaseMaintenanceResult:
-    properties:
-      cache_cleared:
-        type: boolean
-      database_optimized:
-        type: boolean
-      expired_task_executions:
-        type: integer
-      operations:
-        items:
-          type: string
-        type: array
-    type: object
   model.DispatchTaskRequest:
     properties:
       end_time:
@@ -4786,13 +4773,13 @@ paths:
       - application/json
       responses:
         "200":
-          description: 維護成功
+          description: 維護任務已入隊
           schema:
             allOf:
             - $ref: '#/definitions/response.Any'
             - properties:
                 data:
-                  $ref: '#/definitions/model.DatabaseMaintenanceResult'
+                  type: string
               type: object
         "400":
           description: 需要確認
@@ -4807,7 +4794,7 @@ paths:
           schema:
             $ref: '#/definitions/response.Any'
         "500":
-          description: 內部錯誤
+          description: 任務入隊失敗
           schema:
             $ref: '#/definitions/response.Any'
       security:

@@ -5,7 +5,6 @@ import { BaseService } from '@/lib/services/core';
 import type {
   DBOverview,
   DatabaseMaintenancePreview,
-  DatabaseMaintenanceResult,
   ExecuteSQLResponse,
   TableDataResponse,
 } from './types';
@@ -55,8 +54,8 @@ export class DbManageService extends BaseService {
     return this.get<DatabaseMaintenancePreview>('/maintenance/preview');
   }
 
-  static async runMaintenance(): Promise<DatabaseMaintenanceResult> {
-    return this.post<DatabaseMaintenanceResult>('/maintenance', {
+  static async runMaintenance(): Promise<string> {
+    return this.post<string>('/maintenance', {
       confirmed: true,
     });
   }
