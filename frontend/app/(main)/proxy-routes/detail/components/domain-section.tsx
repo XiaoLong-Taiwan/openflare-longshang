@@ -18,11 +18,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import type { ProxyRouteItem } from '@/lib/services/openflare';
-import { zoneQueryKey, ZoneService } from '@/lib/services/openflare';
+import { zoneCatalogQueryKey, ZoneService } from '@/lib/services/openflare';
 
 import { useTranslations } from 'next-intl';
 
-import { listAllZoneDomains } from '../../components/helpers';
 import { ZoneDomainSelector } from '../../components/zone-domain-selector';
 import { proxyRouteFormIds } from '../helpers';
 import { useRouteSectionSave } from '../hooks/use-route-section-save';
@@ -65,15 +64,16 @@ export function DomainSection({
     onSavingChange,
   );
 
-  const zonesQuery = useQuery({
-    queryKey: zoneQueryKey,
-    queryFn: () => ZoneService.list(),
+  const catalogQuery = useQuery({
+    queryKey: zoneCatalogQueryKey,
+    queryFn: () => ZoneService.catalog(),
+    staleTime: 60_000,
   });
-
-  const domainsQuery = useQuery({
-    queryKey: [...zoneQueryKey, 'all-domains'],
-    queryFn: () => listAllZoneDomains(),
-  });
+  const zones = catalogQuery.data?.map((item) => item.zone) ?? [];
+  const domains = useMemo(
+    () => catalogQuery.data?.flatMap((item) => item.domains) ?? [],
+    [catalogQuery.data],
+  );
 
   const form = useForm<DomainSettingsValues>({
     resolver: zodResolver(domainSettingsSchema),
@@ -96,7 +96,7 @@ export function DomainSection({
 
   const selectedIDs = form.watch('zone_domain_ids');
   const selectedDomains = useMemo(() => {
-    const fromApi = domainsQuery.data ?? [];
+    const fromApi = domains ?? [];
     const byId = new Map(fromApi.map((domain) => [domain.id, domain]));
     // Prefer live catalog; fall back to route-bound domains for display before catalog loads.
     return selectedIDs
@@ -120,7 +120,7 @@ export function DomainSection({
         };
       })
       .filter((item): item is NonNullable<typeof item> => item != null);
-  }, [domainsQuery.data, route.id, route.zone_domains, selectedIDs]);
+  }, [domains, route.id, route.zone_domains, selectedIDs]);
 
   const hasCertificate = selectedDomains.some(
     (domain) => domain.cert_id != null,
@@ -201,12 +201,12 @@ export function DomainSection({
                   <ZoneDomainSelector
                     value={field.value}
                     onChange={field.onChange}
-                    domains={domainsQuery.data ?? []}
-                    zones={zonesQuery.data ?? []}
+                    domains={domains}
+                    zones={zones}
                     currentRouteId={route.id}
-                    disabled={domainsQuery.isLoading}
+                    disabled={catalogQuery.isLoading}
                     onDomainCreated={async () => {
-                      await domainsQuery.refetch();
+                      await catalogQuery.refetch();
                     }}
                   />
                 </FormControl>

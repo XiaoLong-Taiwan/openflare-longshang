@@ -3,9 +3,7 @@ import type {
   ProxyRouteCustomHeader,
   ProxyRouteItem,
   ProxyRouteMutationPayload,
-  ZoneDomainItem,
 } from '@/lib/services/openflare';
-import { ZoneService } from '@/lib/services/openflare';
 
 export type TranslateFn = (
   key: string,
@@ -422,13 +420,4 @@ export function buildPayloadFromRoute(
     pages_project_id: route.pages_project_id ?? null,
     ...overrides,
   };
-}
-
-/** Load all Zone domains across registered Zones for route binding selectors. */
-export async function listAllZoneDomains(): Promise<ZoneDomainItem[]> {
-  const zones = await ZoneService.list();
-  const overviews = await Promise.all(
-    zones.map((zone) => ZoneService.getOverview(zone.id)),
-  );
-  return overviews.flatMap((overview) => overview.domains ?? []);
 }

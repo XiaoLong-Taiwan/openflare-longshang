@@ -17,7 +17,7 @@ export function usePublicConfig() {
   } = useQuery({
     queryKey: ['public-config'],
     queryFn: () => services.config.getPublicConfig(),
-    staleTime: 5 * 60 * 1000, // 5 分钟缓存
+    staleTime: 30_000,
   });
 
   return { config: config || null, loading, error };

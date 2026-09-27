@@ -440,9 +440,22 @@ func buildProxyRoute(ctx context.Context, route *model.ProxyRoute, input Input) 
 }
 
 func buildProxyRouteViews(ctx context.Context, routes []*model.ProxyRoute) ([]*View, error) {
+	routeIDs := make([]uint, 0, len(routes))
+	for _, route := range routes {
+		if route != nil {
+			routeIDs = append(routeIDs, route.ID)
+		}
+	}
+	domainsByRoute, err := repository.ListZoneDomainsByRouteIDs(ctx, routeIDs)
+	if err != nil {
+		return nil, err
+	}
 	views := make([]*View, 0, len(routes))
 	for _, route := range routes {
-		view, err := buildProxyRouteView(ctx, route)
+		if route == nil {
+			return nil, errors.New("proxy route is nil")
+		}
+		view, err := buildProxyRouteViewWithDomains(ctx, route, domainsByRoute[route.ID])
 		if err != nil {
 			return nil, err
 		}
@@ -458,6 +471,13 @@ func buildProxyRouteView(ctx context.Context, route *model.ProxyRoute) (*View, e
 	domains, err := repository.ListZoneDomainsByRouteID(ctx, route.ID)
 	if err != nil {
 		return nil, err
+	}
+	return buildProxyRouteViewWithDomains(ctx, route, domains)
+}
+
+func buildProxyRouteViewWithDomains(_ context.Context, route *model.ProxyRoute, domains []model.ZoneDomain) (*View, error) {
+	if route == nil {
+		return nil, errors.New("proxy route is nil")
 	}
 	upstreams, err := decodeStoredUpstreams(route.Upstreams, route.OriginURL)
 	if err != nil {

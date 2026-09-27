@@ -21,7 +21,7 @@ import { effectiveOfflinePageHTML } from '@/lib/openflare/offline-page-templates
 import {
   OptionService,
   ZoneService,
-  zoneQueryKey,
+  zoneCatalogQueryKey,
 } from '@/lib/services/openflare';
 
 import { useTranslations } from 'next-intl';
@@ -60,15 +60,16 @@ export function OfflinePageTab({
   );
 
   const zonesQuery = useQuery({
-    queryKey: [...zoneQueryKey, 'sw-scope'],
+    queryKey: [...zoneCatalogQueryKey, 'sw-scope'],
+    staleTime: 60_000,
     queryFn: async () => {
-      const zones = await ZoneService.list();
-      const overviews = await Promise.all(
-        zones.map((zone) => ZoneService.getOverview(zone.id)),
-      );
-      return overviews.map((ov) => ({
-        zoneDomain: ov.zone.domain,
-        domains: [ov.zone.domain, ...ov.domains.map((d) => d.domain)],
+      const catalog = await ZoneService.catalog();
+      return catalog.map((item) => ({
+        zoneDomain: item.zone.domain,
+        domains: [
+          item.zone.domain,
+          ...item.domains.map((domain) => domain.domain),
+        ],
       }));
     },
   });

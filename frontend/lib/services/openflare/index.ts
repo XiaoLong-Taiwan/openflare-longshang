@@ -6,7 +6,12 @@ export { ConfigVersionService } from './config-version.service';
 export { ApplyLogService } from './apply-log.service';
 export { DashboardService } from './dashboard.service';
 export { WafService } from './waf.service';
-export { ZoneDomainService, ZoneService, zoneQueryKey } from './zone.service';
+export {
+  ZoneDomainService,
+  ZoneService,
+  zoneCatalogQueryKey,
+  zoneQueryKey,
+} from './zone.service';
 export { TlsCertificateService } from './tls-certificate.service';
 export { DnsAccountService } from './dns-account.service';
 export { PagesService } from './pages.service';
@@ -141,6 +146,7 @@ export type {
   ZoneStats,
   ZoneStatsPoint,
   ZoneStatsRange,
+  ZoneCatalogItem,
   TlsCertificateApplyPayload,
   TlsCertificateContentItem,
   TlsCertificateDetailItem,

@@ -1,12 +1,13 @@
 'use client';
 
 import { motion } from 'motion/react';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { AppSidebar } from '@/components/layout/sidebar';
 import { SiteHeader } from '@/components/layout/header';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useAuthRedirect } from '@/hooks/use-auth-redirect';
+import { usePublicConfig } from '@/hooks/use-public-config';
 
 export default function MainLayout({
   children,
@@ -14,9 +15,40 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isFullWidth, setIsFullWidth] = useState(false);
+  const { config, loading: configLoading } = usePublicConfig();
+  const disabledPaths = useMemo(() => {
+    if (!config?.menu_display_config) return new Set<string>();
+    try {
+      const parsed = JSON.parse(config.menu_display_config) as Record<
+        string,
+        unknown
+      >;
+      return new Set(
+        Object.entries(parsed)
+          .filter(([, enabled]) => enabled === false)
+          .map(([path]) => path),
+      );
+    } catch {
+      return new Set<string>();
+    }
+  }, [config?.menu_display_config]);
 
   useAuthRedirect();
+
+  useEffect(() => {
+    if (
+      configLoading ||
+      pathname === '/' ||
+      pathname.startsWith('/admin/settings')
+    )
+      return;
+    const disabled = Array.from(disabledPaths).some(
+      (path) => pathname === path || pathname.startsWith(`${path}/`),
+    );
+    if (disabled) router.replace('/');
+  }, [configLoading, disabledPaths, pathname, router]);
 
   return (
     <SidebarProvider

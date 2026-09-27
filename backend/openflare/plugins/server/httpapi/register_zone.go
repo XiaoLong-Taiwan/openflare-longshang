@@ -15,6 +15,7 @@ func registerZoneRoutes(apiGroup core.RouterExtension, auth contracts.AuthServic
 	zoneGroup.Use(apiutil.AdminMiddlewares(auth)...)
 	apiutil.RegisterCollection(zoneGroup, "GET", zone.ListHandler)
 	apiutil.RegisterCollection(zoneGroup, "POST", zone.CreateHandler)
+	zoneGroup.GET("/catalog", zone.CatalogHandler)
 	zoneGroup.GET("/:id/overview", zone.GetOverviewHandler)
 	zoneGroup.GET("/:id/stats", zone.GetStatsHandler)
 	zoneGroup.POST("/:id/update", zone.UpdateHandler)

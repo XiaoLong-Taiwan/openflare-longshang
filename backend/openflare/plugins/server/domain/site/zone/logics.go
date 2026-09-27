@@ -139,6 +139,36 @@ func List(ctx context.Context) ([]ListItem, error) {
 	return items, nil
 }
 
+// CatalogItem is a lightweight Zone selector item with its explicit domains.
+type CatalogItem struct {
+	Zone    ListItem          `json:"zone"`
+	Domains []model.ZoneDomain `json:"domains"`
+}
+
+// Catalog returns all Zones and explicit domains using two fixed database queries.
+func Catalog(ctx context.Context) ([]CatalogItem, error) {
+	zones, err := repository.ListZones(ctx)
+	if err != nil {
+		return nil, err
+	}
+	domains, err := repository.ListAllZoneDomains(ctx)
+	if err != nil {
+		return nil, err
+	}
+	byZone := make(map[uint][]model.ZoneDomain, len(zones))
+	for _, domain := range domains {
+		byZone[domain.ZoneID] = append(byZone[domain.ZoneID], domain)
+	}
+	items := make([]CatalogItem, 0, len(zones))
+	for _, zone := range zones {
+		items = append(items, CatalogItem{
+			Zone: ListItem{ID: zone.ID, Domain: zone.Domain, CreatedAt: zone.CreatedAt, UpdatedAt: zone.UpdatedAt},
+			Domains: byZone[zone.ID],
+		})
+	}
+	return items, nil
+}
+
 // GetOverview returns a Zone and its domains.
 func GetOverview(ctx context.Context, id uint) (*Overview, error) {
 	zone, err := repository.GetZoneByID(ctx, id)

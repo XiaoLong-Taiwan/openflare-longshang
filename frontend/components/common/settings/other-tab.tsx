@@ -13,7 +13,6 @@ import {
   LayoutList,
   Settings,
   ShieldCheck,
-  Terminal,
   UserRound,
   LayoutDashboard,
   Route,
@@ -22,6 +21,7 @@ import {
   GitBranch,
   ScrollText,
   Gauge,
+  Cloud,
 } from 'lucide-react';
 
 import {
@@ -92,16 +92,34 @@ const MENU_GROUPS: MenuGroup[] = [
         icon: Settings,
       },
       {
+        path: '/cloudflare',
+        labelKey: 'cloudflare',
+        descKey: 'descCloudflare',
+        icon: Cloud,
+      },
+      {
         path: '/origins',
         labelKey: 'origins',
         descKey: 'descOrigins',
         icon: Home,
       },
       {
+        path: '/responses',
+        labelKey: 'responses',
+        descKey: 'descResponses',
+        icon: FileText,
+      },
+      {
         path: '/waf',
         labelKey: 'waf',
         descKey: 'descWaf',
         icon: ShieldCheck,
+      },
+      {
+        path: '/rate-limits',
+        labelKey: 'rateLimits',
+        descKey: 'descRateLimits',
+        icon: Gauge,
       },
       {
         path: '/ip-groups',
@@ -167,12 +185,6 @@ const MENU_GROUPS: MenuGroup[] = [
         labelKey: 'push',
         descKey: 'descPush',
         icon: Bell,
-      },
-      {
-        path: '/admin/logs',
-        labelKey: 'logs',
-        descKey: 'descLogs',
-        icon: Terminal,
       },
       {
         path: '/admin/system',

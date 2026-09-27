@@ -44,12 +44,12 @@ import {
   PagesService,
   ProxyRouteService,
   ZoneService,
-  zoneQueryKey,
+  zoneCatalogQueryKey,
 } from '@/lib/services/openflare';
 
 import { useTranslations } from 'next-intl';
 
-import { listAllZoneDomains, parseOriginUrl, parseOriginUrls } from './helpers';
+import { parseOriginUrl, parseOriginUrls } from './helpers';
 import { UpstreamTargetEditor } from './upstream-target-editor';
 import { ZoneDomainSelector } from './zone-domain-selector';
 
@@ -162,17 +162,15 @@ export function ProxyRouteCreateSheet({
     defaultValues,
   });
 
-  const zonesQuery = useQuery({
-    queryKey: zoneQueryKey,
-    queryFn: () => ZoneService.list(),
+  const catalogQuery = useQuery({
+    queryKey: zoneCatalogQueryKey,
+    queryFn: () => ZoneService.catalog(),
     enabled: open,
+    staleTime: 60_000,
   });
 
-  const domainsQuery = useQuery({
-    queryKey: [...zoneQueryKey, 'all-domains'],
-    queryFn: () => listAllZoneDomains(),
-    enabled: open,
-  });
+  const zones = catalogQuery.data?.map((item) => item.zone) ?? [];
+  const domains = catalogQuery.data?.flatMap((item) => item.domains) ?? [];
 
   const tunnelsQuery = useQuery({
     queryKey: ['openflare', 'nodes'],
@@ -235,7 +233,7 @@ export function ProxyRouteCreateSheet({
       originPort = '80';
     }
 
-    const selectedDomains = (domainsQuery.data ?? []).filter((domain) =>
+    const selectedDomains = domains.filter((domain) =>
       values.zone_domain_ids.includes(domain.id),
     );
     const primaryDomain = selectedDomains[0]?.domain ?? '';
@@ -336,11 +334,11 @@ export function ProxyRouteCreateSheet({
                     <ZoneDomainSelector
                       value={field.value}
                       onChange={field.onChange}
-                      domains={domainsQuery.data ?? []}
-                      zones={zonesQuery.data ?? []}
-                      disabled={domainsQuery.isLoading}
+                      domains={domains}
+                      zones={zones}
+                      disabled={catalogQuery.isLoading}
                       onDomainCreated={async () => {
-                        await domainsQuery.refetch();
+                        await catalogQuery.refetch();
                       }}
                     />
                   </FormControl>

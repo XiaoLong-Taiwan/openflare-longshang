@@ -12977,6 +12977,45 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/d/zones/catalog": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openflare-zone"
+                ],
+                "summary": "获取 Zone 選擇器目錄",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Any"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/zone.CatalogItem"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/d/zones/{id}/delete": {
             "post": {
                 "security": [
@@ -21760,6 +21799,20 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "zone.CatalogItem": {
+            "type": "object",
+            "properties": {
+                "domains": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.ZoneDomain"
+                    }
+                },
+                "zone": {
+                    "$ref": "#/definitions/zone.ListItem"
                 }
             }
         },

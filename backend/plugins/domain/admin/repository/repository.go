@@ -109,11 +109,20 @@ func PreheatSystemConfigByKey(ctx context.Context, key string) (model.SystemConf
 // GetSystemConfigByGroup queries a configuration by Type and Key.
 func GetSystemConfigByGroup(ctx context.Context, configType, key string) (model.SystemConfig, error) {
 	ensureSystemConfigCacheListener()
+	sharedKey := "system:config:" + key
+	if cacheSvc := GetCache(ctx); cacheSvc != nil {
+		var cached model.SystemConfig
+		if err := cacheSvc.Get(ctx, sharedKey, &cached); err == nil {
+			return cached, nil
+		}
+	}
 
-	if item, ok := ram.Get(configType, key); ok {
-		var sc model.SystemConfig
-		if err := json.Unmarshal([]byte(item.Value), &sc); err == nil {
-			return sc, nil
+	if cacheSvc := GetCache(ctx); cacheSvc == nil {
+		if item, ok := ram.Get(configType, key); ok {
+			var sc model.SystemConfig
+			if err := json.Unmarshal([]byte(item.Value), &sc); err == nil {
+				return sc, nil
+			}
 		}
 	}
 
@@ -135,6 +144,9 @@ func GetSystemConfigByGroup(ctx context.Context, configType, key string) (model.
 			Type:  configType,
 			TTL:   determineTTL(sc.Key),
 		})
+		if cacheSvc := GetCache(ctx); cacheSvc != nil {
+			_ = cacheSvc.Set(ctx, "system:config:"+sc.Key, sc, time.Minute)
+		}
 	}
 
 	return sc, nil
@@ -156,8 +168,15 @@ func ListSystemConfigsByKeys(ctx context.Context, keys []string) (map[string]mod
 	result := make(map[string]model.SystemConfig, len(keys))
 	missing := make([]string, 0, len(keys))
 
+	cacheSvc := GetCache(ctx)
 	for _, key := range keys {
-		if item, ok := ram.Get(ConfigCacheType, key); ok {
+		if cacheSvc != nil {
+			var sc model.SystemConfig
+			if err := cacheSvc.Get(ctx, "system:config:"+key, &sc); err == nil {
+				result[key] = sc
+				continue
+			}
+		} else if item, ok := ram.Get(ConfigCacheType, key); ok {
 			var sc model.SystemConfig
 			if err := json.Unmarshal([]byte(item.Value), &sc); err == nil {
 				result[key] = sc
@@ -192,6 +211,9 @@ func ListSystemConfigsByKeys(ctx context.Context, keys []string) (map[string]mod
 			})
 		}
 		result[configs[i].Key] = configs[i]
+		if cacheSvc != nil {
+			_ = cacheSvc.Set(ctx, "system:config:"+configs[i].Key, configs[i], time.Minute)
+		}
 	}
 
 	return result, nil
@@ -202,22 +224,14 @@ func InvalidateVisibleSystemConfigsCache(ctx context.Context) error {
 	return InvalidateAllSystemConfigCaches(ctx)
 }
 
-// ListVisibleSystemConfigs queries visible configs using local cache store.
+// ListVisibleSystemConfigs queries visible configs using the shared cache first.
 func ListVisibleSystemConfigs(ctx context.Context) ([]model.SystemConfig, error) {
 	ensureSystemConfigCacheListener()
-
-	items := ram.GetTypeItems(ConfigCacheType)
-	if len(items) > 0 {
-		var list []model.SystemConfig
-		for _, item := range items {
-			var sc model.SystemConfig
-			if err := json.Unmarshal([]byte(item.Value), &sc); err == nil {
-				if sc.Visibility == model.ConfigVisibilityVisible {
-					list = append(list, sc)
-				}
-			}
+	if cacheSvc := GetCache(ctx); cacheSvc != nil {
+		var cached []model.SystemConfig
+		if err := cacheSvc.Get(ctx, SystemConfigVisibleListRedisKey, &cached); err == nil {
+			return cached, nil
 		}
-		return list, nil
 	}
 
 	database := GetDB(ctx)
@@ -240,6 +254,9 @@ func ListVisibleSystemConfigs(ctx context.Context) ([]model.SystemConfig, error)
 				TTL:   determineTTL(cfg.Key),
 			})
 		}
+	}
+	if cacheSvc := GetCache(ctx); cacheSvc != nil {
+		_ = cacheSvc.Set(ctx, SystemConfigVisibleListRedisKey, configs, time.Minute)
 	}
 
 	return configs, nil

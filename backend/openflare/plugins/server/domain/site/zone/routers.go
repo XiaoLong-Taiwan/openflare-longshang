@@ -67,6 +67,21 @@ func CreateHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, response.OK(item))
 }
 
+// CatalogHandler returns lightweight Zone selector data.
+// @Summary 获取 Zone 選擇器目錄
+// @Tags openflare-zone
+// @Produce json
+// @Security SessionCookie
+// @Success 200 {object} response.Any{data=[]zone.CatalogItem}
+// @Router /api/v1/d/zones/catalog [get]
+func CatalogHandler(c *gin.Context) {
+	items, err := Catalog(c.Request.Context())
+	if abort(c, err, errZoneNotFound) {
+		return
+	}
+	c.JSON(http.StatusOK, response.OK(items))
+}
+
 // GetOverviewHandler returns a Zone and its explicit domains.
 // @Summary 获取 Zone 概览
 // @Tags openflare-zone

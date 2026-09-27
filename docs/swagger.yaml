@@ -4323,6 +4323,15 @@ definitions:
       name:
         type: string
     type: object
+  zone.CatalogItem:
+    properties:
+      domains:
+        items:
+          $ref: '#/definitions/model.ZoneDomain'
+        type: array
+      zone:
+        $ref: '#/definitions/zone.ListItem'
+    type: object
   zone.DomainInput:
     properties:
       cert_id:
@@ -12465,6 +12474,27 @@ paths:
       security:
       - SessionCookie: []
       summary: 更新 Zone
+      tags:
+      - openflare-zone
+  /api/v1/d/zones/catalog:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Any'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/zone.CatalogItem'
+                  type: array
+              type: object
+      security:
+      - SessionCookie: []
+      summary: 获取 Zone 選擇器目錄
       tags:
       - openflare-zone
   /api/v1/message-gateway/bindings:

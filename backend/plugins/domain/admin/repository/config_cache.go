@@ -79,7 +79,12 @@ func (ConfigLoader) LoadOne(ctx context.Context, configType, key string) (ram.Ca
 
 // GetCachedSystemConfig retrieves a single system config with RAM L1 fallback to DB.
 func GetCachedSystemConfig(ctx context.Context, key string) (*model.SystemConfig, error) {
-	if item, ok := ram.Get(ConfigCacheType, key); ok {
+	if cacheSvc := GetCache(ctx); cacheSvc != nil {
+		var cfg model.SystemConfig
+		if err := cacheSvc.Get(ctx, "system:config:"+key, &cfg); err == nil {
+			return &cfg, nil
+		}
+	} else if item, ok := ram.Get(ConfigCacheType, key); ok {
 		var cfg model.SystemConfig
 		if err := json.Unmarshal([]byte(item.Value), &cfg); err == nil {
 			return &cfg, nil

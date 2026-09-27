@@ -1355,6 +1355,11 @@ export interface ZoneOverview {
   domains: ZoneDomainItem[];
 }
 
+export interface ZoneCatalogItem {
+  zone: ZoneItem;
+  domains: ZoneDomainItem[];
+}
+
 export type ZoneStatsRange = '24h' | '7d' | '30d';
 
 export interface ZoneStatsPoint {

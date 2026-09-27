@@ -20,7 +20,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { ZoneService, zoneQueryKey } from '@/lib/services/openflare';
+import { ZoneService, zoneCatalogQueryKey } from '@/lib/services/openflare';
 import { cn } from '@/lib/utils';
 
 import {
@@ -38,24 +38,21 @@ type ManagedZoneDomains = {
 
 function useManagedZoneDomains(enabled: boolean) {
   return useQuery({
-    queryKey: [...zoneQueryKey, 'zone-domain-tree'],
+    queryKey: [...zoneCatalogQueryKey, 'zone-domain-tree'],
     enabled,
     staleTime: 60_000,
     queryFn: async (): Promise<ManagedZoneDomains[]> => {
-      const zones = await ZoneService.list();
-      const overviews = await Promise.all(
-        zones.map((zone) => ZoneService.getOverview(zone.id)),
-      );
-      return overviews
-        .map((overview) => {
+      const catalog = await ZoneService.catalog();
+      return catalog
+        .map((item) => {
           const domainSet = new Set<string>();
-          for (const item of overview.domains ?? []) {
-            const domain = item.domain?.trim();
+          for (const domainItem of item.domains ?? []) {
+            const domain = domainItem.domain?.trim();
             if (domain) domainSet.add(domain);
           }
           return {
-            zoneId: overview.zone.id,
-            zoneName: overview.zone.domain || `Zone #${overview.zone.id}`,
+            zoneId: item.zone.id,
+            zoneName: item.zone.domain || `Zone #${item.zone.id}`,
             domains: Array.from(domainSet).sort((a, b) => a.localeCompare(b)),
           };
         })

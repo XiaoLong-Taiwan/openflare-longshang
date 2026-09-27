@@ -1,5 +1,6 @@
 import { OpenFlareBaseService } from './base.service';
 import type {
+  ZoneCatalogItem,
   ZoneDomainItem,
   ZoneDomainMutationPayload,
   ZoneItem,
@@ -10,12 +11,16 @@ import type {
 } from './types';
 
 export const zoneQueryKey = ['openflare', 'zones'] as const;
+export const zoneCatalogQueryKey = [...zoneQueryKey, 'catalog'] as const;
 
 export class ZoneService extends OpenFlareBaseService {
   protected static override readonly basePath = '/api/v1/d/zones';
 
   static list(): Promise<ZoneItem[]> {
     return this.get<ZoneItem[]>('/');
+  }
+  static catalog(): Promise<ZoneCatalogItem[]> {
+    return this.get<ZoneCatalogItem[]>('/catalog');
   }
   static getOverview(id: number): Promise<ZoneOverview> {
     return this.get<ZoneOverview>(`/${id}/overview`);

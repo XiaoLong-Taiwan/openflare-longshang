@@ -57,6 +57,15 @@ func ListZoneDomainCounts(ctx context.Context) ([]model.ZoneDomainCount, error) 
 	return rows, nil
 }
 
+// ListAllZoneDomains returns all explicit domains ordered by zone and domain.
+func ListAllZoneDomains(ctx context.Context) ([]model.ZoneDomain, error) {
+	var domains []model.ZoneDomain
+	if err := DB(ctx).Order("zone_id asc").Order("domain asc").Find(&domains).Error; err != nil {
+		return nil, err
+	}
+	return domains, nil
+}
+
 // ListZoneDomainsByZoneID returns domains under a zone ordered by domain ascending.
 func ListZoneDomainsByZoneID(ctx context.Context, zoneID uint) ([]model.ZoneDomain, error) {
 	var domains []model.ZoneDomain
@@ -106,6 +115,24 @@ func DeleteZoneDomain(ctx context.Context, domain *model.ZoneDomain) error {
 		}
 		return tx.Delete(domain).Error
 	})
+}
+
+// ListZoneDomainsByRouteIDs returns domains grouped by proxy route in one query.
+func ListZoneDomainsByRouteIDs(ctx context.Context, routeIDs []uint) (map[uint][]model.ZoneDomain, error) {
+	result := make(map[uint][]model.ZoneDomain, len(routeIDs))
+	if len(routeIDs) == 0 {
+		return result, nil
+	}
+	var domains []model.ZoneDomain
+	if err := DB(ctx).Where("proxy_route_id IN ?", routeIDs).Order("proxy_route_id asc").Order("id asc").Find(&domains).Error; err != nil {
+		return nil, err
+	}
+	for _, domain := range domains {
+		if domain.ProxyRouteID != nil {
+			result[*domain.ProxyRouteID] = append(result[*domain.ProxyRouteID], domain)
+		}
+	}
+	return result, nil
 }
 
 // ListZoneDomainsByRouteID returns the domains bound to a proxy route.

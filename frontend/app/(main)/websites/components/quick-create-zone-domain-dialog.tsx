@@ -30,6 +30,7 @@ import {
   TlsCertificateService,
   ZoneDomainService,
   ZoneService,
+  zoneCatalogQueryKey,
   zoneQueryKey,
   type ZoneDomainItem,
   type ZoneItem,
@@ -80,9 +81,10 @@ export function QuickCreateZoneDomainDialog({
     return t(error);
   };
   const zonesQuery = useQuery({
-    queryKey: zoneQueryKey,
-    queryFn: () => ZoneService.list(),
+    queryKey: zoneCatalogQueryKey,
+    queryFn: () => ZoneService.catalog(),
     enabled: open && !fixedZoneId && !zonesProp,
+    staleTime: 60_000,
   });
   const certificatesQuery = useQuery({
     queryKey: ['openflare', 'tls-certificates'],
@@ -91,7 +93,7 @@ export function QuickCreateZoneDomainDialog({
   });
 
   const zones = useMemo(
-    () => zonesProp ?? zonesQuery.data ?? [],
+    () => zonesProp ?? zonesQuery.data?.map((item) => item.zone) ?? [],
     [zonesProp, zonesQuery.data],
   );
   const fixedZone = useMemo(() => {
@@ -175,10 +177,8 @@ export function QuickCreateZoneDomainDialog({
       });
       await Promise.all([
         onCreated(domain),
+        queryClient.invalidateQueries({ queryKey: zoneCatalogQueryKey }),
         queryClient.invalidateQueries({ queryKey: zoneQueryKey }),
-        queryClient.invalidateQueries({
-          queryKey: [...zoneQueryKey, 'all-domains'],
-        }),
       ]);
       onOpenChange(false);
     },
