@@ -91,7 +91,11 @@
       "httpLabel": "HTTP {code}",
       "domainTitle": "Top Domain",
       "domainDesc": "觀察主要流量集中在哪些網域。",
-      "domainEmpty": "暫無網域分布"
+      "domainEmpty": "暫無網域分布",
+      "viewMap": "查看地圖",
+      "mapTitle": "來源分布地圖",
+      "mapDesc": "依最近 24 小時請求數量標示來源國家，顏色越深代表請求量越高。",
+      "requestBreakdown": "請求數量"
     },
     "nodeHealth": {
       "title": "節點健康清單",

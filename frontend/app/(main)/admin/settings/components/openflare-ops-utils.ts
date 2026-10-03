@@ -20,6 +20,7 @@ export type OpenFlareOpsFields = {
   uptime_kuma_timeout: string;
   pages_max_package_size_mb: string;
   pages_max_history_count: string;
+  origin_health_check_accept_4xx: boolean;
 };
 
 export const defaultOpenFlareOpsFields: OpenFlareOpsFields = {
@@ -42,6 +43,7 @@ export const defaultOpenFlareOpsFields: OpenFlareOpsFields = {
   uptime_kuma_timeout: '48',
   pages_max_package_size_mb: '100',
   pages_max_history_count: '20',
+  origin_health_check_accept_4xx: true,
 };
 
 export const INSTALLER_SCRIPT_URL =
@@ -87,6 +89,10 @@ export function mapOptionsToOpsFields(
     uptime_kuma_timeout: optionMap.uptime_kuma_timeout ?? '48',
     pages_max_package_size_mb: optionMap.pages_max_package_size_mb ?? '100',
     pages_max_history_count: optionMap.pages_max_history_count ?? '20',
+    origin_health_check_accept_4xx: toBoolean(
+      optionMap.origin_health_check_accept_4xx,
+      true,
+    ),
   };
 }
 
@@ -237,6 +243,15 @@ export function pagesOptionEntries(
     {
       key: 'pages_max_history_count',
       value: String(Number.parseInt(fields.pages_max_history_count, 10)),
+    },
+  ];
+}
+
+export function originHealthOptionEntries(fields: OpenFlareOpsFields) {
+  return [
+    {
+      key: 'origin_health_check_accept_4xx',
+      value: String(fields.origin_health_check_accept_4xx),
     },
   ];
 }

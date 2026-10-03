@@ -45,6 +45,14 @@ import { LoadingStateWithBorder } from '@/components/layout/loading';
 import { EmptyStateWithBorder } from '@/components/layout/empty';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -204,6 +212,7 @@ export function TaskManager() {
   const [dispatching, setDispatching] = useState(false);
   const [selectedTaskType, setSelectedTaskType] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [detailTask, setDetailTask] = useState<TaskMeta | null>(null);
 
   const [startTime, setStartTime] = useState<Date | undefined>(undefined);
   const [endTime, setEndTime] = useState<Date | undefined>(undefined);
@@ -248,15 +257,6 @@ export function TaskManager() {
     () => logDbStatus?.available_targets ?? [],
     [logDbStatus],
   );
-
-  const retentionSummary = useMemo(() => {
-    const days = logDbStatus?.retention_days ?? {};
-    const parts: string[] = [];
-    if (days.postgres != null) parts.push(`PG ${days.postgres}`);
-    if (days.sqlite != null) parts.push(`SQLite ${days.sqlite}`);
-    if (days.clickhouse != null) parts.push(`CH ${days.clickhouse}`);
-    return parts.join(' / ');
-  }, [logDbStatus]);
 
   useEffect(() => {
     if (selectedTaskType) {
@@ -362,118 +362,136 @@ export function TaskManager() {
         ) : taskTypes.length === 0 ? (
           <EmptyStateWithBorder icon={Layers} description={t('noTaskTypes')} />
         ) : (
-          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
-            {taskTypes.map((task, index) => {
-              const config = TASK_CONFIGS[task.type] || DEFAULT_TASK_CONFIG;
-
-              return (
-                <div
-                  key={`${task.type}-${index}`}
-                  className={cn(
-                    'relative group overflow-hidden rounded-xl border bg-gradient-to-br transition-all duration-500',
-                    config.gradient,
-                  )}
-                >
-                  <div className='relative h-full bg-card/40 backdrop-blur-sm p-4 flex flex-col justify-between hover:bg-card/0 transition-colors duration-500'>
-                    <div className='space-y-2'>
-                      <div className='flex items-start justify-between'>
-                        <div className='space-y-1'>
-                          <p className='font-semibold text-base tracking-tight'>
-                            {task.name}
-                          </p>
-                          <p className='text-xs text-muted-foreground leading-relaxed line-clamp-2 min-h-[36px]'>
-                            {task.description}
-                          </p>
+          <div className='overflow-x-auto rounded-lg border border-dashed'>
+            <Table className='min-w-[820px]'>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('colTask')}</TableHead>
+                  <TableHead>{t('taskTypeLabel')}</TableHead>
+                  <TableHead>{t('colQueue')}</TableHead>
+                  <TableHead>{t('colRetry')}</TableHead>
+                  <TableHead>{t('colParameters')}</TableHead>
+                  <TableHead>{t('colStatus')}</TableHead>
+                  <TableHead className='w-[130px] text-right'>{t('colActions')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {taskTypes.map((task) => {
+                  const config = TASK_CONFIGS[task.type] || DEFAULT_TASK_CONFIG;
+                  const Icon = config.icon;
+                  const isLogSwitch = task.type === 'of_log_db_switch';
+                  return (
+                    <TableRow
+                      key={task.type}
+                      className='cursor-pointer'
+                      onClick={() => setDetailTask(task)}
+                    >
+                      <TableCell>
+                        <div className='flex min-w-[220px] items-center gap-2'>
+                          <Icon className={cn('size-4 shrink-0', config.color)} />
+                          <div className='min-w-0'>
+                            <div className='truncate font-medium'>{task.name}</div>
+                            <div className='truncate text-xs text-muted-foreground'>
+                              {task.description || task.type}
+                            </div>
+                          </div>
                         </div>
-                        <Badge
-                          variant='secondary'
-                          className='font-mono text-[10px] bg-background/50 backdrop-blur-md border px-1.5 h-5'
-                        >
-                          {task.queue}
-                        </Badge>
-                      </div>
-
-                      <div className='flex flex-wrap gap-1.5'>
-                        <Badge
-                          variant='outline'
-                          className='text-[9px] h-4.5 bg-background/50 font-mono text-muted-foreground border-border/50 px-1'
-                        >
-                          {t('taskType')}
-                          {task.type}
-                        </Badge>
-                        <Badge
-                          variant='outline'
-                          className='text-[9px] h-4.5 bg-background/50 font-mono text-muted-foreground border-border/50 px-1'
-                        >
-                          {t('taskRetry')}
-                          {task.max_retry}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    {task.type === 'of_log_db_switch' && logDbStatus && (
-                      <div className='pt-3 mt-3 border-t border-border/50 space-y-1.5'>
-                        <div className='flex items-center justify-between gap-2'>
-                          <span className='text-[10px] text-muted-foreground shrink-0'>
-                            {t('logPrimaryDb')}
-                          </span>
-                          <span className='text-[10px] font-mono text-foreground truncate'>
-                            {LOG_DATABASE_LABEL_KEYS[
-                              logDbStatus.active_database
-                            ]
-                              ? t(
-                                  LOG_DATABASE_LABEL_KEYS[
-                                    logDbStatus.active_database
-                                  ],
-                                )
-                              : logDbStatus.active_database}
-                          </span>
-                        </div>
-                        <div className='flex items-center justify-between gap-2'>
-                          <span className='text-[10px] text-muted-foreground shrink-0'>
-                            {t('retentionDays')}
-                          </span>
-                          <span className='text-[10px] font-mono text-muted-foreground truncate'>
-                            {retentionSummary || '-'}
-                          </span>
-                        </div>
-                        <div className='flex items-center justify-between gap-2'>
-                          <span className='text-[10px] text-muted-foreground shrink-0'>
-                            {t('migrationStatus')}
-                          </span>
-                          <Badge
-                            variant={
-                              logDbStatus.migration === 'migrating'
-                                ? 'default'
-                                : 'outline'
-                            }
-                            className='text-[10px] h-5 px-1.5'
-                          >
-                            {logDbStatus.migration === 'migrating'
-                              ? t('migrating')
-                              : t('idle')}
+                      </TableCell>
+                      <TableCell className='font-mono text-xs text-muted-foreground'>
+                        {task.type}
+                      </TableCell>
+                      <TableCell><Badge variant='outline'>{task.queue}</Badge></TableCell>
+                      <TableCell className='font-mono text-xs'>{task.max_retry}</TableCell>
+                      <TableCell className='text-xs text-muted-foreground'>
+                        {task.params?.length ?? 0} {t('parameters')}
+                        {task.supports_time ? ` · ${t('supportsTime')}` : ''}
+                      </TableCell>
+                      <TableCell>
+                        {isLogSwitch && logDbStatus ? (
+                          <Badge variant={logDbStatus.migration === 'migrating' ? 'default' : 'outline'}>
+                            {logDbStatus.migration === 'migrating' ? t('migrating') : t('idle')}
                           </Badge>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className='pt-4 mt-1'>
-                      <Button
-                        className='w-full h-7 text-xs'
-                        variant='secondary'
-                        onClick={() => openDispatchDialog(task.type)}
-                      >
-                        <Play className='size-3 mr-1' />
-                        {t('executeNow')}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                        ) : (
+                          <Badge variant='secondary'>{t('ready')}</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className='text-right'>
+                        <Button
+                          size='sm'
+                          variant='outline'
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openDispatchDialog(task.type);
+                          }}
+                        >
+                          <Play data-icon='inline-start' />
+                          {t('executeNow')}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>
+
+      <Dialog
+        open={detailTask !== null}
+        onOpenChange={(open) => !open && setDetailTask(null)}
+      >
+        <DialogContent className='sm:max-w-[560px]'>
+          <DialogHeader>
+            <DialogTitle>{detailTask?.name || t('taskDetails')}</DialogTitle>
+            <DialogDescription>
+              {detailTask?.description || detailTask?.type || '-'}
+            </DialogDescription>
+          </DialogHeader>
+          {detailTask ? (
+            <div className='grid gap-3 py-2 sm:grid-cols-2'>
+              <div className='rounded-lg border p-3'>
+                <div className='text-xs text-muted-foreground'>{t('taskTypeLabel')}</div>
+                <div className='mt-1 font-mono text-sm'>{detailTask.type}</div>
+              </div>
+              <div className='rounded-lg border p-3'>
+                <div className='text-xs text-muted-foreground'>{t('colQueue')}</div>
+                <div className='mt-1 font-mono text-sm'>{detailTask.queue}</div>
+              </div>
+              <div className='rounded-lg border p-3'>
+                <div className='text-xs text-muted-foreground'>{t('colRetry')}</div>
+                <div className='mt-1 font-mono text-sm'>{detailTask.max_retry}</div>
+              </div>
+              <div className='rounded-lg border p-3'>
+                <div className='text-xs text-muted-foreground'>{t('colParameters')}</div>
+                <div className='mt-1 text-sm'>{detailTask.params?.length ?? 0} {t('parameters')}</div>
+              </div>
+              <div className='rounded-lg border p-3 sm:col-span-2'>
+                <div className='text-xs text-muted-foreground'>{t('executionSupport')}</div>
+                <div className='mt-1 text-sm'>
+                  {detailTask.supports_time ? t('supportsTime') : t('noTimeSupport')}
+                </div>
+              </div>
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setDetailTask(null)}>
+              {t('cancel')}
+            </Button>
+            <Button
+              onClick={() => {
+                if (detailTask) {
+                  setDetailTask(null);
+                  openDispatchDialog(detailTask.type);
+                }
+              }}
+            >
+              <Play data-icon='inline-start' />
+              {t('executeNow')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className='sm:max-w-[500px]'>

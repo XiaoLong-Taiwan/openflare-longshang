@@ -17,7 +17,7 @@ func TestCollectAccessLogsReturnsFactsOnly(t *testing.T) {
 	tempDir := t.TempDir()
 	logPath := filepath.Join(tempDir, "openflare_access.log")
 	content := []byte(
-		"{\"ts\":\"2026-03-14T08:00:00Z\",\"host\":\"app.example.com\",\"path\":\"/login\",\"remote_addr\":\"10.0.0.1\",\"status\":200,\"request_length\":128,\"bytes_sent\":512,\"request_time\":0.015,\"user_agent\":\"Mozilla/5.0\",\"cache_status\":\"HIT\"}\n" +
+		"{\"ts\":\"2026-03-14T08:00:00Z\",\"host\":\"app.example.com\",\"path\":\"/login\",\"remote_addr\":\"10.0.0.1\",\"client_ip\":\"203.0.113.10\",\"status\":200,\"request_length\":128,\"bytes_sent\":512,\"request_time\":0.015,\"user_agent\":\"Mozilla/5.0\",\"cache_status\":\"HIT\"}\n" +
 			"{\"ts\":\"2026-03-14T08:00:05Z\",\"host\":\"api.example.com\",\"path\":\"/v1/ping\",\"remote_addr\":\"10.0.0.2\",\"status\":502,\"request_length\":64,\"bytes_sent\":256,\"request_time\":0.008,\"user_agent\":\"curl/8.0\",\"cache_status\":\"MISS\"}\n",
 	)
 	if err := os.WriteFile(logPath, content, 0o644); err != nil {
@@ -34,6 +34,9 @@ func TestCollectAccessLogsReturnsFactsOnly(t *testing.T) {
 	}
 	if accessLogs[0].RequestTimeMs != 15 {
 		t.Fatalf("request_time_ms = %d, want 15", accessLogs[0].RequestTimeMs)
+	}
+	if accessLogs[0].RemoteAddr != "203.0.113.10" || accessLogs[1].RemoteAddr != "10.0.0.2" {
+		t.Fatalf("unexpected client IP fallback: %+v", accessLogs)
 	}
 	if accessLogs[0].Path != "/login" || accessLogs[1].Path != "/v1/ping" {
 		t.Fatalf("unexpected access log paths: %+v", accessLogs)

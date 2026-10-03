@@ -137,7 +137,7 @@ export function HtmlEditorWorkspace({
                   className='h-6 px-2 text-[11px]'
                   asChild
                 >
-                  <Link href='/error-pages/preview'>
+                  <Link href='/responses/error-page/preview'>
                     <Expand className='size-3' />
                     预览
                   </Link>

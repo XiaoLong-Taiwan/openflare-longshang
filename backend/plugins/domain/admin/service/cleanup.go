@@ -5,10 +5,10 @@ package service
 
 import (
 	"Wavelet/core/contracts"
+	pkgcache "Wavelet/pkg/cache/disk"
 	"Wavelet/pkg/logger"
 	"Wavelet/plugins/domain/admin/model"
 	"Wavelet/plugins/domain/admin/repository"
-	pkgcache "Wavelet/pkg/cache/disk"
 	"context"
 	"errors"
 	"fmt"
@@ -144,7 +144,7 @@ func (h *SystemCleanupHandler) Execute(ctx context.Context, _ []byte) (*contract
 	if err := EmitEvent(ctx, contracts.EventTopicSystemCleanup, contracts.SystemCleanupEvent{
 		TriggeredAt: nowStr,
 	}); err != nil {
-		logger.WarnF(ctx, "广播系统清理领域事件失败: %v", err)
+		return nil, fmt.Errorf("system cleanup listeners failed: %w", err)
 	}
 
 	msg := fmt.Sprintf("系统垃圾清理完成，已清理过期任务执行日志 %d 条，并已广播领域清理事件", deletedExecutions)

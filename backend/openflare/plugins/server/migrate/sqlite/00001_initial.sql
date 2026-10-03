@@ -544,6 +544,7 @@ VALUES
     ('origin_error_page_get_only', 'false', 'business', 0, '源站错误页是否仅对 GET 请求生效（其它方法透传）', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('origin_error_page_html', '', 'business', 0, '源站错误页自定义 HTML，空则使用内置默认', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('origin_error_page_status_codes', '["400-599"]', 'business', 0, '源站错误页触发状态码标签 JSON 数组', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('origin_health_check_accept_4xx', 'true', 'business', 0, '源站健康检查是否将 4xx 响应视为健康', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('pages_max_history_count', '20', 'business', 0, 'Pages 每个项目最大历史部署保留数（0 表示不限制）', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('pages_max_package_size_mb', '100', 'business', 0, 'Pages 部署包上传大小上限（MiB）', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('relay_frps_web_ui_enabled', 'false', 'business', 0, '是否启用 FRPS 内置 Web 管理界面', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),

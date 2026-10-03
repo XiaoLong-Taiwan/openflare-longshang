@@ -967,8 +967,14 @@
       "query": "查詢归属",
       "country": "国家/地區"
     },
+    "health": {
+      "title": "源站健康檢查",
+      "description": "控制是否將 4xx 回應視為健康；5xx 回應與網路錯誤仍視為不健康。",
+      "accept4xx": "將 4xx 回應視為健康",
+      "accept4xxDesc": "適用於會主動回傳 400–499 回應的 API 或 AI 中轉服務。"
+    },
     "pages": {
-      "title": "Pages 静態托管",
+      "title": "Pages 静态托管",
       "description": "設定部署包上傳體积上限與每個项目的历史部署保留數量。",
       "maxSize": "部署包大小上限 (MiB)",
       "history": "历史部署保留數（0 不限制）",

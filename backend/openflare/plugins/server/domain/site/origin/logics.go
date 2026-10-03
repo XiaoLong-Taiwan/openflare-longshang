@@ -16,7 +16,6 @@ import (
 
 	"Wavelet/openflare/plugins/server/kernel/model"
 	"Wavelet/openflare/plugins/server/kernel/repository"
-
 	"gorm.io/gorm"
 )
 
@@ -100,13 +99,28 @@ func CheckOrigin(ctx context.Context, id uint) (*HealthView, error) {
 		return &HealthView{LatencyMS: latency, Online: false, Message: err.Error(), CheckedAt: checkedAt}, nil
 	}
 	defer response.Body.Close()
+	accept4xx := true
+	if configured, configErr := repository.GetBoolByKey(ctx, model.ConfigKeyOriginHealthCheckAccept4xx); configErr == nil {
+		accept4xx = configured
+	}
+	online := isHealthyStatus(response.StatusCode, accept4xx)
 	return &HealthView{
 		StatusCode: response.StatusCode,
 		LatencyMS:  latency,
-		Online:     response.StatusCode < http.StatusInternalServerError,
+		Online:     online,
 		Message:    response.Status,
 		CheckedAt:  checkedAt,
 	}, nil
+}
+
+func isHealthyStatus(statusCode int, accept4xx bool) bool {
+	if statusCode >= http.StatusInternalServerError {
+		return false
+	}
+	if statusCode >= http.StatusBadRequest {
+		return accept4xx
+	}
+	return statusCode >= http.StatusContinue
 }
 
 // GetOriginDetail 获取源站详情。

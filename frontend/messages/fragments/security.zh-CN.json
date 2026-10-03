@@ -967,6 +967,12 @@
       "query": "查询归属",
       "country": "国家/地区"
     },
+    "health": {
+      "title": "源站健康检查",
+      "description": "控制是否将 4xx 响应视为健康；5xx 响应与网络错误仍视为不健康。",
+      "accept4xx": "将 4xx 响应视为健康",
+      "accept4xxDesc": "适用于会主动返回 400–499 响应的 API 或 AI 中转服务。"
+    },
     "pages": {
       "title": "Pages 静态托管",
       "description": "配置部署包上传体积上限与每个项目的历史部署保留数量。",

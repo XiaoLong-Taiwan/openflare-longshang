@@ -24,6 +24,7 @@ type accessLogRecord struct {
 	Timestamp     string  `json:"ts"`
 	Host          string  `json:"host"`
 	RemoteAddr    string  `json:"remote_addr"`
+	ClientIP      string  `json:"client_ip"`
 	Path          string  `json:"path"`
 	UserAgent     string  `json:"user_agent"`
 	CacheStatus   string  `json:"cache_status"`
@@ -196,7 +197,7 @@ func parseJSONAccessLogRecord(raw string) (parsedAccessLogRecord, bool) {
 	return parsedAccessLogRecord{
 		Timestamp:     timestamp,
 		Host:          strings.TrimSpace(record.Host),
-		RemoteAddr:    strings.TrimSpace(record.RemoteAddr),
+		RemoteAddr:    firstNonEmpty(record.ClientIP, record.RemoteAddr),
 		Path:          normalizeAccessLogPath(record.Path),
 		UserAgent:     strings.TrimSpace(record.UserAgent),
 		CacheStatus:   normalizeCacheStatus(record.CacheStatus),
@@ -205,6 +206,15 @@ func parseJSONAccessLogRecord(raw string) (parsedAccessLogRecord, bool) {
 		RequestLength: record.RequestLength,
 		RequestTimeMs: requestTimeMs,
 	}, true
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if trimmed := strings.TrimSpace(value); trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
 }
 
 func normalizeCacheStatus(value string) string {

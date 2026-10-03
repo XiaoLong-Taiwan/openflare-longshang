@@ -92,6 +92,10 @@ func (p *Plugin) Apply(ctx *core.Context) error {
 
 	registerOpenFlareTasks(ctx)
 	bindLogstore(ctx)
+	ctx.Events().On(contracts.EventTopicSystemCleanup, func(c context.Context, _ contracts.SystemCleanupEvent) error {
+		_, err := logstore.CleanupExpired(c)
+		return err
+	})
 	core.Provide[contracts.LogStorageService](ctx, logstore.NewLogStorageService())
 
 	if err := ofgeoip.EnsureRuntimeProvider(ctx.GoContext()); err != nil {

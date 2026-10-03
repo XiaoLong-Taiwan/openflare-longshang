@@ -107,6 +107,10 @@ func (p *Plugin) Apply(ctx *core.Context) error {
 
 	// 1. Initialize LogWriter if needed
 	InitLogWriter(ctx.GoContext())
+	ctx.Events().On(contracts.EventTopicSystemCleanup, func(c context.Context, _ contracts.SystemCleanupEvent) error {
+		_, err := logstore.CleanupExpired(c)
+		return err
+	})
 
 	// 2. Register router middleware
 	mw := p.middleware

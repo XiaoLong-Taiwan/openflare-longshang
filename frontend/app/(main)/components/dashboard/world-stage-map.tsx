@@ -621,7 +621,7 @@ export function WorldStageMap({
       geo: {
         map: 'world',
         roam: true,
-        silent: true,
+        silent: false,
         layoutCenter: ['50%', '50%'],
         layoutSize: computedLayoutSize,
         zoom: computedZoom,

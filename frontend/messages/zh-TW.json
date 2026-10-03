@@ -856,7 +856,24 @@
       "dbSqlitePrimary": "SQLite（主库）",
       "dbClickhouse": "ClickHouse",
       "taskTypeFilter": "工作類型",
-      "executionRecord": "执行記录"
+      "executionRecord": "执行記录",
+      "taskTypeLabel": "工作類型",
+      "colQueue": "佇列",
+      "colParameters": "參數",
+      "parameters": "個參數",
+      "supportsTime": "支援時間範圍",
+      "noTimeSupport": "不支援時間範圍",
+      "executionSupport": "執行能力",
+      "ready": "可執行",
+      "taskDetails": "工作詳情",
+      "activeTasks": "目前工作",
+      "activeTask": "執行中的工作",
+      "activeTaskDesc": "查看工作執行狀態與即時記錄。",
+      "viewLog": "查看記錄",
+      "refreshing": "更新中",
+      "collapseTasks": "收合工作列表",
+      "expandTasks": "展開工作列表",
+      "dismissTasks": "關閉工作面板"
     },
     "push": {
       "pageTitle": "通知推送管理",
@@ -2226,7 +2243,11 @@
       "httpLabel": "HTTP {code}",
       "domainTitle": "Top Domain",
       "domainDesc": "觀察主要流量集中在哪些網域。",
-      "domainEmpty": "暫無網域分布"
+      "domainEmpty": "暫無網域分布",
+      "viewMap": "查看地圖",
+      "mapTitle": "來源分布地圖",
+      "mapDesc": "依最近 24 小時請求數量標示來源國家，顏色越深代表請求量越高。",
+      "requestBreakdown": "請求數量"
     },
     "nodeHealth": {
       "title": "節點健康清單",
@@ -3813,8 +3834,14 @@
       "query": "查詢归属",
       "country": "国家/地區"
     },
+    "health": {
+      "title": "源站健康檢查",
+      "description": "控制是否將 4xx 回應視為健康；5xx 回應與網路錯誤仍視為不健康。",
+      "accept4xx": "將 4xx 回應視為健康",
+      "accept4xxDesc": "適用於會主動回傳 400–499 回應的 API 或 AI 中轉服務。"
+    },
     "pages": {
-      "title": "Pages 静態托管",
+      "title": "Pages 静态托管",
       "description": "設定部署包上傳體积上限與每個项目的历史部署保留數量。",
       "maxSize": "部署包大小上限 (MiB)",
       "history": "历史部署保留數（0 不限制）",
@@ -4225,6 +4252,12 @@
       "actions": "操作"
     },
     "routeCount": "{count} 條規則",
+    "health": "健康狀態",
+    "checkHealth": "檢查源站",
+    "checking": "檢查中",
+    "online": "在線",
+    "offline": "離線",
+    "notChecked": "尚未檢查",
     "noRemark": "暫無備注",
     "lastUpdated": "最後更新：{date}",
     "detail": "详情",

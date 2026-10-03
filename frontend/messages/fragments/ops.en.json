@@ -91,7 +91,11 @@
       "httpLabel": "HTTP {code}",
       "domainTitle": "Top Domain",
       "domainDesc": "See which domains concentrate most of the traffic.",
-      "domainEmpty": "No domain distribution"
+      "domainEmpty": "No domain distribution",
+      "viewMap": "View map",
+      "mapTitle": "Source distribution map",
+      "mapDesc": "Countries are shaded by request volume over the last 24 hours. Darker areas represent more requests.",
+      "requestBreakdown": "Requests"
     },
     "nodeHealth": {
       "title": "Node health",

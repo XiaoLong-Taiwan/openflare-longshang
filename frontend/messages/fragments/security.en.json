@@ -967,6 +967,12 @@
       "query": "Look up",
       "country": "Country / region"
     },
+    "health": {
+      "title": "Origin health check",
+      "description": "Control whether 4xx responses are treated as healthy. 5xx responses and network failures remain unhealthy.",
+      "accept4xx": "Treat 4xx responses as healthy",
+      "accept4xxDesc": "Enable this for APIs or AI gateways that intentionally return 400–499 responses."
+    },
     "pages": {
       "title": "Pages static hosting",
       "description": "Configure the upload size limit and how many historical deployments each project keeps.",

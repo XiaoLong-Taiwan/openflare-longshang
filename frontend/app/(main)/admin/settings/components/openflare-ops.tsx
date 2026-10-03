@@ -51,6 +51,7 @@ import {
   mapOptionsToOpsFields,
   type OpenFlareOpsFields,
   optionsToMap,
+  originHealthOptionEntries,
   pagesOptionEntries,
   uptimeKumaOptionEntries,
 } from './openflare-ops-utils';
@@ -198,6 +199,13 @@ export function OpenFlareOpsSettings() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('invalidParams'));
     }
+  };
+
+  const saveOriginHealthSettings = () => {
+    saveMutation.mutate({
+      section: 'origin-health',
+      entries: originHealthOptionEntries(fields),
+    });
   };
 
   if (optionsQuery.isLoading) {
@@ -354,6 +362,37 @@ export function OpenFlareOpsSettings() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className='border-dashed shadow-none'>
+        <CardHeader className='flex flex-row items-center justify-between gap-4'>
+          <div>
+            <CardTitle className='text-base'>{t('health.title')}</CardTitle>
+            <CardDescription>{t('health.description')}</CardDescription>
+          </div>
+          <Button
+            size='sm'
+            disabled={savingSection === 'origin-health'}
+            onClick={saveOriginHealthSettings}
+          >
+            {savingSection === 'origin-health' ? (
+              <Loader2 className='size-4 animate-spin mr-1' />
+            ) : (
+              <Save className='size-3.5 mr-1' />
+            )}
+            {t('save')}
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <ToggleRow
+            label={t('health.accept4xx')}
+            description={t('health.accept4xxDesc')}
+            checked={fields.origin_health_check_accept_4xx}
+            onChange={(value) =>
+              updateField('origin_health_check_accept_4xx', value)
+            }
+          />
+        </CardContent>
+      </Card>
 
       <Card className='border-dashed shadow-none'>
         <CardHeader className='flex flex-row items-center justify-between gap-4'>
