@@ -16,6 +16,7 @@ func registerOriginRoutes(apiGroup core.RouterExtension, auth contracts.AuthServ
 	{
 		apiutil.RegisterCollection(originRoute, "GET", origin.GetOrigins)
 		originRoute.GET("/:id", origin.GetOrigin)
+		originRoute.GET("/:id/health", origin.CheckOriginHandler)
 		apiutil.RegisterCollection(originRoute, "POST", origin.CreateOriginHandler)
 		originRoute.POST("/:id/update", origin.UpdateOriginHandler)
 		originRoute.POST("/:id/delete", origin.DeleteOriginHandler)

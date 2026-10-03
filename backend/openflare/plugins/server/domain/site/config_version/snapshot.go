@@ -624,7 +624,7 @@ func buildOpenRestyConfigSnapshot(ctx context.Context) openRestyConfigSnapshot {
 		DefaultLimitRate:           strings.ToLower(strings.TrimSpace(getStringConfig(model.ConfigKeyOpenRestyDefaultLimitRate, ""))),
 		DefaultLimitReqPerIP:       strings.ToLower(strings.TrimSpace(getStringConfig(model.ConfigKeyOpenRestyDefaultLimitReqPerIP, ""))),
 		OriginErrorPageEnabled:     getBoolConfig(model.ConfigKeyOriginErrorPageEnabled, true),
-		OriginErrorPageStatusCodes: parseOriginErrorPageStatusCodes(getStringConfig(model.ConfigKeyOriginErrorPageStatusCodes, `["500-599"]`)),
+		OriginErrorPageStatusCodes: parseOriginErrorPageStatusCodes(getStringConfig(model.ConfigKeyOriginErrorPageStatusCodes, `["400-599"]`)),
 		OriginErrorPageHTML:        getStringConfig(model.ConfigKeyOriginErrorPageHTML, ""),
 		OriginErrorPageGetOnly:     getBoolConfig(model.ConfigKeyOriginErrorPageGetOnly, false),
 		SWOfflineEnabled:           getBoolConfig(model.ConfigKeySWOfflineEnabled, false),
@@ -642,7 +642,7 @@ func buildOpenRestyConfigSnapshot(ctx context.Context) openRestyConfigSnapshot {
 }
 
 func parseOriginErrorPageStatusCodes(raw string) []string {
-	const defaultTag = "500-599"
+	const defaultTag = "400-599"
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" {
 		return []string{defaultTag}

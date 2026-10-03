@@ -9292,6 +9292,64 @@
                 }
             }
         },
+        "/api/v1/d/origins/{id}/health": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "使用關聯規則的回源協議檢查源站可用性，需要管理員權限",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openflare-origin"
+                ],
+                "summary": "檢查源站健康狀態",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "源站 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "健康狀態",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Any"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/origin.HealthView"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "未登入",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "404": {
+                        "description": "無權限或源站不存在",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/d/origins/{id}/update": {
             "post": {
                 "security": [
@@ -20036,6 +20094,26 @@
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "origin.HealthView": {
+            "type": "object",
+            "properties": {
+                "checked_at": {
+                    "type": "string"
+                },
+                "latency_ms": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "online": {
+                    "type": "boolean"
+                },
+                "status_code": {
+                    "type": "integer"
                 }
             }
         },

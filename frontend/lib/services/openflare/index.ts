@@ -114,6 +114,7 @@ export type {
   GeoIPLookupResult,
   OpenFlarePublicStatus,
   OriginDetail,
+  OriginHealth,
   OriginItem,
   OriginMutationPayload,
   PagesDeployment,

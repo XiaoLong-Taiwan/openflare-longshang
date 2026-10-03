@@ -3159,6 +3159,19 @@ definitions:
       updated_at:
         type: string
     type: object
+  origin.HealthView:
+    properties:
+      checked_at:
+        type: string
+      latency_ms:
+        type: integer
+      message:
+        type: string
+      online:
+        type: boolean
+      status_code:
+        type: integer
+    type: object
   origin.Input:
     properties:
       address:
@@ -9982,6 +9995,40 @@ paths:
       security:
       - SessionCookie: []
       summary: 删除源站
+      tags:
+      - openflare-origin
+  /api/v1/d/origins/{id}/health:
+    get:
+      description: 使用關聯規則的回源協議檢查源站可用性，需要管理員權限
+      parameters:
+      - description: 源站 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 健康狀態
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Any'
+            - properties:
+                data:
+                  $ref: '#/definitions/origin.HealthView'
+              type: object
+        "401":
+          description: 未登入
+          schema:
+            $ref: '#/definitions/response.Any'
+        "404":
+          description: 無權限或源站不存在
+          schema:
+            $ref: '#/definitions/response.Any'
+      security:
+      - SessionCookie: []
+      summary: 檢查源站健康狀態
       tags:
       - openflare-origin
   /api/v1/d/origins/{id}/update:

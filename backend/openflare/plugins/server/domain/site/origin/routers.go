@@ -38,6 +38,29 @@ func GetOrigins(c *gin.Context) {
 	c.JSON(http.StatusOK, response.OK(origins))
 }
 
+// CheckOriginHandler 檢查源站是否可用。
+// @Summary 檢查源站健康狀態
+// @Description 使用關聯規則的回源協議檢查源站可用性，需要管理員權限
+// @Tags openflare-origin
+// @Produce json
+// @Security SessionCookie
+// @Param id path int true "源站 ID"
+// @Success 200 {object} response.Any{data=origin.HealthView} "健康狀態"
+// @Failure 401 {object} response.Any "未登入"
+// @Failure 404 {object} response.Any "無權限或源站不存在"
+// @Router /api/v1/d/origins/{id}/health [get]
+func CheckOriginHandler(c *gin.Context) {
+	id, ok := apiutil.IDParam(c)
+	if !ok {
+		return
+	}
+	health, err := CheckOrigin(c.Request.Context(), id)
+	if handleLogicError(c, err) {
+		return
+	}
+	c.JSON(http.StatusOK, response.OK(health))
+}
+
 // GetOrigin 获取源站详情。
 // @Summary 获取源站详情
 // @Description 返回指定源站信息及关联代理规则摘要，需要管理员权限

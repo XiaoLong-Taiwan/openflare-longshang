@@ -92,7 +92,7 @@ const html = `
 <div class="container">
   <h1 class="error-code" aria-label="HTTP status">{{status}}</h1>
   <p class="error-description">
-    The upstream server is unreachable. Please try again later or contact the site administrator if the problem persists.
+    The request could not be completed. Please try again later or contact the site administrator if the problem persists.
   </p>
   <p class="host">{{host}}</p>
   <div class="footer">

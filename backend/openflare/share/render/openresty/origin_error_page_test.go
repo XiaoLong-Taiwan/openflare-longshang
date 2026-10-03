@@ -17,7 +17,7 @@ func TestRenderOriginErrorPageEnabled(t *testing.T) {
 		}},
 		OpenRestyConfig: ConfigSnapshot{
 			OriginErrorPageEnabled:     true,
-			OriginErrorPageStatusCodes: []string{"500-599"},
+			OriginErrorPageStatusCodes: []string{"400-599"},
 		},
 	}
 	out, err := RenderRouteConfig(doc, nil)
@@ -30,8 +30,8 @@ func TestRenderOriginErrorPageEnabled(t *testing.T) {
 	if !strings.Contains(out, "error_page") || !strings.Contains(out, "@__openflare_origin_error") {
 		t.Fatal("missing error_page")
 	}
-	if !strings.Contains(out, "error_page 500") {
-		t.Fatalf("expected expanded status codes in error_page, got:\n%s", out)
+	if !strings.Contains(out, "error_page 400 401") || !strings.Contains(out, " 599 @__openflare_origin_error;") {
+		t.Fatalf("expected all 400-599 status codes in error_page, got:\n%s", out)
 	}
 	// Must NOT use `error_page … = @name` (adopts error-URI status → often 200).
 	for _, line := range strings.Split(out, "\n") {
@@ -51,6 +51,12 @@ func TestRenderOriginErrorPageEnabled(t *testing.T) {
 	}
 	if !strings.Contains(out, "resolve_error_status") || !strings.Contains(out, "ngx.status = code") {
 		t.Fatal("internal location must resolve and set ngx.status to the original error code")
+	}
+	if !strings.Contains(out, `local host = ngx.var.http_host or ngx.var.host or ""`) {
+		t.Fatal("internal location must preserve the request host, including a non-standard port")
+	}
+	if !strings.Contains(out, `host = host:gsub("&", "&amp;")`) {
+		t.Fatal("internal location must HTML-escape the request host")
 	}
 	if !strings.Contains(out, ErrorPageTmplPlaceholder) {
 		t.Fatal("missing error page template placeholder")
@@ -112,6 +118,12 @@ func TestRenderOriginErrorPageGetOnly(t *testing.T) {
 	}
 	if !strings.Contains(out, `ngx.ctx.openflare_error_html`) {
 		t.Fatal("Lua filter must stash the error HTML in ngx.ctx for the body filter")
+	}
+	if !strings.Contains(out, `local host = ngx.var.http_host or ngx.var.host or ""`) {
+		t.Fatal("Lua filter must preserve the request host, including a non-standard port")
+	}
+	if !strings.Contains(out, `host = host:gsub("&", "&amp;")`) {
+		t.Fatal("Lua filter must HTML-escape the request host")
 	}
 	if !strings.Contains(out, `local codes = {500`) {
 		t.Fatal("Lua filter must carry the expanded status codes")
@@ -181,8 +193,8 @@ func TestRenderOriginErrorPageDefaultsEmptyHTMLAndStatusCodes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(out, "error_page 500") {
-		t.Fatalf("empty status codes should default to 500-599, got:\n%s", out)
+	if !strings.Contains(out, "error_page 400 401") || !strings.Contains(out, " 599 @__openflare_origin_error;") {
+		t.Fatalf("empty status codes should default to 400-599, got:\n%s", out)
 	}
 	html := EffectiveOriginErrorPageHTML(doc.OpenRestyConfig)
 	if html != DefaultOriginErrorPageHTML {
@@ -191,7 +203,7 @@ func TestRenderOriginErrorPageDefaultsEmptyHTMLAndStatusCodes(t *testing.T) {
 	if !strings.Contains(html, "{{status}}") || !strings.Contains(html, "{{host}}") {
 		t.Fatal("default HTML must include placeholders")
 	}
-	if !strings.Contains(html, "OpenFlare") || !strings.Contains(html, "upstream server is unreachable") {
+	if !strings.Contains(html, "OpenFlare") || !strings.Contains(html, "request could not be completed") {
 		t.Fatal("default HTML missing minimalist copy")
 	}
 }

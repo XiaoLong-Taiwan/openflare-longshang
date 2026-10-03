@@ -8,8 +8,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
 	"sort"
 	"strings"
+	"time"
 
 	"Wavelet/openflare/plugins/server/kernel/model"
 	"Wavelet/openflare/plugins/server/kernel/repository"
@@ -44,6 +47,14 @@ type View struct {
 	UpdatedAt  string `json:"updated_at"`
 }
 
+type HealthView struct {
+	StatusCode int    `json:"status_code"`
+	LatencyMS  int64  `json:"latency_ms"`
+	Online     bool   `json:"online"`
+	Message    string `json:"message"`
+	CheckedAt  string `json:"checked_at"`
+}
+
 // DetailView 源站详情。
 type DetailView struct {
 	View
@@ -57,6 +68,45 @@ func ListOrigins(ctx context.Context) ([]View, error) {
 		return nil, err
 	}
 	return buildOriginViews(ctx, origins)
+}
+
+// GetOriginDetail 获取源站详情。
+func CheckOrigin(ctx context.Context, id uint) (*HealthView, error) {
+	origin, err := repository.GetOriginByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	routes, err := repository.ListProxyRoutesByOriginID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	address := "http://" + origin.Address
+	if len(routes) > 0 && strings.TrimSpace(routes[0].OriginURL) != "" {
+		parsed, parseErr := url.Parse(routes[0].OriginURL)
+		if parseErr == nil && parsed.Scheme != "" && parsed.Host != "" {
+			address = parsed.Scheme + "://" + parsed.Host
+		}
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodHead, address, nil)
+	if err != nil {
+		return &HealthView{Online: false, Message: errOriginHealthInvalidURL, CheckedAt: time.Now().Format(time.RFC3339)}, nil
+	}
+	startedAt := time.Now()
+	client := &http.Client{Timeout: 5 * time.Second}
+	response, err := client.Do(request)
+	latency := time.Since(startedAt).Milliseconds()
+	checkedAt := time.Now().Format(time.RFC3339)
+	if err != nil {
+		return &HealthView{LatencyMS: latency, Online: false, Message: err.Error(), CheckedAt: checkedAt}, nil
+	}
+	defer response.Body.Close()
+	return &HealthView{
+		StatusCode: response.StatusCode,
+		LatencyMS:  latency,
+		Online:     response.StatusCode < http.StatusInternalServerError,
+		Message:    response.Status,
+		CheckedAt:  checkedAt,
+	}, nil
 }
 
 // GetOriginDetail 获取源站详情。

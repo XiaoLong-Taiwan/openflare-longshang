@@ -35,7 +35,7 @@ export function HtmlEditorWorkspace({
   preview = previewOriginErrorPageHTML,
   footerHint = (
     <>
-      {'{{status}}'}→502 · {'{{host}}'}→example.com
+      {'{{status}}'}→400 · {'{{host}}'}→example.com
     </>
   ),
   showPreviewLink = true,

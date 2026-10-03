@@ -19,7 +19,7 @@ export function effectiveOriginErrorPageHTML(html: string): string {
 
 export function previewOriginErrorPageHTML(
   html: string,
-  status = '502',
+  status = '400',
   host = 'example.com',
 ): string {
   return effectiveOriginErrorPageHTML(html)

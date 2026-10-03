@@ -11,4 +11,5 @@ const (
 	errOriginDeleteReferenced = "该源站仍被规则引用，无法删除"
 	errOriginMissingPort      = "源站地址缺少端口"
 	errOriginNotFound         = "源站不存在"
+	errOriginHealthInvalidURL  = "源站健康检查地址无效"
 )

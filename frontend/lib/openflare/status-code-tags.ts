@@ -2,7 +2,7 @@
 export const STATUS_CODE_MIN = 400;
 export const STATUS_CODE_MAX = 599;
 
-export const DEFAULT_ORIGIN_ERROR_PAGE_STATUS_TAGS = ['500-599'] as const;
+export const DEFAULT_ORIGIN_ERROR_PAGE_STATUS_TAGS = ['400-599'] as const;
 
 /**
  * Parse a single tag such as "502" or "500-599".

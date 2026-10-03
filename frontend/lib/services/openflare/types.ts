@@ -643,6 +643,14 @@ export interface OriginItem {
   updated_at: string;
 }
 
+export interface OriginHealth {
+  status_code: number;
+  latency_ms: number;
+  online: boolean;
+  message: string;
+  checked_at: string;
+}
+
 export interface OriginRouteSummary {
   id: number;
   domain: string;

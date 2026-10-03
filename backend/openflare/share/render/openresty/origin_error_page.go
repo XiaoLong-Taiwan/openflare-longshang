@@ -24,7 +24,7 @@ const (
 	// via Lua header/body filters inside the proxy location, so non-GET responses pass through
 	// with their original status and body.
 	OriginErrorPageInternalLocation = "@__openflare_origin_error"
-	defaultOriginErrorPageStatusTag = "500-599"
+	defaultOriginErrorPageStatusTag = "400-599"
 )
 
 // DefaultOriginErrorPageHTML is the built-in default (aligned with frontend minimalist).
@@ -98,7 +98,7 @@ const DefaultOriginErrorPageHTML = `<!DOCTYPE html>
 <div class="container">
   <h1 class="error-code" aria-label="HTTP status">{{status}}</h1>
   <p class="error-description">
-    The upstream server is unreachable. Please try again later or contact the site administrator if the problem persists.
+    The request could not be completed. Please try again later or contact the site administrator if the problem persists.
   </p>
   <p class="host">{{host}}</p>
   <div class="footer">
@@ -189,7 +189,9 @@ func renderOriginErrorPageLuaFilterBlock(codes []int) string {
                     body = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>" .. tostring(status) .. "</title></head><body><h1>" .. tostring(status) .. "</h1></body></html>"
                 end
                 body = body:gsub("{{status}}", function() return tostring(status) end)
-                body = body:gsub("{{host}}", function() return ngx.var.host or "" end)
+                local host = ngx.var.http_host or ngx.var.host or ""
+                host = host:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"):gsub('"', "&quot;"):gsub("'", "&#39;")
+                body = body:gsub("{{host}}", function() return host end)
                 ngx.ctx.openflare_error_html = body
             end
         }
@@ -278,7 +280,8 @@ func renderOriginErrorPageInternalLocation() string {
             local body = f:read("*a")
             f:close()
             local status = tostring(code)
-            local host = ngx.var.host or ""
+            local host = ngx.var.http_host or ngx.var.host or ""
+            host = host:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"):gsub('"', "&quot;"):gsub("'", "&#39;")
             -- function replacer: plain insert, no percent pattern side effects
             body = body:gsub("{{status}}", function() return status end)
             body = body:gsub("{{host}}", function() return host end)

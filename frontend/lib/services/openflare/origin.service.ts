@@ -1,5 +1,10 @@
 import { OpenFlareBaseService } from './base.service';
-import type { OriginDetail, OriginItem, OriginMutationPayload } from './types';
+import type {
+  OriginDetail,
+  OriginHealth,
+  OriginItem,
+  OriginMutationPayload,
+} from './types';
 
 export class OriginService extends OpenFlareBaseService {
   protected static override readonly basePath: string = '/api/v1/d/origins';
@@ -10,6 +15,10 @@ export class OriginService extends OpenFlareBaseService {
 
   static getById(id: number): Promise<OriginDetail> {
     return this.get<OriginDetail>(`/${id}`);
+  }
+
+  static health(id: number): Promise<OriginHealth> {
+    return this.get<OriginHealth>(`/${id}/health`);
   }
 
   static create(payload: OriginMutationPayload): Promise<OriginItem> {

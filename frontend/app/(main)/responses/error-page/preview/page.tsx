@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Pencil, X } from 'lucide-react';
 
@@ -11,6 +12,7 @@ import { EmptyStateWithBorder } from '@/components/layout/empty';
 import { ErrorInline } from '@/components/layout/error';
 import { LoadingStateWithBorder } from '@/components/layout/loading';
 import { previewOriginErrorPageHTML } from '@/lib/openflare/default-origin-error-page-html';
+import { expandStatusCodeTags } from '@/lib/openflare/status-code-tags';
 import { OptionService } from '@/lib/services/openflare';
 
 import { useTranslations } from 'next-intl';
@@ -22,8 +24,18 @@ import {
 } from '../../components/shared';
 
 export default function ErrorPagePreviewPage() {
+  return (
+    <Suspense>
+      <ErrorPagePreviewContent />
+    </Suspense>
+  );
+}
+
+function ErrorPagePreviewContent() {
   const t = useTranslations('responses');
   const { user, loading: authLoading } = useAuth();
+  const searchParams = useSearchParams();
+  const previewHost = searchParams.get('host')?.trim() || 'example.com';
 
   const optionsQuery = useQuery({
     queryKey: OPTIONS_QUERY_KEY,
@@ -31,12 +43,22 @@ export default function ErrorPagePreviewPage() {
     enabled: !!user?.is_admin,
   });
 
-  const html = useMemo(() => {
-    if (!optionsQuery.data) return '';
-    return mapOptionsToErrorFields(optionsToMap(optionsQuery.data)).html;
+  const preview = useMemo(() => {
+    if (!optionsQuery.data) return { html: '', status: '400' };
+    const fields = mapOptionsToErrorFields(optionsToMap(optionsQuery.data));
+    let status = '400';
+    try {
+      status = String(expandStatusCodeTags(fields.statusCodes)[0] ?? 400);
+    } catch {
+      status = '400';
+    }
+    return { html: fields.html, status };
   }, [optionsQuery.data]);
 
-  const previewSrcDoc = useMemo(() => previewOriginErrorPageHTML(html), [html]);
+  const previewSrcDoc = useMemo(
+    () => previewOriginErrorPageHTML(preview.html, preview.status, previewHost),
+    [preview, previewHost],
+  );
 
   if (authLoading) {
     return (
@@ -94,7 +116,8 @@ export default function ErrorPagePreviewPage() {
               {t('errorPreview')}
             </p>
             <p className='text-[11px] text-muted-foreground font-mono truncate'>
-              {'{{status}}'}→502 · {'{{host}}'}→example.com · {t('fullscreen')}
+              {'{{status}}'}→{preview.status} · {'{{host}}'}→{previewHost} ·{' '}
+              {t('fullscreen')}
             </p>
           </div>
         </div>

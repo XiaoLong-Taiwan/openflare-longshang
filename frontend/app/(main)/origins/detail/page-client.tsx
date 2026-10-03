@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
-import { ArrowLeft, MapPin, Trash2 } from 'lucide-react';
+import { ArrowLeft, MapPin, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { OriginService } from '@/lib/services/openflare';
+import { type OriginHealth, OriginService } from '@/lib/services/openflare';
 import { formatDateTime } from '@/lib/utils';
 
 import { useTranslations } from 'next-intl';
@@ -48,6 +48,13 @@ export function OriginDetailPageClient() {
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const healthQuery = useQuery<OriginHealth>({
+    queryKey: ['openflare', 'origins', originId, 'health'],
+    queryFn: () => OriginService.health(parsedId),
+    enabled,
+    refetchInterval: 30_000,
+  });
 
   const originQuery = useQuery({
     queryKey: ['openflare', 'origins', originId],
@@ -156,7 +163,7 @@ export function OriginDetailPageClient() {
         </div>
       </div>
 
-      <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-4'>
+      <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-5'>
         <div className='rounded-lg border border-dashed px-4 py-3'>
           <p className='text-[10px] uppercase tracking-wider text-muted-foreground'>
             {t('boundRoutes')}
@@ -183,6 +190,31 @@ export function OriginDetailPageClient() {
           </p>
           <p className='mt-2 text-sm text-muted-foreground'>
             {origin.remark || t('noRemark')}
+          </p>
+        </div>
+        <div className='rounded-lg border border-dashed px-4 py-3 sm:col-span-2 xl:col-span-1'>
+          <div className='flex items-center justify-between gap-2'>
+            <p className='text-[10px] uppercase tracking-wider text-muted-foreground'>
+              {t('health')}
+            </p>
+            <Button
+              variant='ghost'
+              size='icon'
+              className='size-7'
+              aria-label={t('checkHealth')}
+              title={t('checkHealth')}
+              onClick={() => void healthQuery.refetch()}
+              disabled={healthQuery.isFetching}
+            >
+              <RefreshCw className={healthQuery.isFetching ? 'animate-spin' : ''} />
+            </Button>
+          </div>
+          <div className='mt-2 flex items-center gap-2 text-sm'>
+            <span className={healthQuery.data?.online ? 'size-2 rounded-full bg-emerald-500' : 'size-2 rounded-full bg-destructive'} />
+            {healthQuery.isLoading ? t('checking') : healthQuery.data?.online ? t('online') : t('offline')}
+          </div>
+          <p className='mt-1 text-xs text-muted-foreground'>
+            {healthQuery.data ? `${healthQuery.data.latency_ms} ms · ${healthQuery.data.status_code || '-'}` : t('notChecked')}
           </p>
         </div>
       </div>

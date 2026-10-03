@@ -38,13 +38,13 @@ func TestBuildOpenRestyConfigSnapshotOriginErrorPageDefaults(t *testing.T) {
 
 	snapshot := buildOpenRestyConfigSnapshot(context.Background())
 	assert.True(t, snapshot.OriginErrorPageEnabled)
-	assert.Equal(t, []string{"500-599"}, snapshot.OriginErrorPageStatusCodes)
+	assert.Equal(t, []string{"400-599"}, snapshot.OriginErrorPageStatusCodes)
 	assert.Empty(t, snapshot.OriginErrorPageHTML)
 
 	payload, err := json.Marshal(snapshot)
 	require.NoError(t, err)
 	assert.Contains(t, string(payload), `"origin_error_page_enabled":true`)
-	assert.Contains(t, string(payload), `"origin_error_page_status_codes":["500-599"]`)
+	assert.Contains(t, string(payload), `"origin_error_page_status_codes":["400-599"]`)
 }
 
 func TestBuildOpenRestyConfigSnapshotOriginErrorPageCustom(t *testing.T) {
@@ -65,9 +65,9 @@ func TestBuildOpenRestyConfigSnapshotOriginErrorPageCustom(t *testing.T) {
 func TestParseOriginErrorPageStatusCodesFallback(t *testing.T) {
 	t.Parallel()
 
-	assert.Equal(t, []string{"500-599"}, parseOriginErrorPageStatusCodes(""))
-	assert.Equal(t, []string{"500-599"}, parseOriginErrorPageStatusCodes("not-json"))
-	assert.Equal(t, []string{"500-599"}, parseOriginErrorPageStatusCodes("[]"))
+	assert.Equal(t, []string{"400-599"}, parseOriginErrorPageStatusCodes(""))
+	assert.Equal(t, []string{"400-599"}, parseOriginErrorPageStatusCodes("not-json"))
+	assert.Equal(t, []string{"400-599"}, parseOriginErrorPageStatusCodes("[]"))
 	assert.Equal(t, []string{"502"}, parseOriginErrorPageStatusCodes(`["502"]`))
 }
 

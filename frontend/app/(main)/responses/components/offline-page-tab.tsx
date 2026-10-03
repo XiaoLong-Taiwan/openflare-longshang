@@ -158,30 +158,37 @@ export function OfflinePageTab({
                   : t('enableThenSelectScope')}
               </p>
             ) : (
-              <div className='flex flex-wrap gap-2'>
-                {fields.domains.map((domain) => (
-                  <Badge
-                    key={domain}
-                    variant='secondary'
-                    className='gap-1 font-normal'
-                  >
-                    {domain}
-                    <button
-                      type='button'
-                      className='hover:text-destructive'
-                      disabled={!fields.enabled}
-                      aria-label={t('removeDomain', { domain })}
-                      onClick={() =>
-                        setFields((prev) => ({
-                          ...prev,
-                          domains: prev.domains.filter((d) => d !== domain),
-                        }))
-                      }
+              <div className='flex flex-col gap-2'>
+                <p className='text-xs text-muted-foreground'>
+                  {t('selectedDomainsSummary', {
+                    count: fields.domains.length,
+                  })}
+                </p>
+                <div className='flex max-h-32 flex-wrap gap-2 overflow-y-auto rounded-md border p-2'>
+                  {fields.domains.map((domain) => (
+                    <Badge
+                      key={domain}
+                      variant='secondary'
+                      className='gap-1 font-normal'
                     >
-                      <X className='size-3' />
-                    </button>
-                  </Badge>
-                ))}
+                      {domain}
+                      <button
+                        type='button'
+                        className='hover:text-destructive'
+                        disabled={!fields.enabled}
+                        aria-label={t('removeDomain', { domain })}
+                        onClick={() =>
+                          setFields((prev) => ({
+                            ...prev,
+                            domains: prev.domains.filter((d) => d !== domain),
+                          }))
+                        }
+                      >
+                        <X className='size-3' />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
               </div>
             )}
           </div>

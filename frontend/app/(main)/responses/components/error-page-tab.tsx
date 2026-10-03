@@ -14,11 +14,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { TagsInput } from '@/components/ui/tags-input';
 import { previewOriginErrorPageHTML } from '@/lib/openflare/default-origin-error-page-html';
 import {
+  expandStatusCodeTags,
   validateStatusCodeTagMessage,
   validateStatusCodeTags,
 } from '@/lib/openflare/status-code-tags';
@@ -47,15 +49,28 @@ export function ErrorPageTab({
 
   const [fields, setFields] = useState<ErrorPageFields>(defaultErrorPageFields);
   const [tagError, setTagError] = useState<string | null>(null);
+  const [previewHost, setPreviewHost] = useState('example.com');
 
   useEffect(() => {
     setFields(mapOptionsToErrorFields(optionMap));
     setTagError(null);
   }, [optionMap]);
 
+  const previewStatus = useMemo(() => {
+    try {
+      return String(expandStatusCodeTags(fields.statusCodes)[0] ?? 400);
+    } catch {
+      return '400';
+    }
+  }, [fields.statusCodes]);
   const previewSrcDoc = useMemo(
-    () => previewOriginErrorPageHTML(fields.html),
-    [fields.html],
+    () =>
+      previewOriginErrorPageHTML(
+        fields.html,
+        previewStatus,
+        previewHost.trim() || 'example.com',
+      ),
+    [fields.html, previewHost, previewStatus],
   );
 
   /** 仅保存策略项 */
@@ -184,12 +199,29 @@ export function ErrorPageTab({
 
       <Card className='border-dashed shadow-none overflow-hidden'>
         <CardHeader className='flex flex-row items-start justify-between gap-3 space-y-0'>
-          <div className='space-y-1.5'>
+          <div className='flex min-w-0 flex-col gap-2'>
             <CardTitle className='text-base'>{t('pagePreview')}</CardTitle>
+            <div className='flex flex-wrap items-center gap-2'>
+              <Label htmlFor='error-page-preview-host' className='text-xs'>
+                {t('previewDomain')}
+              </Label>
+              <Input
+                id='error-page-preview-host'
+                value={previewHost}
+                onChange={(event) => setPreviewHost(event.target.value)}
+                placeholder={t('previewDomainPlaceholder')}
+                className='w-56 font-mono'
+              />
+              <span className='text-xs text-muted-foreground'>
+                HTTP {previewStatus}
+              </span>
+            </div>
           </div>
           <div className='flex shrink-0 flex-wrap gap-2'>
             <Button variant='outline' size='sm' asChild>
-              <Link href='/responses/error-page/preview'>
+              <Link
+                href={`/responses/error-page/preview?host=${encodeURIComponent(previewHost.trim() || 'example.com')}`}
+              >
                 <Expand className='size-3.5' />
                 {t('preview')}
               </Link>
