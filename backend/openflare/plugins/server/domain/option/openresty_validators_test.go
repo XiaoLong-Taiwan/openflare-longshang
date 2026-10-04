@@ -51,6 +51,15 @@ func TestValidateOriginErrorPageStatusCodes(t *testing.T) {
 			wantErr: "状态码须在",
 		},
 		{
+			name:    "Nginx 客户端断开状态码",
+			value:   `["499"]`,
+			wantErr: "不能用于 error_page",
+		},
+		{
+			name:  "包含 Nginx 客户端断开状态码的区间",
+			value: `["498-500"]`,
+		},
+		{
 			name:    "空字符串",
 			value:   "",
 			wantErr: "不能为空",

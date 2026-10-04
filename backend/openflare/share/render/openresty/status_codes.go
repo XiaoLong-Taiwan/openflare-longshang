@@ -47,6 +47,9 @@ func ParseStatusCodeTag(tag string) (lo, hi int, err error) {
 	if lo < StatusCodeMin || hi > StatusCodeMax {
 		return 0, 0, fmt.Errorf("状态码须在 %d–%d: %s", StatusCodeMin, StatusCodeMax, tag)
 	}
+	if lo == 499 && hi == 499 {
+		return 0, 0, errors.New("状态码 499 是 Nginx 客户端断开连接记录码，不能用于 error_page")
+	}
 	return lo, hi, nil
 }
 
@@ -59,6 +62,9 @@ func ExpandStatusCodeTags(tags []string) ([]int, error) {
 			return nil, err
 		}
 		for c := lo; c <= hi; c++ {
+			if c == 499 {
+				continue
+			}
 			set[c] = struct{}{}
 		}
 	}

@@ -111,16 +111,16 @@ export function ZoneDomainsTable({
             <Table className='w-full min-w-full caption-bottom text-sm'>
               <TableHeader className='sticky top-0 z-20 bg-background'>
                 <TableRow className='border-b border-dashed hover:bg-transparent'>
-                  <TableHead className='h-8 whitespace-nowrap py-2 min-w-[160px]'>
+                  <TableHead className='h-8 min-w-[180px] whitespace-nowrap py-2'>
                     FQDN
                   </TableHead>
-                  <TableHead className='h-8 whitespace-nowrap py-2 min-w-[120px]'>
+                  <TableHead className='h-8 min-w-[140px] whitespace-nowrap py-2'>
                     {t('certificate')}
                   </TableHead>
-                  <TableHead className='h-8 whitespace-nowrap py-2 min-w-[200px]'>
+                  <TableHead className='h-8 min-w-[200px] whitespace-nowrap py-2'>
                     {t('upstream')}
                   </TableHead>
-                  <TableHead className='sticky right-0 z-10 h-8 w-[90px] bg-background py-2 text-center'>
+                  <TableHead className='sticky right-0 z-10 h-8 w-[90px] whitespace-nowrap bg-background py-2 text-center'>
                     {t('actions')}
                   </TableHead>
                 </TableRow>
@@ -142,9 +142,9 @@ export function ZoneDomainsTable({
                       key={domain.id}
                       className='group border-dashed hover:bg-muted/30'
                     >
-                      <TableCell className='py-1'>
+                      <TableCell className='py-1 font-mono text-[11px] font-medium'>
                         <span
-                          className='max-w-[220px] truncate text-[11px] font-medium leading-tight'
+                          className='block max-w-[220px] truncate leading-tight'
                           title={domain.domain}
                         >
                           {domain.domain}
@@ -153,7 +153,7 @@ export function ZoneDomainsTable({
                       <TableCell className='py-1 font-mono text-[10px] whitespace-nowrap text-muted-foreground'>
                         {certLabel}
                       </TableCell>
-                      <TableCell className='max-w-[280px] py-1'>
+                      <TableCell className='max-w-[280px] py-1 font-mono text-[10px]'>
                         {!domain.proxy_route_id ? (
                           <span className='font-mono text-[10px] text-muted-foreground'>
                             {t('unlinkedRoute')}

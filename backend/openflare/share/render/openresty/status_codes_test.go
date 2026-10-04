@@ -27,4 +27,15 @@ func TestExpandStatusCodeTags(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected syntax error")
 	}
+	_, err = ExpandStatusCodeTags([]string{"499"})
+	if err == nil {
+		t.Fatal("expected nginx client disconnect status error")
+	}
+	codes, err = ExpandStatusCodeTags([]string{"498-500"})
+	if err != nil {
+		t.Fatal("expected range containing nginx client disconnect status to remain valid")
+	}
+	if len(codes) != 2 || codes[0] != 498 || codes[1] != 500 {
+		t.Fatalf("expected 499 to be omitted from range, got %v", codes)
+	}
 }
