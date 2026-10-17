@@ -33,6 +33,32 @@ var (
 	taskCompletedHandlers  []CompletedHandler
 )
 
+const staleTaskExecutionTimeout = 30 * time.Minute
+
+func recoverStaleTaskExecutions(ctx context.Context) error {
+	db := getDB(ctx)
+	if db == nil {
+		return nil
+	}
+
+	now := time.Now()
+	cutoff := now.Add(-staleTaskExecutionTimeout)
+	result := db.Model(&TaskExecution{}).
+		Where("status IN ? AND updated_at < ?", []TaskExecutionStatus{TaskExecutionStatusPending, TaskExecutionStatusRunning}, cutoff).
+		Updates(map[string]any{
+			"status":        TaskExecutionStatusFailed,
+			"finished_at":   now,
+			"error_message": "工作在服務重啟前未完成，已由 worker 啟動時自動回收",
+		})
+	if result.Error != nil {
+		return fmt.Errorf("recover stale task executions: %w", result.Error)
+	}
+	if result.RowsAffected > 0 {
+		logger.WarnF(ctx, "已回收 %d 筆逾時工作執行記錄", result.RowsAffected)
+	}
+	return nil
+}
+
 // CompletedHandler is called when a task execution completes.
 type CompletedHandler func(ctx context.Context, execution *TaskExecution, result *TaskResult, execErr error)
 

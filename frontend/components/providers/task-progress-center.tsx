@@ -91,8 +91,12 @@ export function TaskProgressCenter() {
 
   const executions = useMemo(
     () =>
-      [...(runningQuery.data?.items ?? []), ...(pendingQuery.data?.items ?? [])].filter((item) =>
-        activeStatuses.includes(item.status),
+      Array.from(
+        new Map(
+          [...(runningQuery.data?.items ?? []), ...(pendingQuery.data?.items ?? [])]
+            .filter((item) => activeStatuses.includes(item.status))
+            .map((item) => [item.task_id, item]),
+        ).values(),
       ),
     [pendingQuery.data?.items, runningQuery.data?.items],
   );

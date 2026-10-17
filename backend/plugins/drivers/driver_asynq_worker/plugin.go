@@ -175,11 +175,18 @@ func (p *Plugin) Type() core.DriverType {
 
 // Start boots the Asynq worker server and starts processing background tasks.
 func (p *Plugin) Start(_ context.Context) error {
+	ctx := context.Background()
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	if p.running {
 		return nil
+	}
+	if p.coreCtx != nil {
+		ctx = p.coreCtx.Root()
+	}
+	if err := recoverStaleTaskExecutions(ctx); err != nil {
+		return err
 	}
 
 	mux := asynq.NewServeMux()

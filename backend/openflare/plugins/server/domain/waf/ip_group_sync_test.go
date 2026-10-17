@@ -92,6 +92,7 @@ func TestSyncIPGroupAutomaticExprRules(t *testing.T) {
 	seedWAFAccessLogs(t, ctx, now, "203.0.113.10", "app.example.com", 101, 81)
 	seedWAFAccessLogs(t, ctx, now, "203.0.113.11", "198.51.100.10", 60, 0)
 	seedWAFAccessLogs(t, ctx, now, "203.0.113.12", "app.example.com", 120, 10)
+	seedWAFAccessLogs(t, ctx, now, "10.0.0.8", "app.example.com", 150, 150)
 
 	group, err := CreateIPGroup(ctx, IPGroupInput{
 		Name:    "auto blacklist",

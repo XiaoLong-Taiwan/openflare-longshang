@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"Wavelet/openflare/plugins/server/kernel/repository"
+	"Wavelet/openflare/share/geoip/iputil"
 
 	"Wavelet/openflare/plugins/server/domain/fleet/agent"
 	"Wavelet/openflare/plugins/server/domain/fleet/websocket"
@@ -211,6 +212,9 @@ func syncIPGroupAutomatic(ctx context.Context, group *model.OpenFlareWAFIPGroup,
 
 	activeExtIPs := make([]ipGroupExtIP, 0, len(existingExtIPs))
 	for _, extIP := range existingExtIPs {
+		if !iputil.IsPublicString(extIP.IP) {
+			continue
+		}
 		if config.TTL > 0 {
 			expirationTime := extIP.CapturedAt.Add(time.Duration(config.TTL) * time.Second)
 			if expirationTime.Before(now) {
@@ -318,7 +322,7 @@ func evaluateParsedIPGroupAutoConfig(ctx context.Context, config ipGroupAutoConf
 			continue
 		}
 		ip, ok := normalizeIPLiteral(item.RemoteAddr)
-		if !ok {
+		if !ok || !iputil.IsPublicString(ip) {
 			continue
 		}
 		lastSeen := time.Time{}

@@ -197,6 +197,7 @@ type Manager struct {
 	Executor                     Executor
 	atomicFileWriter             func(path string, data []byte, perm os.FileMode) error
 	wafIPGroupsMu                sync.Mutex
+	runtimeMu                    sync.Mutex
 }
 
 // ApplyStatus reports the outcome of an OpenResty configuration apply.
@@ -261,6 +262,8 @@ type wafIPGroupsRuntimeConfig struct {
 
 // Apply writes, validates, and activates new OpenResty configuration files.
 func (m *Manager) Apply(ctx context.Context, mainConfig string, routeConfig string, supportFiles []protocol.SupportFile) ApplyOutcome {
+	m.runtimeMu.Lock()
+	defer m.runtimeMu.Unlock()
 	slog.Info("openresty apply started", "main_config", m.MainConfigPath, "route_config", m.RouteConfigPath, "cert_files", len(supportFiles))
 	backup, err := m.backup()
 	if err != nil {
@@ -364,7 +367,7 @@ func (m *Manager) rollbackAfterFailedApply(ctx context.Context, backup *backupSt
 		if backup != nil && backup.MainExisted {
 			return fatalApplyOutcome(fmt.Errorf("apply failed: %w; rollback recovery failed: %w", applyErr, err))
 		}
-		if fallbackErr := m.EnsureSafeFallbackRuntime(ctx, fmt.Sprintf("apply failed: %v; rollback recovery failed: %v", applyErr, err)); fallbackErr != nil {
+		if fallbackErr := m.ensureSafeFallbackRuntime(ctx, fmt.Sprintf("apply failed: %v; rollback recovery failed: %v", applyErr, err)); fallbackErr != nil {
 			return fatalApplyOutcome(fmt.Errorf("apply failed: %w; rollback recovery failed: %w; fallback recovery failed: %w", applyErr, err, fallbackErr))
 		}
 		message := fmt.Sprintf("apply failed, but fallback runtime started: %v; rollback recovery failed: %v", applyErr, err)
@@ -426,6 +429,8 @@ func (m *Manager) EnsureLuaAssets() error {
 
 // EnsureRuntime validates and reloads the current OpenResty runtime configuration.
 func (m *Manager) EnsureRuntime(ctx context.Context, recreate bool) error {
+	m.runtimeMu.Lock()
+	defer m.runtimeMu.Unlock()
 	if m.Executor == nil {
 		return errors.New("executor 未配置")
 	}
@@ -435,6 +440,12 @@ func (m *Manager) EnsureRuntime(ctx context.Context, recreate bool) error {
 
 // EnsureSafeFallbackRuntime starts a minimal safe default OpenResty runtime.
 func (m *Manager) EnsureSafeFallbackRuntime(ctx context.Context, reason string) error {
+	m.runtimeMu.Lock()
+	defer m.runtimeMu.Unlock()
+	return m.ensureSafeFallbackRuntime(ctx, reason)
+}
+
+func (m *Manager) ensureSafeFallbackRuntime(ctx context.Context, reason string) error {
 	if m.Executor == nil {
 		return errors.New("executor 未配置")
 	}
@@ -455,6 +466,8 @@ func (m *Manager) EnsureSafeFallbackRuntime(ctx context.Context, reason string) 
 
 // CheckHealth verifies that OpenResty configuration and health endpoints are available.
 func (m *Manager) CheckHealth(ctx context.Context) error {
+	m.runtimeMu.Lock()
+	defer m.runtimeMu.Unlock()
 	if m.Executor == nil {
 		return errors.New("executor 未配置")
 	}
@@ -471,6 +484,8 @@ func (m *Manager) CheckHealth(ctx context.Context) error {
 
 // Restart restarts the OpenResty runtime process.
 func (m *Manager) Restart(ctx context.Context) error {
+	m.runtimeMu.Lock()
+	defer m.runtimeMu.Unlock()
 	if m.Executor == nil {
 		return errors.New("executor 未配置")
 	}
@@ -480,6 +495,8 @@ func (m *Manager) Restart(ctx context.Context) error {
 
 // CurrentChecksum returns a stable checksum for the active OpenResty configuration bundle.
 func (m *Manager) CurrentChecksum() (string, error) {
+	m.runtimeMu.Lock()
+	defer m.runtimeMu.Unlock()
 	if m.RouteConfigPath == "" {
 		return "", errors.New("route config path 不能为空")
 	}

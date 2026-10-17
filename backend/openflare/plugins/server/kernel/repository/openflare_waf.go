@@ -110,13 +110,17 @@ func DeleteOpenFlareWAFRuleGroup(ctx context.Context, id uint) error {
 }
 
 // ListOpenFlareWAFIPGroups returns all IP groups.
-func ListOpenFlareWAFIPGroups(ctx context.Context) ([]*model.OpenFlareWAFIPGroup, error) {
+func ListOpenFlareWAFIPGroups(ctx context.Context, keyword string) ([]*model.OpenFlareWAFIPGroup, error) {
 	conn, err := wafDB(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var groups []*model.OpenFlareWAFIPGroup
-	if err = conn.Order("type asc").Order("id asc").Find(&groups).Error; err != nil {
+	query := conn
+	if keyword != "" {
+		query = query.Where("LOWER(name) LIKE LOWER(?)", "%"+keyword+"%")
+	}
+	if err = query.Order("type asc").Order("id asc").Find(&groups).Error; err != nil {
 		return nil, err
 	}
 	return groups, nil

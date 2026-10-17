@@ -87,10 +87,11 @@ func ReplaceSiteRuleGroupsHandler(c *gin.Context) {
 
 // ListIPGroupsHandler 列出全部 WAF IP 组。
 // @Summary 列出 WAF IP 组
-// @Description 返回全部 WAF IP 组，需要管理员权限
+// @Description 返回 WAF IP 组，需要管理员权限；可使用 keyword 按名称筛选
 // @Tags openflare-waf
 // @Produce json
 // @Security SessionCookie
+// @Param keyword query string false "按名称筛选"
 // @Success 200 {object} response.Any{data=[]waf.IPGroupView} "IP 组列表"
 // @Failure 400 {object} response.Any "参数错误"
 // @Failure 401 {object} response.Any "未登录"
@@ -98,7 +99,7 @@ func ReplaceSiteRuleGroupsHandler(c *gin.Context) {
 // @Failure 500 {object} response.Any "内部错误"
 // @Router /api/v1/d/waf/ip-groups [get]
 func ListIPGroupsHandler(c *gin.Context) {
-	groups, err := ListIPGroups(c.Request.Context())
+	groups, err := ListIPGroups(c.Request.Context(), c.Query("keyword"))
 	if handleRuleError(c, err) {
 		return
 	}

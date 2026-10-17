@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Network, Plus, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import {
@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Card,
   CardContent,
@@ -61,10 +62,19 @@ export default function WafIPGroupsPage() {
   const [viewOpen, setViewOpen] = useState(false);
   const [viewingGroup, setViewingGroup] = useState<WAFIPGroup | null>(null);
   const [removingIp, setRemovingIp] = useState<string | null>(null);
+  const [keyword, setKeyword] = useState('');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedKeyword(keyword.trim());
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [keyword]);
 
   const groupsQuery = useQuery({
-    queryKey: ipGroupsQueryKey,
-    queryFn: () => WafService.listIPGroups(),
+    queryKey: [...ipGroupsQueryKey, debouncedKeyword],
+    queryFn: () => WafService.listIPGroups(debouncedKeyword),
   });
 
   const invalidate = async () => {
@@ -249,20 +259,29 @@ export default function WafIPGroupsPage() {
               </CardTitle>
               <CardDescription>{t('listDesc')}</CardDescription>
             </div>
-            <Button
-              variant='outline'
-              size='sm'
-              className='h-7 text-xs'
-              onClick={handleRefresh}
-              disabled={groupsQuery.isFetching}
-            >
-              {groupsQuery.isFetching ? (
-                <Loader2 className='size-3.5 mr-1 animate-spin' />
-              ) : (
-                <RefreshCw className='size-3.5 mr-1' />
-              )}
-              {t('refresh')}
-            </Button>
+            <div className='flex items-center gap-2'>
+              <Input
+                value={keyword}
+                onChange={(event) => setKeyword(event.target.value)}
+                placeholder={t('searchPlaceholder')}
+                aria-label={t('searchLabel')}
+                className='w-52'
+              />
+              <Button
+                variant='outline'
+                size='sm'
+                className='h-7 text-xs'
+                onClick={handleRefresh}
+                disabled={groupsQuery.isFetching}
+              >
+                {groupsQuery.isFetching ? (
+                  <Loader2 className='size-3.5 mr-1 animate-spin' />
+                ) : (
+                  <RefreshCw className='size-3.5 mr-1' />
+                )}
+                {t('refresh')}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -280,7 +299,12 @@ export default function WafIPGroupsPage() {
               />
             </div>
           ) : groups.length === 0 ? (
-            <EmptyStateWithBorder icon={Network} description={t('empty')} />
+            <EmptyStateWithBorder
+              icon={Network}
+              description={
+                debouncedKeyword ? t('noSearchResults') : t('empty')
+              }
+            />
           ) : (
             <IPGroupsTable
               groups={groups}

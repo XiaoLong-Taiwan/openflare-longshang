@@ -229,9 +229,13 @@ func EnsureDefaultRuleGroup(ctx context.Context) error {
 	return repository.CreateOpenFlareWAFRuleGroup(ctx, group)
 }
 
-// ListIPGroups returns all WAF IP groups.
-func ListIPGroups(ctx context.Context) ([]IPGroupView, error) {
-	groups, err := repository.ListOpenFlareWAFIPGroups(ctx)
+// ListIPGroups returns WAF IP groups matching the optional keyword.
+func ListIPGroups(ctx context.Context, keywords ...string) ([]IPGroupView, error) {
+	keyword := ""
+	if len(keywords) > 0 {
+		keyword = strings.TrimSpace(keywords[0])
+	}
+	groups, err := repository.ListOpenFlareWAFIPGroups(ctx, keyword)
 	if err != nil {
 		return nil, err
 	}

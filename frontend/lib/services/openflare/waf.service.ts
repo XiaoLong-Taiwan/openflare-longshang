@@ -58,8 +58,11 @@ export class WafService extends OpenFlareBaseService {
     });
   }
 
-  static async listIPGroups(): Promise<WAFIPGroup[]> {
-    return this.get<WAFIPGroup[]>('/ip-groups');
+  static async listIPGroups(keyword?: string): Promise<WAFIPGroup[]> {
+    const query = keyword?.trim()
+      ? `?keyword=${encodeURIComponent(keyword.trim())}`
+      : '';
+    return this.get<WAFIPGroup[]>(`/ip-groups${query}`);
   }
 
   static async getIPGroup(id: number): Promise<WAFIPGroup> {
