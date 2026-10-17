@@ -7,6 +7,7 @@ import (
 	"Wavelet/core/contracts"
 	"Wavelet/core/extpoints"
 	"sync"
+	"time"
 )
 
 // TaskParam 任务参数定义
@@ -32,6 +33,7 @@ type TaskMeta struct {
 	Category     string      `json:"category,omitempty"`
 	SupportsTime bool        `json:"supports_time"`
 	MaxRetry     int         `json:"max_retry"`
+	Timeout      time.Duration `json:"timeout,omitempty"`
 	Queue        string      `json:"queue"`
 	Retryable    bool        `json:"retryable"` // 是否支持手动重试
 	Params       []TaskParam `json:"params,omitempty"`
@@ -124,6 +126,7 @@ func toInternalTaskMeta(dto contracts.TaskMetaDTO) TaskMeta {
 		Category:     dto.Category,
 		SupportsTime: dto.SupportsTime,
 		MaxRetry:     dto.MaxRetry,
+		Timeout:      dto.Timeout,
 		Queue:        dto.Queue,
 		Retryable:    dto.Retryable,
 		Params:       params,

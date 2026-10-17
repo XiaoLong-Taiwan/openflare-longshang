@@ -52,6 +52,7 @@ var DatabaseMaintenanceMeta = contracts.TaskMetaDTO{
 	Description: "清理過期任務記錄、清空磁碟快取並更新資料庫統計與空間",
 	Category:    "maintenance",
 	MaxRetry:    1,
+	Timeout:     30 * time.Minute,
 	Queue:       taskQueueDefault,
 	Retryable:   true,
 }

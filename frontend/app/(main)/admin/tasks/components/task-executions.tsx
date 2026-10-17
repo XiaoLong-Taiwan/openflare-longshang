@@ -130,6 +130,14 @@ export function TaskExecutionsManager() {
         status: executionStatus === 'all' ? undefined : executionStatus,
         task_type: executionTaskType === 'all' ? undefined : executionTaskType,
       }),
+    refetchInterval: (query) => {
+      const items = query.state.data?.items ?? [];
+      return items.some(
+        (item) => item.status === 'pending' || item.status === 'running',
+      )
+        ? 5000
+        : false;
+    },
   });
 
   const detailQuery = useQuery({

@@ -158,12 +158,15 @@ func DispatchTask(ctx context.Context, taskType string, payload []byte, triggere
 
 	// 入队 Asynq
 	taskInfo := asynq.NewTask(meta.AsynqTask, injectTaskTraceContext(ctx, payload))
-	if _, err := GetAsynqClient().Enqueue(
-		taskInfo,
+	options := []asynq.Option{
 		asynq.TaskID(taskID),
 		asynq.MaxRetry(meta.MaxRetry),
 		asynq.Queue(meta.Queue),
-	); err != nil {
+	}
+	if meta.Timeout > 0 {
+		options = append(options, asynq.Timeout(meta.Timeout))
+	}
+	if _, err := GetAsynqClient().Enqueue(taskInfo, options...); err != nil {
 		// 入队失败，更新执行记录状态
 		execution.Status = TaskExecutionStatusFailed
 		execution.ErrorMessage = fmt.Sprintf("入队失败: %v", err)
@@ -224,12 +227,15 @@ func RetryTask(ctx context.Context, id uint64) (string, error) {
 
 	// 入队 Asynq
 	taskInfo := asynq.NewTask(execution.TaskType, injectTaskTraceContext(ctx, []byte(execution.Payload)))
-	if _, err := GetAsynqClient().Enqueue(
-		taskInfo,
+	options := []asynq.Option{
 		asynq.TaskID(newTaskID),
 		asynq.MaxRetry(execution.MaxRetry),
 		asynq.Queue(queueName),
-	); err != nil {
+	}
+	if meta != nil && meta.Timeout > 0 {
+		options = append(options, asynq.Timeout(meta.Timeout))
+	}
+	if _, err := GetAsynqClient().Enqueue(taskInfo, options...); err != nil {
 		newExecution.Status = TaskExecutionStatusFailed
 		newExecution.ErrorMessage = fmt.Sprintf("重试入队失败: %v", err)
 		now := time.Now()
