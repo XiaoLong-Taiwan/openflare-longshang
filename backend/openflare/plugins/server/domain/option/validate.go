@@ -5,8 +5,10 @@ package option
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"regexp"
 	"strconv"
 	"strings"
@@ -73,7 +75,33 @@ func validateOptionWithState(ctx context.Context, option model.OpenFlareOption, 
 	if err := validatePagesOption(option.Key, option.Value); err != nil {
 		return err
 	}
+	if err := validateTrustedProxyOption(key, option.Value); err != nil {
+		return err
+	}
 	return validateUptimeKumaOption(ctx, option.Key, option.Value, state)
+}
+
+func validateTrustedProxyOption(key, value string) error {
+	if key != model.ConfigKeyTrustedProxyCIDRs {
+		return nil
+	}
+	var cfg struct {
+		Enabled bool     `json:"enabled"`
+		Mode    string   `json:"mode"`
+		CIDRs   []string `json:"cidrs"`
+	}
+	if err := json.Unmarshal([]byte(value), &cfg); err != nil {
+		return fmt.Errorf("%s 必须是有效的 JSON", key)
+	}
+	if cfg.Mode != "append" && cfg.Mode != "override" {
+		return fmt.Errorf("%s 的 mode 必须为 append 或 override", key)
+	}
+	for _, cidr := range cfg.CIDRs {
+		if _, _, err := net.ParseCIDR(strings.TrimSpace(cidr)); err != nil {
+			return fmt.Errorf("%s 包含无效的 CIDR：%s", key, cidr)
+		}
+	}
+	return nil
 }
 
 func validatePositiveIntegerOption(key, value string) error {

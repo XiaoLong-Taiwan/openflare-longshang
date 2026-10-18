@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 const (
@@ -37,6 +38,8 @@ type Snapshot struct {
 	BlockedVersion         string            `json:"blocked_version"`
 	BlockedChecksum        string            `json:"blocked_checksum"`
 	BlockedReason          string            `json:"blocked_reason"`
+	ApplyRetryCount        int               `json:"apply_retry_count"`
+	ApplyRetryAt           time.Time         `json:"apply_retry_at"`
 	LastError              string            `json:"last_error"`
 	OpenrestyStatus        string            `json:"openresty_status"`
 	OpenrestyMessage       string            `json:"openresty_message"`

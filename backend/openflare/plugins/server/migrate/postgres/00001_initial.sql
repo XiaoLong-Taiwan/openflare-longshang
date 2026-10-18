@@ -564,6 +564,7 @@ VALUES
     ('pages_max_package_size_mb', '100', 'business', 0, 'Pages 部署包上传大小上限（MiB）', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('relay_frps_web_ui_enabled', 'false', 'business', 0, '是否启用 FRPS 内置 Web 管理界面', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('relay_frps_web_ui_port', '17500', 'business', 0, 'FRPS 内置 Web 管理界面端口', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('trusted_proxy_cidrs', '{"enabled":true,"mode":"append","cidrs":[]}', 'system', 0, '可信代理范围（JSON，默认包含 Cloudflare 官方网段）', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('sw_offline_domains', '[]', 'business', 0, 'SW 离线兜底生效域名列表（JSON 数组，空则仅总开关无效）', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('sw_offline_enabled', 'false', 'business', 0, '是否启用 Service Worker 离线兜底', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('sw_offline_html', '', 'business', 0, '离线联系页自定义 HTML，空则使用内置默认', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),

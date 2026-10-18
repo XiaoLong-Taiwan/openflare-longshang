@@ -98,5 +98,13 @@ func (b *webDAVBackend) Test(ctx context.Context) error {
 }
 
 func (b *webDAVBackend) key(key string) string {
-	return "/" + path.Join(b.basePath, strings.TrimLeft(key, "/"))
+	key = strings.TrimLeft(key, "/")
+	base := strings.Trim(b.basePath, "/")
+	if base != "" && (key == base || strings.HasPrefix(key, base+"/")) {
+		return "/" + path.Clean(key)
+	}
+	if base == "" {
+		return "/" + path.Clean(key)
+	}
+	return "/" + path.Join(base, key)
 }

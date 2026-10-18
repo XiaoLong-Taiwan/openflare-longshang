@@ -28,6 +28,8 @@ func registerCloudflareRoutes(apiGroup core.RouterExtension, auth contracts.Auth
 	route.POST("/groups/:id/sync", cf.SyncGroupHandler)
 	route.GET("/groups/:id/members", cf.ListMembersHandler)
 	route.POST("/groups/:id/members", cf.CreateMemberHandler)
+	route.POST("/groups/:id/members/batch-move", cf.BatchMoveMembersHandler)
+	route.POST("/groups/:id/members/batch-remove", cf.BatchRemoveMembersHandler)
 	route.POST("/groups/:id/members/:memberId/update", cf.UpdateMemberHandler)
 	route.POST("/groups/:id/members/:memberId/remove", cf.RemoveMemberHandler)
 	route.POST("/groups/:id/members/:memberId/sync", cf.SyncMemberHandler)

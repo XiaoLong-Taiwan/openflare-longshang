@@ -297,6 +297,7 @@ func getSeedConfigsPart2() []model.SystemConfig {
 		{Key: model.ConfigKeyStorageConfig, Value: `{"driver":"local","local":{"root":"."},"s3":{"region":"us-east-1"},"r2":{"region":"auto"},"minio":{"region":"us-east-1","path_style":true},"oss":{},"webdav":{}}`, Type: configTypeSystem},
 		{Key: model.ConfigKeyRelayFRPSWebUIEnabled, Value: configValueFalse, Type: configTypeBusiness},
 		{Key: model.ConfigKeyRelayFRPSWebUIPort, Value: "17500", Type: configTypeBusiness},
+		{Key: model.ConfigKeyTrustedProxyCIDRs, Value: `{"enabled":true,"mode":"append","cidrs":[]}`, Type: configTypeSystem, Description: "可信代理范围（JSON，默认包含 Cloudflare 官方网段）"},
 		{Key: model.ConfigKeyPagesMaxPackageSizeMB, Value: "100", Type: configTypeBusiness},
 		{Key: model.ConfigKeyPagesMaxHistoryCount, Value: "20", Type: configTypeBusiness},
 		{Key: model.ConfigKeyLogRetentionDaysPostgres, Value: "90", Type: configTypeBusiness},

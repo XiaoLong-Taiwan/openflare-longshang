@@ -118,6 +118,11 @@ func CleanupExpired(ctx context.Context) (*CleanupSummary, error) {
 	}, summary); err != nil {
 		return nil, err
 	}
+	if err := cleanupTable("user_access_logs", func() (int64, error) {
+		return s.UserAccessLogs.DeleteBefore(ctx, cutoff)
+	}, summary); err != nil {
+		return nil, err
+	}
 
 	// 过期数据删除后清理旧月份空分区表，避免分区表无限累积；
 	// 仅删「当前月之前」且无数据的分区（best-effort，失败不阻断数据保留清理）。
@@ -162,6 +167,13 @@ func cleanupTable(name string, fn func() (int64, error), summary *CleanupSummary
 // 幂等 CREATE TABLE IF NOT EXISTS ... PARTITION OF ... FOR VALUES FROM ... TO ...。
 // 入参为任意时间点：按各自所在月份生成，含 from 月与 to 月（to 常用 max+1 月兜底）。
 func partitionStatementsRange(from, to time.Time) []string {
+	return partitionStatementsRangeForTables(from, to, map[string]bool{
+		"of_node_access_logs": true,
+		"w_user_access_logs":  true,
+	})
+}
+
+func partitionStatementsRangeForTables(from, to time.Time, tables map[string]bool) []string {
 	var out []string
 	start := time.Date(from.Year(), from.Month(), 1, 0, 0, 0, 0, time.UTC)
 	end := time.Date(to.Year(), to.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, 0)
@@ -171,6 +183,9 @@ func partitionStatementsRange(from, to time.Time) []string {
 		fromDay := start.Format("2006-01-02")
 		toDay := monthEnd.Format("2006-01-02")
 		for _, table := range accessLogPartitionTables {
+			if !tables[table] {
+				continue
+			}
 			out = append(out, fmt.Sprintf(
 				"CREATE TABLE IF NOT EXISTS %s_%s PARTITION OF %s FOR VALUES FROM ('%s') TO ('%s')",
 				table, suffix, table, fromDay, toDay))

@@ -405,6 +405,63 @@ func RemoveMember(ctx context.Context, groupID, memberID uint) error {
 	return repository.DeleteCFPointingMember(ctx, member)
 }
 
+// MoveMembers moves selected members and queues their DNS reconciliation.
+func MoveMembers(ctx context.Context, sourceGroupID uint, input MemberBatchMoveInput) (*MemberBatchResult, error) {
+	if len(input.MemberIDs) == 0 || input.TargetGroupID == 0 {
+		return nil, errors.New("请选择成员和目标分组")
+	}
+	if sourceGroupID == input.TargetGroupID {
+		return nil, errors.New("目标分组不能与当前分组相同")
+	}
+	if _, err := repository.GetCFPointingGroup(ctx, sourceGroupID); err != nil {
+		return nil, err
+	}
+	if _, err := repository.GetCFPointingGroup(ctx, input.TargetGroupID); err != nil {
+		return nil, err
+	}
+	for _, memberID := range input.MemberIDs {
+		member, err := repository.GetCFPointingMember(ctx, sourceGroupID, memberID)
+		if err != nil {
+			return nil, err
+		}
+		if err := DeleteManagedRecord(ctx, member.ID); err != nil {
+			return nil, errors.New(errDeleteRemoteFailed)
+		}
+	}
+	if err := repository.MoveCFPointingMembers(ctx, input.MemberIDs, sourceGroupID, input.TargetGroupID); err != nil {
+		return nil, err
+	}
+	result := &MemberBatchResult{MemberIDs: input.MemberIDs, TaskIDs: make([]string, 0, len(input.MemberIDs))}
+	for _, memberID := range input.MemberIDs {
+		taskID, err := DispatchMemberSync(ctx, memberID, "cloudflare_member_batch_move")
+		if err != nil {
+			return nil, errors.New(errTaskDispatchFailed)
+		}
+		result.TaskIDs = append(result.TaskIDs, taskID)
+	}
+	return result, nil
+}
+
+// RemoveMembers removes selected members and their managed Cloudflare records.
+func RemoveMembers(ctx context.Context, groupID uint, memberIDs []uint) (*MemberBatchResult, error) {
+	if len(memberIDs) == 0 {
+		return nil, errors.New("请选择成员")
+	}
+	for _, memberID := range memberIDs {
+		member, err := repository.GetCFPointingMember(ctx, groupID, memberID)
+		if err != nil {
+			return nil, err
+		}
+		if err := DeleteManagedRecord(ctx, member.ID); err != nil {
+			return nil, errors.New(errDeleteRemoteFailed)
+		}
+	}
+	if err := repository.DeleteCFPointingMembers(ctx, groupID, memberIDs); err != nil {
+		return nil, err
+	}
+	return &MemberBatchResult{MemberIDs: memberIDs}, nil
+}
+
 // DeleteGroup removes every managed remote A record and then local state.
 func DeleteGroup(ctx context.Context, groupID uint) error {
 	if _, err := repository.GetCFPointingGroup(ctx, groupID); err != nil {

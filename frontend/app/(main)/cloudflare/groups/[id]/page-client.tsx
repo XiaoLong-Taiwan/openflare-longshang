@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Card,
   CardContent,
@@ -26,6 +27,13 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -53,6 +61,8 @@ export function CloudflareGroupDetailPageClient() {
   const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [selectedMemberIDs, setSelectedMemberIDs] = useState<number[]>([]);
+  const [targetGroupID, setTargetGroupID] = useState('');
   const detailQuery = useQuery({
     queryKey: [...cloudflareQueryKey, 'groups', groupID],
     queryFn: () => CloudflareService.getGroup(groupID),
@@ -62,6 +72,10 @@ export function CloudflareGroupDetailPageClient() {
   const domainsQuery = useQuery({
     queryKey: [...cloudflareQueryKey, 'domains', 'available'],
     queryFn: () => CloudflareService.listAvailableDomains(),
+  });
+  const groupsQuery = useQuery({
+    queryKey: [...cloudflareQueryKey, 'groups'],
+    queryFn: () => CloudflareService.listGroups(),
   });
   const nodesQuery = useQuery({
     queryKey: ['openflare', 'nodes'],
@@ -146,6 +160,30 @@ export function CloudflareGroupDetailPageClient() {
     },
     onError: (error) => toast.error(getErrorMessage(error)),
   });
+  const batchMoveMutation = useMutation({
+    mutationFn: () =>
+      CloudflareService.batchMoveMembers(groupID, {
+        member_ids: selectedMemberIDs,
+        target_group_id: Number(targetGroupID),
+      }),
+    onSuccess: async () => {
+      toast.success(t('membersMoved'));
+      setSelectedMemberIDs([]);
+      setTargetGroupID('');
+      await invalidate();
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
+  const batchRemoveMutation = useMutation({
+    mutationFn: () =>
+      CloudflareService.batchRemoveMembers(groupID, selectedMemberIDs),
+    onSuccess: async () => {
+      toast.success(t('membersRemoved'));
+      setSelectedMemberIDs([]);
+      await invalidate();
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
 
   if (detailQuery.isLoading)
     return (
@@ -163,6 +201,9 @@ export function CloudflareGroupDetailPageClient() {
       </div>
     );
   const { group, members } = detailQuery.data;
+  const memberIDs = members.map((member) => member.id);
+  const allSelected =
+    members.length > 0 && selectedMemberIDs.length === members.length;
 
   return (
     <div className='flex w-full flex-col gap-6 py-6 px-1'>
@@ -248,6 +289,39 @@ export function CloudflareGroupDetailPageClient() {
         <CardHeader>
           <CardTitle className='text-base'>{t('members')}</CardTitle>
           <CardDescription>{t('membersDesc')}</CardDescription>
+          {selectedMemberIDs.length > 0 ? (
+            <div className='flex flex-wrap items-center gap-2 pt-2'>
+              <Select value={targetGroupID} onValueChange={setTargetGroupID}>
+                <SelectTrigger className='w-52'>
+                  <SelectValue placeholder={t('targetGroup')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(groupsQuery.data ?? [])
+                    .filter((item) => item.id !== groupID)
+                    .map((item) => (
+                      <SelectItem key={item.id} value={String(item.id)}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size='sm'
+                onClick={() => batchMoveMutation.mutate()}
+                disabled={!targetGroupID || batchMoveMutation.isPending}
+              >
+                {t('moveSelected')}
+              </Button>
+              <Button
+                size='sm'
+                variant='destructive'
+                onClick={() => batchRemoveMutation.mutate()}
+                disabled={batchRemoveMutation.isPending}
+              >
+                {t('removeSelected')}
+              </Button>
+            </div>
+          ) : null}
         </CardHeader>
         <CardContent>
           {members.length === 0 ? (
@@ -258,6 +332,15 @@ export function CloudflareGroupDetailPageClient() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className='w-10'>
+                    <Checkbox
+                      checked={allSelected}
+                      onCheckedChange={(checked) =>
+                        setSelectedMemberIDs(checked ? memberIDs : [])
+                      }
+                      aria-label={t('selectAll')}
+                    />
+                  </TableHead>
                   <TableHead>{t('columns.domain')}</TableHead>
                   <TableHead>{t('columns.desiredIp')}</TableHead>
                   <TableHead>{t('columns.status')}</TableHead>
@@ -270,6 +353,19 @@ export function CloudflareGroupDetailPageClient() {
               <TableBody>
                 {members.map((member) => (
                   <TableRow key={member.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedMemberIDs.includes(member.id)}
+                        onCheckedChange={(checked) =>
+                          setSelectedMemberIDs((current) =>
+                            checked
+                              ? [...current, member.id]
+                              : current.filter((id) => id !== member.id),
+                          )
+                        }
+                        aria-label={member.domain}
+                      />
+                    </TableCell>
                     <TableCell>
                       <div className='font-medium'>{member.domain}</div>
                       {member.last_error ? (

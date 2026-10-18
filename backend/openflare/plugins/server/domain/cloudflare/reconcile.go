@@ -150,7 +150,7 @@ func lowestPriorityAvailableNodes(nodes []repository.CFPointingGroupNodeContext)
 	priority := 0
 	found := false
 	for _, node := range nodes {
-		if node.Node.Status != "online" || net.ParseIP(strings.TrimSpace(node.Node.IP)).To4() == nil {
+		if !nodeAvailable(node.Node) {
 			continue
 		}
 		if !found || node.GroupNode.Priority < priority {
@@ -163,11 +163,18 @@ func lowestPriorityAvailableNodes(nodes []repository.CFPointingGroupNodeContext)
 	}
 	available := make([]repository.CFPointingGroupNodeContext, 0, len(nodes))
 	for _, node := range nodes {
-		if node.Node.Status == "online" && net.ParseIP(strings.TrimSpace(node.Node.IP)).To4() != nil && node.GroupNode.Priority == priority {
+		if nodeAvailable(node.Node) && node.GroupNode.Priority == priority {
 			available = append(available, node)
 		}
 	}
 	return available
+}
+
+func nodeAvailable(node model.OpenFlareNode) bool {
+	if node.Status != "online" || net.ParseIP(strings.TrimSpace(node.IP)).To4() == nil || node.LastSeenAt == nil || node.LastSeenAt.IsZero() {
+		return false
+	}
+	return time.Since(*node.LastSeenAt) <= 60*time.Second
 }
 
 func recordInput(name, ip string, proxied bool) RecordInput {

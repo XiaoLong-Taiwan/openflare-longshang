@@ -6,7 +6,7 @@ import {
   useQueryClient,
   type UseQueryResult,
 } from '@tanstack/react-query';
-import { Globe, Loader2, Mail, Search, Server, Sparkles } from 'lucide-react';
+import { Globe, Loader2, Mail, Network, Search, Server, Sparkles } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +19,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -52,6 +60,9 @@ export function SystemTab({ configs, systemConfigsQuery }: SystemTabProps) {
   const [smtpTestLog, setSmtpTestLog] = useState('');
   const [smtpTestSuccess, setSmtpTestSuccess] = useState<boolean | null>(null);
   const [smtpTestError, setSmtpTestError] = useState('');
+  const [trustedProxyEnabled, setTrustedProxyEnabled] = useState(true);
+  const [trustedProxyMode, setTrustedProxyMode] = useState('append');
+  const [trustedProxyCIDRs, setTrustedProxyCIDRs] = useState('');
 
   useEffect(() => {
     if (systemConfigsQuery.data) {
@@ -61,6 +72,23 @@ export function SystemTab({ configs, systemConfigsQuery }: SystemTabProps) {
       setSmtpPort(configs['smtp_port']?.value || '587');
       setSmtpUsername(configs['smtp_username']?.value || '');
       setSmtpPassword(configs['smtp_password']?.value || '');
+      const trustedProxyValue = configs['trusted_proxy_cidrs']?.value;
+      if (trustedProxyValue) {
+        try {
+          const trustedProxy = JSON.parse(trustedProxyValue) as {
+            enabled?: boolean;
+            mode?: string;
+            cidrs?: string[];
+          };
+          setTrustedProxyEnabled(trustedProxy.enabled !== false);
+          setTrustedProxyMode(trustedProxy.mode === 'override' ? 'override' : 'append');
+          setTrustedProxyCIDRs((trustedProxy.cidrs || []).join('\n'));
+        } catch {
+          setTrustedProxyEnabled(true);
+          setTrustedProxyMode('append');
+          setTrustedProxyCIDRs('');
+        }
+      }
     }
   }, [systemConfigsQuery.data, configs]);
 
@@ -127,6 +155,30 @@ export function SystemTab({ configs, systemConfigsQuery }: SystemTabProps) {
     e.preventDefault();
     saveSystemMutation.mutate();
   };
+
+  const saveTrustedProxyMutation = useMutation({
+    mutationFn: async () => {
+      const config = configs['trusted_proxy_cidrs'];
+      if (!config) throw new Error(t('trustedProxyMissing'));
+      const cidrs = trustedProxyCIDRs
+        .split(/[,\n]/)
+        .map((value) => value.trim())
+        .filter(Boolean);
+      await services.adminSystemConfig.updateSystemConfig('trusted_proxy_cidrs', {
+        value: JSON.stringify({
+          enabled: trustedProxyEnabled,
+          mode: trustedProxyMode,
+          cidrs,
+        }),
+        description: config.description,
+      });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'system-configs'] });
+      toast.success(t('trustedProxySaved'));
+    },
+    onError: (error: Error) => toast.error(error.message || t('updateConfigFailed')),
+  });
 
   const saveSmtpMutation = useMutation({
     mutationFn: async () => {
@@ -348,6 +400,65 @@ export function SystemTab({ configs, systemConfigsQuery }: SystemTabProps) {
                 ) : (
                   t('saveConfig')
                 )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className='border border-dashed shadow-sm'>
+        <CardHeader className='border-b border-dashed pb-4'>
+          <div className='flex items-center gap-2'>
+            <div className='rounded-lg bg-primary/10 p-1.5 text-primary'>
+              <Network className='size-4' />
+            </div>
+            <div>
+              <CardTitle className='text-base font-semibold'>{t('trustedProxyTitle')}</CardTitle>
+              <CardDescription className='text-xs'>{t('trustedProxyDesc')}</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className='pt-6'>
+          <form
+            className='flex flex-col gap-5'
+            onSubmit={(event) => {
+              event.preventDefault();
+              saveTrustedProxyMutation.mutate();
+            }}
+          >
+            <div className='flex items-center justify-between gap-3 rounded-lg border border-dashed p-3'>
+              <div className='flex flex-col gap-1'>
+                <Label htmlFor='trusted_proxy_enabled' className='text-xs font-semibold'>{t('trustedProxyEnabled')}</Label>
+                <p className='text-[11px] leading-relaxed text-muted-foreground'>{t('trustedProxyEnabledDesc')}</p>
+              </div>
+              <Switch id='trusted_proxy_enabled' checked={trustedProxyEnabled} onCheckedChange={setTrustedProxyEnabled} />
+            </div>
+            <div className='grid grid-cols-1 gap-4 lg:grid-cols-2'>
+              <div className='flex flex-col gap-1.5'>
+                <Label className='text-xs font-semibold'>{t('trustedProxyMode')}</Label>
+                <Select value={trustedProxyMode} onValueChange={setTrustedProxyMode}>
+                  <SelectTrigger className='border-dashed bg-card text-xs'><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value='append'>{t('trustedProxyAppend')}</SelectItem>
+                    <SelectItem value='override'>{t('trustedProxyOverride')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className='flex flex-col gap-1.5'>
+                <Label htmlFor='trusted_proxy_cidrs' className='text-xs font-semibold'>{t('trustedProxyCIDRs')}</Label>
+                <Textarea
+                  id='trusted_proxy_cidrs'
+                  value={trustedProxyCIDRs}
+                  onChange={(event) => setTrustedProxyCIDRs(event.target.value)}
+                  placeholder={t('trustedProxyCIDRsPlaceholder')}
+                  className='min-h-28 border-dashed bg-card text-xs'
+                />
+              </div>
+            </div>
+            <div className='flex flex-col-reverse gap-2 border-t border-dashed pt-4 sm:flex-row sm:items-center sm:justify-between'>
+              <p className='text-[11px] leading-relaxed text-muted-foreground'>{t('trustedProxyRestartWarning')}</p>
+              <Button type='submit' size='sm' disabled={saveTrustedProxyMutation.isPending}>
+                {saveTrustedProxyMutation.isPending ? t('saving') : t('saveConfig')}
               </Button>
             </div>
           </form>

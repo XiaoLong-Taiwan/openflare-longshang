@@ -19,10 +19,10 @@ import (
 	analyticsmodel "Wavelet/openflare/plugins/server/kernel/model/analytics"
 )
 
-// cleanupTestModels 清理涉及的 5 张日志/可观测表。
 func cleanupTestModels() []any {
 	return []any{
 		&analyticsmodel.NodeAccessLog{},
+		&analyticsmodel.UserAccessLog{},
 		&analyticsmodel.NodeMetricSnapshot{},
 		&analyticsmodel.NodeEdgeHealth{},
 		&analyticsmodel.NodeObsFrps{},
@@ -49,7 +49,7 @@ func newCleanupTestDB(t *testing.T) *gorm.DB {
 }
 
 // TestCleanupExpiredSQLite 验证 sqlite 激活库的过期日志清理：
-// 注入 log_retention_days_sqlite=30，40 天前的 5 表记录被删、昨天的保留。
+	// 注入 log_retention_days_sqlite=30，40 天前的日志记录被删、昨天的保留。
 func TestCleanupExpiredSQLite(t *testing.T) {
 	ResetForTest()
 	SetConfigReader(func(_ context.Context, key string) (string, error) {
@@ -75,6 +75,12 @@ func TestCleanupExpiredSQLite(t *testing.T) {
 		{ID: 2, NodeID: "n1", LoggedAt: recent, RemoteAddr: "2.2.2.2"},
 	}).Error; err != nil {
 		t.Fatalf("seed node access logs: %v", err)
+	}
+	if err := gdb.Create([]analyticsmodel.UserAccessLog{
+		{ID: 1, UserID: 1, Path: "/old", CreatedAt: old},
+		{ID: 2, UserID: 2, Path: "/recent", CreatedAt: recent},
+	}).Error; err != nil {
+		t.Fatalf("seed user access logs: %v", err)
 	}
 	if err := gdb.Create([]analyticsmodel.NodeMetricSnapshot{
 		{ID: 1, NodeID: "n1", CapturedAt: old},
@@ -114,11 +120,11 @@ func TestCleanupExpiredSQLite(t *testing.T) {
 	if summary.MetricRetentionDays != 3 {
 		t.Fatalf("MetricRetentionDays = %d, want 3", summary.MetricRetentionDays)
 	}
-	if summary.Deleted != 5 {
-		t.Fatalf("Deleted = %d, want 5", summary.Deleted)
+	if summary.Deleted != 6 {
+		t.Fatalf("Deleted = %d, want 6", summary.Deleted)
 	}
-	if len(summary.Tables) != 5 {
-		t.Fatalf("Tables = %v, want 5 tables", summary.Tables)
+	if len(summary.Tables) != 6 {
+		t.Fatalf("Tables = %v, want 6 tables", summary.Tables)
 	}
 
 	assertCount := func(m any, want int64, label string) {
@@ -132,6 +138,7 @@ func TestCleanupExpiredSQLite(t *testing.T) {
 		}
 	}
 	assertCount(&analyticsmodel.NodeAccessLog{}, 1, "node_access_logs")
+	assertCount(&analyticsmodel.UserAccessLog{}, 1, "user_access_logs")
 	assertCount(&analyticsmodel.NodeMetricSnapshot{}, 1, "metric_snapshots")
 	assertCount(&analyticsmodel.NodeEdgeHealth{}, 1, "edge_health")
 	assertCount(&analyticsmodel.NodeObsFrps{}, 1, "obs_frps")

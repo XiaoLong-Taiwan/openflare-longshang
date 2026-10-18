@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"Wavelet/openflare/plugins/server/kernel/credential"
 	"Wavelet/openflare/plugins/server/kernel/model"
@@ -222,15 +223,26 @@ func TestUpdateMemberDoesNotDispatchWhenGroupIsDisabled(t *testing.T) {
 }
 
 func TestLowestPriorityAvailableNodesFindsLaterLowerPriorityNodes(t *testing.T) {
+	now := time.Now()
 	nodes := []repository.CFPointingGroupNodeContext{
-		{GroupNode: model.CFPointingGroupNode{NodeID: 1, Priority: 0}, Node: model.OpenFlareNode{ID: 1, Status: "offline", IP: "203.0.113.1"}},
-		{GroupNode: model.CFPointingGroupNode{NodeID: 2, Priority: 1}, Node: model.OpenFlareNode{ID: 2, Status: "online", IP: "203.0.113.2"}},
-		{GroupNode: model.CFPointingGroupNode{NodeID: 3, Priority: 0}, Node: model.OpenFlareNode{ID: 3, Status: "online", IP: "203.0.113.3"}},
-		{GroupNode: model.CFPointingGroupNode{NodeID: 4, Priority: 0}, Node: model.OpenFlareNode{ID: 4, Status: "online", IP: "2001:db8::4"}},
+		{GroupNode: model.CFPointingGroupNode{NodeID: 1, Priority: 0}, Node: model.OpenFlareNode{ID: 1, Status: "offline", IP: "203.0.113.1", LastSeenAt: &now}},
+		{GroupNode: model.CFPointingGroupNode{NodeID: 2, Priority: 1}, Node: model.OpenFlareNode{ID: 2, Status: "online", IP: "203.0.113.2", LastSeenAt: &now}},
+		{GroupNode: model.CFPointingGroupNode{NodeID: 3, Priority: 0}, Node: model.OpenFlareNode{ID: 3, Status: "online", IP: "203.0.113.3", LastSeenAt: &now}},
+		{GroupNode: model.CFPointingGroupNode{NodeID: 4, Priority: 0}, Node: model.OpenFlareNode{ID: 4, Status: "online", IP: "2001:db8::4", LastSeenAt: &now}},
 	}
 
 	got := lowestPriorityAvailableNodes(nodes)
 	if len(got) != 1 || got[0].Node.ID != 3 {
 		t.Errorf("lowestPriorityAvailableNodes(%+v) = %+v, want node ID 3", nodes, got)
+	}
+}
+
+func TestLowestPriorityAvailableNodesRejectsStaleHeartbeat(t *testing.T) {
+	stale := time.Now().Add(-61 * time.Second)
+	nodes := []repository.CFPointingGroupNodeContext{
+		{GroupNode: model.CFPointingGroupNode{NodeID: 1, Priority: 0}, Node: model.OpenFlareNode{ID: 1, Status: "online", IP: "203.0.113.1", LastSeenAt: &stale}},
+	}
+	if got := lowestPriorityAvailableNodes(nodes); len(got) != 0 {
+		t.Fatalf("lowestPriorityAvailableNodes() returned stale node: %+v", got)
 	}
 }

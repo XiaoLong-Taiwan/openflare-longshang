@@ -100,6 +100,7 @@ func HeartbeatNode(ctx context.Context, authNode *model.OpenFlareNode, payload N
 	}
 
 	previous := *authNode
+	wasOffline := authNode.LastSeenAt == nil || authNode.LastSeenAt.IsZero() || time.Since(*authNode.LastSeenAt) > 60*time.Second
 	updateNow := authNode.UpdateRequested
 	restartOpenrestyNow := authNode.RestartOpenrestyRequested
 	updateChannel := strings.TrimSpace(authNode.UpdateChannel)
@@ -124,6 +125,11 @@ func HeartbeatNode(ctx context.Context, authNode *model.OpenFlareNode, payload N
 			if _, dispatchErr := cf.DispatchNodeSync(ctx, authNode.ID, "cloudflare_agent_ip_update"); dispatchErr != nil {
 				logger.ErrorF(ctx, "[Cloudflare] enqueue heartbeat node sync failed: node_id=%d error=%v", authNode.ID, dispatchErr)
 			}
+		}
+	}
+	if wasOffline {
+		if _, dispatchErr := cf.DispatchNodeSync(ctx, authNode.ID, "cloudflare_node_recovered"); dispatchErr != nil {
+			logger.ErrorF(ctx, "[Cloudflare] enqueue recovered node sync failed: node_id=%d error=%v", authNode.ID, dispatchErr)
 		}
 	}
 

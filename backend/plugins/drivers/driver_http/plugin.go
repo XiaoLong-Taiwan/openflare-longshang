@@ -169,6 +169,9 @@ func (p *Plugin) Start(ctx context.Context) error {
 			p.engine, _ = BuildEngine()
 		}
 	}
+	if err := configureTrustedProxies(p.engine, p.coreCtx); err != nil {
+		return fmt.Errorf("driver_http: configure trusted proxies failed: %w", err)
+	}
 
 	if err := p.mountContextRoutes(ctx); err != nil {
 		return err

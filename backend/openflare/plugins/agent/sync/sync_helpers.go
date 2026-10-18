@@ -7,6 +7,7 @@ import (
 	"context"
 	"log/slog"
 	"strings"
+	"time"
 
 	"Wavelet/openflare/plugins/agent/nginx"
 	"Wavelet/openflare/plugins/agent/protocol"
@@ -83,6 +84,8 @@ func (s *Service) finishUpToDateSync(ctx context.Context, mode string, snapshot 
 	snapshot.CurrentVersion = target.Version
 	snapshot.CurrentChecksum = target.Checksum
 	clearBlockedTarget(snapshot)
+	snapshot.ApplyRetryCount = 0
+	snapshot.ApplyRetryAt = time.Time{}
 	snapshot.LastError = ""
 	slog.Debug("sync finished without changes", "mode", mode, "version", target.Version)
 	return s.stateStore.Save(snapshot)
@@ -105,6 +108,15 @@ func (s *Service) reconcilePages(ctx context.Context, mode string, snapshot *sta
 
 func (s *Service) syncMismatchedChecksum(ctx context.Context, mode string, startup bool, snapshot *state.Snapshot, currentChecksum string, target *protocol.ActiveConfigMeta) error {
 	if isBlockedTarget(snapshot, target.Version, target.Checksum) {
+		if !snapshot.ApplyRetryAt.IsZero() && time.Now().Before(snapshot.ApplyRetryAt) {
+			if startup {
+				if err := s.ensureRuntimeForCurrentConfig(ctx, mode, snapshot, currentChecksum); err != nil {
+					return err
+				}
+				return s.stateStore.Save(snapshot)
+			}
+			return nil
+		}
 		slog.Warn("skipping blocked config version after previous failed apply", "mode", mode, "version", target.Version, "checksum", target.Checksum)
 		if startup {
 			if err := s.ensureRuntimeForCurrentConfig(ctx, mode, snapshot, currentChecksum); err != nil {
@@ -116,6 +128,8 @@ func (s *Service) syncMismatchedChecksum(ctx context.Context, mode string, start
 	}
 	if hasBlockedTarget(snapshot) {
 		clearBlockedTarget(snapshot)
+		snapshot.ApplyRetryCount = 0
+		snapshot.ApplyRetryAt = time.Time{}
 	}
 	if snapshot.CurrentVersion == target.Version && snapshot.CurrentChecksum == target.Checksum && !startup {
 		reconciled := pagesReconcileNeeded(snapshot)
@@ -163,6 +177,8 @@ func (s *Service) handleUpToDateConfig(ctx context.Context, mode string, snapsho
 	snapshot.CurrentVersion = config.Version
 	snapshot.CurrentChecksum = config.Checksum
 	clearBlockedTarget(snapshot)
+	snapshot.ApplyRetryCount = 0
+	snapshot.ApplyRetryAt = time.Time{}
 	snapshot.LastError = ""
 	slog.Debug("sync finished without changes", "mode", mode, "version", config.Version)
 	return s.stateStore.Save(snapshot)
@@ -171,6 +187,15 @@ func (s *Service) handleUpToDateConfig(ctx context.Context, mode string, snapsho
 func (s *Service) handleBlockedConfigAfterFetch(ctx context.Context, mode string, startup bool, snapshot *state.Snapshot, currentChecksum string, config *protocol.ActiveConfigResponse) (bool, error) {
 	if !isBlockedTarget(snapshot, config.Version, config.Checksum) {
 		return false, nil
+	}
+	if !snapshot.ApplyRetryAt.IsZero() && time.Now().Before(snapshot.ApplyRetryAt) {
+		if startup {
+			if err := s.ensureRuntimeForCurrentConfig(ctx, mode, snapshot, currentChecksum); err != nil {
+				return true, err
+			}
+			return true, s.stateStore.Save(snapshot)
+		}
+		return true, nil
 	}
 	slog.Warn("skipping blocked config after fetch because the same version previously failed", "mode", mode, "version", config.Version, "checksum", config.Checksum)
 	if startup {
@@ -206,6 +231,8 @@ func updateSnapshotFromApplyOutcome(mode string, snapshot *state.Snapshot, confi
 		snapshot.CurrentVersion = config.Version
 		snapshot.CurrentChecksum = config.Checksum
 		clearBlockedTarget(snapshot)
+		snapshot.ApplyRetryCount = 0
+		snapshot.ApplyRetryAt = time.Time{}
 		snapshot.LastError = ""
 		snapshot.OpenrestyStatus = protocol.OpenrestyStatusHealthy
 		snapshot.OpenrestyMessage = ""
@@ -219,6 +246,8 @@ func updateSnapshotFromApplyOutcome(mode string, snapshot *state.Snapshot, confi
 		}
 		slog.Warn("openresty config apply rolled back", "mode", mode, "version", config.Version, "message", result.message)
 		markBlockedTarget(snapshot, config.Version, config.Checksum, result.message)
+		snapshot.ApplyRetryCount++
+		snapshot.ApplyRetryAt = time.Now().Add(applyRetryDelay(snapshot.ApplyRetryCount))
 		snapshot.LastError = result.message
 		snapshot.OpenrestyStatus = protocol.OpenrestyStatusHealthy
 		snapshot.OpenrestyMessage = result.message
@@ -232,11 +261,23 @@ func updateSnapshotFromApplyOutcome(mode string, snapshot *state.Snapshot, confi
 		}
 		slog.Error("apply openresty config failed", "mode", mode, "version", config.Version, "message", result.message)
 		markBlockedTarget(snapshot, config.Version, config.Checksum, result.message)
+		snapshot.ApplyRetryCount++
+		snapshot.ApplyRetryAt = time.Now().Add(applyRetryDelay(snapshot.ApplyRetryCount))
 		snapshot.LastError = result.message
 		snapshot.OpenrestyStatus = protocol.OpenrestyStatusUnhealthy
 		snapshot.OpenrestyMessage = result.message
 	}
 	return result
+}
+
+func applyRetryDelay(attempt int) time.Duration {
+	if attempt < 1 {
+		attempt = 1
+	}
+	if attempt > 6 {
+		attempt = 6
+	}
+	return time.Duration(1<<(attempt-1)) * time.Minute
 }
 
 func snapshotMatchesTarget(snapshot *state.Snapshot, version string, checksum string) bool {

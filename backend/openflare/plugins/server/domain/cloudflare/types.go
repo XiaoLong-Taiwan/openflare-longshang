@@ -77,6 +77,18 @@ type MemberUpdateInput struct {
 	Proxied bool `json:"proxied"`
 }
 
+// MemberBatchMoveInput moves selected members to another pointing group.
+type MemberBatchMoveInput struct {
+	MemberIDs []uint `json:"member_ids"`
+	TargetGroupID uint `json:"target_group_id"`
+}
+
+// MemberBatchResult reports the members accepted for asynchronous processing.
+type MemberBatchResult struct {
+	MemberIDs []uint `json:"member_ids"`
+	TaskIDs   []string `json:"task_ids"`
+}
+
 // MemberItem is the admin-facing member state.
 type MemberItem struct {
 	ID           uint       `json:"id"`

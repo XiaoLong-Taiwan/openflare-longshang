@@ -261,6 +261,9 @@ func (s *OAuthService) verifyIDToken(ctx context.Context, verifier *oidc.IDToken
 
 // NormalizeOAuthUserInfo sanitizes user claims.
 func (s *OAuthService) NormalizeOAuthUserInfo(userInfo *contracts.OAuthUserInfoDTO) error {
+	if userInfo.Sub == "" {
+		userInfo.Sub = oauthClaimString(userInfo.ID)
+	}
 	userInfo.Username = strings.TrimSpace(userInfo.Username)
 	userInfo.PreferredUsername = strings.TrimSpace(userInfo.PreferredUsername)
 	userInfo.Email = strings.TrimSpace(userInfo.Email)
@@ -286,6 +289,26 @@ func (s *OAuthService) NormalizeOAuthUserInfo(userInfo *contracts.OAuthUserInfoD
 		userInfo.Active = true
 	}
 	return nil
+}
+
+func oauthClaimString(value any) string {
+	switch v := value.(type) {
+	case string:
+		return strings.TrimSpace(v)
+	case uint64:
+		return strconv.FormatUint(v, 10)
+	case int:
+		if v > 0 {
+			return strconv.Itoa(v)
+		}
+	case float64:
+		if v > 0 {
+			return strconv.FormatUint(uint64(v), 10)
+		}
+	case fmt.Stringer:
+		return strings.TrimSpace(v.String())
+	}
+	return ""
 }
 
 // UniqueUsername generates a unique username given a base candidate.

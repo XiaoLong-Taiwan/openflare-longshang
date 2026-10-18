@@ -681,12 +681,37 @@ func (s *gormLogStore) EnsurePartitions(ctx context.Context, from, to time.Time)
 	if !isPostgresDialect(s.db) {
 		return nil
 	}
-	for _, sql := range partitionStatementsRange(from, to) {
+	partitioned, err := postgresPartitionedAccessLogTables(ctx, s.db)
+	if err != nil {
+		return err
+	}
+	if len(partitioned) == 0 {
+		return nil
+	}
+	for _, sql := range partitionStatementsRangeForTables(from, to, partitioned) {
 		if err := s.db.WithContext(ctx).Exec(sql).Error; err != nil {
 			return fmt.Errorf("ensure partition: %w", err)
 		}
 	}
 	return nil
+}
+
+func postgresPartitionedAccessLogTables(ctx context.Context, db *gorm.DB) (map[string]bool, error) {
+	var rows []struct {
+		TableName string `gorm:"column:table_name"`
+	}
+	if err := db.WithContext(ctx).Raw(`
+		SELECT c.relname AS table_name
+		FROM pg_partitioned_table p
+		JOIN pg_class c ON c.oid = p.partrelid
+		WHERE c.relname IN ?`, accessLogPartitionTables).Scan(&rows).Error; err != nil {
+		return nil, fmt.Errorf("inspect access log partitions: %w", err)
+	}
+	result := make(map[string]bool, len(rows))
+	for _, row := range rows {
+		result[row.TableName] = true
+	}
+	return result, nil
 }
 
 // DropEmptyPartitions 幂等清理 PG 空分区表：仅删除 before 月份之前、且无任何数据的分区

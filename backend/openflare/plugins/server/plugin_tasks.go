@@ -25,6 +25,8 @@ func registerOpenFlareTasks(ctx *core.Context) {
 	registerOFTask(ctx, cf.SyncMemberTask, &cf.SyncMemberTaskHandler{}, cf.SyncMemberMeta)
 	registerOFTask(ctx, cf.SyncGroupTask, &cf.SyncGroupTaskHandler{}, cf.SyncGroupMeta)
 	registerOFTask(ctx, cf.SyncByNodeTask, &cf.SyncByNodeTaskHandler{}, cf.SyncByNodeMeta)
+	registerOFTask(ctx, cf.SyncAllGroupsTask, &cf.SyncAllGroupsTaskHandler{}, cf.SyncAllGroupsMeta)
+	ctx.Schedule().RegisterCron("*/1 * * * *", cf.SyncAllGroupsTask, nil)
 
 	registerOFTask(ctx, pages.PagesSourceScanTask, &pages.SourceScanHandler{}, pages.PagesSourceScanMeta)
 	registerOFTask(ctx, pages.PagesSourceActionTask, &pages.SourceActionHandler{}, pages.PagesSourceActionMeta)

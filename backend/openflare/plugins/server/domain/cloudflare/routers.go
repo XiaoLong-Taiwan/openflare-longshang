@@ -337,6 +337,60 @@ func RemoveMemberHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, response.OKNil())
 }
 
+// BatchMoveMembersHandler moves selected members to another group.
+// @Summary 批量移动 Cloudflare 指向成员
+// @Tags openflare-cloudflare
+// @Accept json
+// @Produce json
+// @Security SessionCookie
+// @Param id path int true "分组 ID"
+// @Param body body cloudflare.MemberBatchMoveInput true "批量移动参数"
+// @Success 200 {object} response.Any{data=cloudflare.MemberBatchResult}
+// @Router /api/v1/d/cloudflare/groups/{id}/members/batch-move [post]
+func BatchMoveMembersHandler(c *gin.Context) {
+	groupID, ok := apiutil.IDParam(c)
+	if !ok {
+		return
+	}
+	var input MemberBatchMoveInput
+	if !apiutil.BindJSON(c, &input) {
+		return
+	}
+	result, err := MoveMembers(c.Request.Context(), groupID, input)
+	if abortLogic(c, err) {
+		return
+	}
+	c.JSON(http.StatusOK, response.OK(result))
+}
+
+// BatchRemoveMembersHandler removes selected members from a group.
+// @Summary 批量移出 Cloudflare 指向成员
+// @Tags openflare-cloudflare
+// @Accept json
+// @Produce json
+// @Security SessionCookie
+// @Param id path int true "分组 ID"
+// @Param body body object true "成员 ID 列表"
+// @Success 200 {object} response.Any{data=cloudflare.MemberBatchResult}
+// @Router /api/v1/d/cloudflare/groups/{id}/members/batch-remove [post]
+func BatchRemoveMembersHandler(c *gin.Context) {
+	groupID, ok := apiutil.IDParam(c)
+	if !ok {
+		return
+	}
+	var input struct {
+		MemberIDs []uint `json:"member_ids"`
+	}
+	if !apiutil.BindJSON(c, &input) {
+		return
+	}
+	result, err := RemoveMembers(c.Request.Context(), groupID, input.MemberIDs)
+	if abortLogic(c, err) {
+		return
+	}
+	c.JSON(http.StatusOK, response.OK(result))
+}
+
 // SyncMemberHandler queues one member synchronization.
 // @Summary 同步 Cloudflare 指向成员
 // @Tags openflare-cloudflare

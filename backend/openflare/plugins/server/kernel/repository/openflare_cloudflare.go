@@ -228,6 +228,37 @@ func DeleteCFPointingMember(ctx context.Context, item *model.CFPointingMember) e
 	})
 }
 
+// MoveCFPointingMembers changes the group for selected members atomically.
+func MoveCFPointingMembers(ctx context.Context, memberIDs []uint, sourceGroupID, targetGroupID uint) error {
+	return DB(ctx).Transaction(func(tx *gorm.DB) error {
+		var count int64
+		if err := tx.Model(&model.CFPointingMember{}).
+			Where("id IN ? AND group_id = ?", memberIDs, sourceGroupID).
+			Count(&count).Error; err != nil {
+			return err
+		}
+		if count != int64(len(memberIDs)) {
+			return gorm.ErrRecordNotFound
+		}
+		if err := tx.Model(&model.CFPointingMember{}).
+			Where("id IN ? AND group_id = ?", memberIDs, sourceGroupID).
+			Updates(map[string]any{"group_id": targetGroupID, "sync_status": model.CFMemberSyncPending, "last_error": "", "synced_at": nil}).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+// DeleteCFPointingMembers deletes selected members and their managed records atomically.
+func DeleteCFPointingMembers(ctx context.Context, groupID uint, memberIDs []uint) error {
+	return DB(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("member_id IN (SELECT id FROM of_cf_pointing_members WHERE id IN ? AND group_id = ?)", memberIDs, groupID).Delete(&model.CFPointingManagedRecord{}).Error; err != nil {
+			return err
+		}
+		return tx.Where("id IN ? AND group_id = ?", memberIDs, groupID).Delete(&model.CFPointingMember{}).Error
+	})
+}
+
 // ListAvailableCFZoneDomains returns ZoneDomains not already managed by Cloudflare pointing.
 func ListAvailableCFZoneDomains(ctx context.Context) ([]model.ZoneDomain, error) {
 	var items []model.ZoneDomain

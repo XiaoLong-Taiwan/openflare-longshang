@@ -26,6 +26,8 @@ const (
 	SyncGroupTask = "cloudflare:sync_group"
 	// SyncByNodeTask is the Asynq task type for members targeting one node.
 	SyncByNodeTask = "cloudflare:sync_by_node"
+	// SyncAllGroupsTask is the scheduled task type for group health reconciliation.
+	SyncAllGroupsTask = "cloudflare:sync_all_groups"
 
 	// TaskTypeSyncMember is the task metadata type for member synchronization.
 	TaskTypeSyncMember = "of_cloudflare_sync_member"
@@ -33,6 +35,8 @@ const (
 	TaskTypeSyncGroup = "of_cloudflare_sync_group"
 	// TaskTypeSyncByNode is the task metadata type for node-triggered synchronization.
 	TaskTypeSyncByNode = "of_cloudflare_sync_by_node"
+	// TaskTypeSyncAllGroups is the task metadata type for group health synchronization.
+	TaskTypeSyncAllGroups = "of_cloudflare_sync_all_groups"
 )
 
 // SyncMemberMeta describes one-member reconciliation (admin-dispatchable).
@@ -92,6 +96,13 @@ var SyncByNodeMeta = task.TaskMeta{
 	InternalOnly: true,
 }
 
+// SyncAllGroupsMeta describes scheduled health reconciliation for all groups.
+var SyncAllGroupsMeta = task.TaskMeta{
+	Type: TaskTypeSyncAllGroups, AsynqTask: SyncAllGroupsTask,
+	Name: "Cloudflare 分组健康同步", Description: "检查并同步全部启用的 Cloudflare 指向分组",
+	SupportsTime: false, MaxRetry: 1, Queue: task.QueueDefault, Retryable: true, InternalOnly: true,
+}
+
 // SyncMemberPayload identifies one member.
 type SyncMemberPayload struct {
 	MemberID uint `json:"member_id"`
@@ -105,6 +116,35 @@ type SyncGroupPayload struct {
 // SyncByNodePayload identifies one active node.
 type SyncByNodePayload struct {
 	NodeID uint `json:"node_id"`
+}
+
+// SyncAllGroupsTaskHandler reconciles all enabled Cloudflare pointing groups.
+type SyncAllGroupsTaskHandler struct{}
+
+// Execute reconciles every member in every enabled group.
+func (handler *SyncAllGroupsTaskHandler) Execute(ctx context.Context, payload []byte) (*task.TaskResult, error) {
+	if len(payload) > 0 && string(payload) != "null" && string(payload) != "{}" {
+		return nil, task.PermanentError("无效的 Cloudflare 分组健康同步参数")
+	}
+	groups, err := repository.ListCFPointingGroups(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, group := range groups {
+		if !group.Enabled {
+			continue
+		}
+		members, listErr := repository.ListCFPointingMembersByGroupID(ctx, group.ID)
+		if listErr != nil {
+			return nil, listErr
+		}
+		for _, member := range members {
+			if err = ReconcileMember(ctx, member.ID); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return &task.TaskResult{Message: "Cloudflare 分组健康同步完成"}, nil
 }
 
 var dispatchTaskFn = task.DispatchTask

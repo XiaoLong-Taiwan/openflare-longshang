@@ -43,6 +43,7 @@ const (
 	ConfigKeyStorageConfig                    = "storage_config"                      // 文件存储配置 (JSON)
 	ConfigKeyRelayFRPSWebUIEnabled            = "relay_frps_web_ui_enabled"           // 是否启用 FRPS 内置 Web 界面
 	ConfigKeyRelayFRPSWebUIPort               = "relay_frps_web_ui_port"              // FRPS 内置 Web 界面端口
+	ConfigKeyTrustedProxyCIDRs                 = "trusted_proxy_cidrs"
 
 	// OpenFlare 业务配置（从 of_options 迁移）
 	ConfigKeyAgentDiscoveryToken          = "agent_discovery_token"           //nolint:gosec // false positive: config key name. Agent 发现令牌

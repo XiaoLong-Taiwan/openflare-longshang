@@ -696,6 +696,30 @@ func TestSyncOnceRollbackOnNginxFailure(t *testing.T) {
 	if client.reports[0].SupportFileCount != 3 {
 		t.Fatalf("expected failed report to include support file count, got %d", client.reports[0].SupportFileCount)
 	}
+	if snapshot.ApplyRetryCount != 1 || snapshot.ApplyRetryAt.Before(time.Now()) {
+		t.Fatalf("expected persisted apply retry backoff, got count=%d retry_at=%v", snapshot.ApplyRetryCount, snapshot.ApplyRetryAt)
+	}
+}
+
+func TestBlockedApplyRetriesAfterPersistedBackoffOnStartup(t *testing.T) {
+	client := &fakeClient{config: protocol.ActiveConfigResponse{Version: "20260309-004", Checksum: "checksum-4", SourceConfigJSON: testSourceConfigJSON("4", 82)}}
+	stateStore := state.NewStore(filepath.Join(t.TempDir(), "state.json"))
+	retryAt := time.Now().Add(-time.Minute)
+	if err := stateStore.Save(&state.Snapshot{CurrentVersion: "20260309-003", CurrentChecksum: "checksum-3", BlockedVersion: client.config.Version, BlockedChecksum: client.config.Checksum, ApplyRetryCount: 1, ApplyRetryAt: retryAt}); err != nil {
+		t.Fatal(err)
+	}
+	manager := &fakeManager{currentChecksum: "checksum-3", applyOutcome: nginx.ApplyOutcome{Status: nginx.ApplyStatusSuccess}}
+	service := New(client, manager, stateStore)
+	if err := service.SyncOnStartup(context.Background(), &protocol.ActiveConfigMeta{Version: client.config.Version, Checksum: client.config.Checksum}); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := stateStore.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snapshot.BlockedVersion != "" || snapshot.ApplyRetryCount != 0 || snapshot.CurrentVersion != client.config.Version {
+		t.Fatalf("expected persisted retry to recover target, got %+v", snapshot)
+	}
 }
 
 func TestSyncOnceReportsWarningWhenRollbackKeepsOpenrestyHealthy(t *testing.T) {
