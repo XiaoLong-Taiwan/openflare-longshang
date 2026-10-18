@@ -75,7 +75,7 @@ func validateOptionWithState(ctx context.Context, option model.OpenFlareOption, 
 	if err := validatePagesOption(option.Key, option.Value); err != nil {
 		return err
 	}
-	if err := validateTrustedProxyOption(key, option.Value); err != nil {
+	if err := validateTrustedProxyOption(option.Key, option.Value); err != nil {
 		return err
 	}
 	return validateUptimeKumaOption(ctx, option.Key, option.Value, state)
