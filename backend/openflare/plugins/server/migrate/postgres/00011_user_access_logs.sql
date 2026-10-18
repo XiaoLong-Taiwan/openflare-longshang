@@ -23,13 +23,22 @@ CREATE INDEX IF NOT EXISTS idx_w_user_access_logs_ip
 -- +goose StatementBegin
 DO $$
 DECLARE
+    is_partitioned boolean := false;
     d date;
 BEGIN
-    FOR d IN SELECT generate_series(date_trunc('month', now())::date, (date_trunc('month', now()) + interval '2 months')::date, interval '1 month')::date
-    LOOP
-        EXECUTE format('CREATE TABLE IF NOT EXISTS w_user_access_logs_%s PARTITION OF w_user_access_logs FOR VALUES FROM (%L) TO (%L)',
-            to_char(d, 'YYYYMM'), d, d + interval '1 month');
-    END LOOP;
+    SELECT (c.relkind = 'p') INTO is_partitioned
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE c.relname = 'w_user_access_logs'
+      AND n.nspname = current_schema();
+
+    IF is_partitioned IS TRUE THEN
+        FOR d IN SELECT generate_series(date_trunc('month', now())::date, (date_trunc('month', now()) + interval '2 months')::date, interval '1 month')::date
+        LOOP
+            EXECUTE format('CREATE TABLE IF NOT EXISTS w_user_access_logs_%s PARTITION OF w_user_access_logs FOR VALUES FROM (%L) TO (%L)',
+                to_char(d, 'YYYYMM'), d, d + interval '1 month');
+        END LOOP;
+    END IF;
 END $$;
 -- +goose StatementEnd
 

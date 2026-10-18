@@ -704,6 +704,7 @@ func postgresPartitionedAccessLogTables(ctx context.Context, db *gorm.DB) (map[s
 		SELECT c.relname AS table_name
 		FROM pg_partitioned_table p
 		JOIN pg_class c ON c.oid = p.partrelid
+		JOIN pg_namespace n ON n.oid = c.relnamespace AND n.nspname = current_schema()
 		WHERE c.relname IN ?`, accessLogPartitionTables).Scan(&rows).Error; err != nil {
 		return nil, fmt.Errorf("inspect access log partitions: %w", err)
 	}
