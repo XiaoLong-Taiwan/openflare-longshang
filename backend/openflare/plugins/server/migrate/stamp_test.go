@@ -38,6 +38,11 @@ func openStampDB(t *testing.T) (*gorm.DB, *sql.DB) {
 	if err != nil {
 		t.Fatalf("gdb.DB() error = %v", err)
 	}
+	t.Cleanup(func() {
+		if err := sqlDB.Close(); err != nil {
+			t.Errorf("sqlDB.Close() error = %v", err)
+		}
+	})
 	return gdb, sqlDB
 }
 

@@ -95,53 +95,38 @@ type TaskExecutionCleanupStats struct {
 
 // CleanupTaskExecutionLogs removes finished task execution logs according to frequency-based retention.
 func CleanupTaskExecutionLogs(ctx context.Context, now time.Time) (TaskExecutionCleanupStats, error) {
-	const (
-		frequencyWindowDays    = 30
-		highFrequencyThreshold = frequencyWindowDays
-	)
-
-	frequencyWindowStart := now.AddDate(0, 0, -frequencyWindowDays)
 	highFrequencyCutoff := now.AddDate(0, 0, -3)
 	lowFrequencyCutoff := now.AddDate(0, 0, -30)
-	terminalStatuses := []TaskExecutionStatus{TaskExecutionStatusSucceeded, TaskExecutionStatusFailed}
-
-	var highFrequencyTaskTypes []string
-	if err := getDB(ctx).
-		Model(&TaskExecution{}).
-		Select("task_type").
-		Where("created_at >= ?", frequencyWindowStart).
-		Group("task_type").
-		Having("COUNT(*) > ?", highFrequencyThreshold).
-		Pluck("task_type", &highFrequencyTaskTypes).Error; err != nil {
+	var highFrequencyDeleted, lowFrequencyDeleted int64
+	if err := deleteExpiredTaskExecutions(ctx, TaskExecutionStatusSucceeded, highFrequencyCutoff, &highFrequencyDeleted); err != nil {
 		return TaskExecutionCleanupStats{}, err
 	}
-
-	var highFrequencyDeleted int64
-	if len(highFrequencyTaskTypes) > 0 {
-		highFrequencyResult := getDB(ctx).
-			Where("status IN ?", terminalStatuses).
-			Where("created_at < ?", highFrequencyCutoff).
-			Where("task_type IN ?", highFrequencyTaskTypes).
-			Delete(&TaskExecution{})
-		if highFrequencyResult.Error != nil {
-			return TaskExecutionCleanupStats{}, highFrequencyResult.Error
-		}
-		highFrequencyDeleted = highFrequencyResult.RowsAffected
-	}
-
-	lowFrequencyQuery := getDB(ctx).
-		Where("status IN ?", terminalStatuses).
-		Where("created_at < ?", lowFrequencyCutoff)
-	if len(highFrequencyTaskTypes) > 0 {
-		lowFrequencyQuery = lowFrequencyQuery.Where("task_type NOT IN ?", highFrequencyTaskTypes)
-	}
-	lowFrequencyResult := lowFrequencyQuery.Delete(&TaskExecution{})
-	if lowFrequencyResult.Error != nil {
-		return TaskExecutionCleanupStats{}, lowFrequencyResult.Error
+	if err := deleteExpiredTaskExecutions(ctx, TaskExecutionStatusFailed, lowFrequencyCutoff, &lowFrequencyDeleted); err != nil {
+		return TaskExecutionCleanupStats{}, err
 	}
 
 	return TaskExecutionCleanupStats{
 		HighFrequencyDeleted: highFrequencyDeleted,
-		LowFrequencyDeleted:  lowFrequencyResult.RowsAffected,
+		LowFrequencyDeleted:  lowFrequencyDeleted,
 	}, nil
+}
+
+func deleteExpiredTaskExecutions(ctx context.Context, status TaskExecutionStatus, cutoff time.Time, total *int64) error {
+	for {
+		ids := make([]uint64, 0, 1000)
+		if err := getDB(ctx).Model(&TaskExecution{}).Where("status = ? AND created_at < ?", status, cutoff).Order("id ASC").Limit(1000).Pluck("id", &ids).Error; err != nil {
+			return err
+		}
+		if len(ids) == 0 {
+			return nil
+		}
+		result := getDB(ctx).Where("id IN ? AND status = ?", ids, status).Delete(&TaskExecution{})
+		if result.Error != nil {
+			return result.Error
+		}
+		*total += result.RowsAffected
+		if len(ids) < 1000 {
+			return nil
+		}
+	}
 }

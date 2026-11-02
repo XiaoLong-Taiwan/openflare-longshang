@@ -48,6 +48,7 @@ type Snapshot struct {
 	LastCPUStatIdle        uint64            `json:"last_cpu_stat_idle"`
 	LastMetricAtUnix       int64             `json:"last_metric_at_unix"`
 	AccessLogOffset        int64             `json:"access_log_offset"`
+	AccessLogDiscarding    bool              `json:"access_log_discarding,omitempty"`
 }
 
 // Store manages the storage and retrieval of the agent state snapshot.

@@ -29,7 +29,7 @@ type CleanupSummary struct {
 }
 
 // defaultLogRetentionDays 默认日志保留天数（配置缺失/非法时回退）。
-const defaultLogRetentionDays = 90
+const defaultLogRetentionDays = 7
 
 // defaultMetricRetentionDays 默认性能指标保留天数（配置缺失/非法时回退）。
 // 性能数据价值衰减快，默认短留存（3 天）。

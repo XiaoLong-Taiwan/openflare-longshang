@@ -11,7 +11,7 @@ import (
 
 // AccessLogHooks 节点访问日志异步入队回调（由 chwriter 装配）。
 type AccessLogHooks struct {
-	QueueNodeAccessLogs func(logs []analyticsmodel.NodeAccessLog)
+	QueueNodeAccessLogs func(logs []analyticsmodel.NodeAccessLog) bool
 }
 
 // ObservabilityHooks 可观测异步入队回调（由 chwriter 装配）。

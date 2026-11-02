@@ -13,6 +13,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"Wavelet/openflare/plugins/server/domain/fleet/reporting"
+	"Wavelet/openflare/share/protocol"
 	"Wavelet/pkg/util"
 )
 
@@ -21,6 +23,7 @@ const (
 	AgentWSConnectedLastSeenValue = "__OPENFLARE_WS_CONNECTED__"
 
 	agentMessageTypeStatus          = "status"
+	agentMessageTypeStatusAck       = "status_ack"
 	agentMessageTypeSettings        = "settings"
 	agentMessageTypeActiveConfig    = "active_config"
 	agentMessageTypeForceSyncConfig = "force_sync_config"
@@ -28,7 +31,7 @@ const (
 )
 
 // AgentStatusHandler processes inbound agent websocket status payloads.
-type AgentStatusHandler func(ctx context.Context, nodeID, remoteAddr string, payload json.RawMessage)
+type AgentStatusHandler func(ctx context.Context, nodeID, remoteAddr string, payload json.RawMessage) error
 
 type agentClient struct {
 	wsClientCore
@@ -167,6 +170,7 @@ func sendAgentMessage(nodeID string, message Message) bool {
 
 func (c *agentClient) readPump() {
 	defer c.close()
+	c.conn.SetReadLimit(reporting.MaxPayloadBytes)
 
 	for {
 		_ = c.conn.SetReadDeadline(time.Now().Add(agentWSReadTimeout()))
@@ -188,9 +192,17 @@ func (c *agentClient) readPump() {
 		slog.Debug("agent ws message received", "node_id", c.nodeID, "type", inbound.Type)
 		switch inbound.Type {
 		case agentMessageTypeStatus:
-			if c.onStatus != nil {
-				c.onStatus(context.Background(), c.nodeID, c.remoteAddr, inbound.Payload)
+			if !validStatusPayload(inbound.Payload) {
+				_ = c.enqueue(Message{Type: agentMessageTypeStatusAck, Payload: statusAck{Accepted: false}})
+				continue
 			}
+			if c.onStatus != nil {
+				if err := c.onStatus(context.Background(), c.nodeID, c.remoteAddr, inbound.Payload); err != nil {
+					_ = c.enqueue(Message{Type: agentMessageTypeStatusAck, Payload: statusAck{Accepted: false}})
+					continue
+				}
+			}
+			_ = c.enqueue(Message{Type: agentMessageTypeStatusAck, Payload: statusAck{Accepted: true}})
 		case messageTypePing:
 			_ = c.enqueue(Message{Type: messageTypePong})
 		case messageTypePong:
@@ -198,6 +210,15 @@ func (c *agentClient) readPump() {
 			slog.Debug("agent ws unsupported message type", "node_id", c.nodeID, "type", inbound.Type)
 		}
 	}
+}
+
+type statusAck struct {
+	Accepted bool `json:"accepted"`
+}
+
+func validStatusPayload(raw []byte) bool {
+	var payload protocol.NodePayload
+	return json.Unmarshal(raw, &payload) == nil && reporting.Valid(payload)
 }
 
 func agentWSReadTimeout() time.Duration {

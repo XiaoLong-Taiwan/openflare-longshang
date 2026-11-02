@@ -281,12 +281,13 @@ func (r *Runner) runWebSocket(ctx context.Context, nodeID string, conn protocol.
 }
 
 func (r *Runner) sendWebSocketStatus(ctx context.Context, nodeID string, conn protocol.WebSocketConnection) error {
-	r.refreshOpenrestyHealth(ctx)
-	payload, ackWindows := r.HeartbeatCycle.PrepareHeartbeatPayload(ctx, nodeID)
-	if err := conn.SendStatus(payload); err != nil {
+	if err := conn.SendPong(); err != nil {
 		return err
 	}
-	r.HeartbeatCycle.AckObservabilityWindows(ackWindows)
+	_, err := r.performHeartbeatCycle(ctx, nodeID, false)
+	if err != nil {
+		slog.Error("agent report while websocket connected failed", "error", err)
+	}
 	return nil
 }
 
@@ -395,7 +396,7 @@ func (r *Runner) applySettings(settings *protocol.AgentSettings) bool {
 	}
 	changed := false
 	if settings.HeartbeatInterval > 0 {
-		newInterval := config.MillisecondDuration(time.Duration(settings.HeartbeatInterval) * time.Millisecond)
+		newInterval := config.MillisecondDuration(time.Duration(max(settings.HeartbeatInterval, 3000)) * time.Millisecond)
 		if newInterval != r.Config.HeartbeatInterval {
 			slog.Info("agent heartbeat interval updated", "from", r.Config.HeartbeatInterval, "to", newInterval)
 			r.Config.HeartbeatInterval = newInterval

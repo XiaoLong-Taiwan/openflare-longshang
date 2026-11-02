@@ -10,6 +10,7 @@ import (
 	"Wavelet/core"
 	"Wavelet/core/contracts"
 	"Wavelet/openflare/plugins/server/domain/observability/chwriter"
+	"Wavelet/openflare/plugins/server/domain/pages"
 	ofrouter "Wavelet/openflare/plugins/server/httpapi"
 	"Wavelet/openflare/plugins/server/kernel/credential"
 	ofgeoip "Wavelet/openflare/plugins/server/kernel/geoip"
@@ -95,6 +96,12 @@ func (p *Plugin) Apply(ctx *core.Context) error {
 	ctx.Events().On(contracts.EventTopicSystemCleanup, func(c context.Context, _ contracts.SystemCleanupEvent) error {
 		_, err := logstore.CleanupExpired(c)
 		return err
+	})
+	ctx.Events().On(contracts.EventTopicSystemCleanup, func(c context.Context, _ contracts.SystemCleanupEvent) error {
+		if _, err := repository.CleanupRetainedConfigVersions(c); err != nil {
+			return err
+		}
+		return pages.CleanupRetainedVersions(c)
 	})
 	core.Provide[contracts.LogStorageService](ctx, logstore.NewLogStorageService())
 

@@ -38,6 +38,15 @@ func TestAdminPluginUnit(t *testing.T) {
 	require.True(t, ok)
 	_, ok = ctx.Tasks().Get("system:cleanup")
 	require.True(t, ok)
+	if _, ok := ctx.Tasks().Get("database:maintenance"); !ok {
+		t.Error("admin.Apply() did not register database:maintenance for manual execution")
+	}
+	if schedule, ok := ctx.Schedule().Get("system:cleanup"); !ok || schedule.Spec != "0 3 * * *" {
+		t.Errorf("admin.Apply() system:cleanup schedule = %+v, present = %t, want daily at 03:00", schedule, ok)
+	}
+	if schedule, ok := ctx.Schedule().Get("database:maintenance"); ok {
+		t.Errorf("admin.Apply() registered database:maintenance schedule = %+v, want manual execution only", schedule)
+	}
 
 	// Verify settings
 	setting, ok := ctx.Settings().Get("admin.system_cleanup_cron")

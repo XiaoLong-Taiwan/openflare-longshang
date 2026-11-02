@@ -120,6 +120,22 @@ func DeleteConfigVersionsByVersions(ctx context.Context, versions []string) (int
 	return result.RowsAffected, result.Error
 }
 
+func CleanupRetainedConfigVersions(ctx context.Context) (int64, error) {
+	conn := DB(ctx)
+	if conn == nil {
+		return 0, errors.New(errDatabaseNotInitialized)
+	}
+result := conn.Exec(`DELETE FROM of_config_versions
+WHERE version NOT IN (
+    SELECT version FROM (
+      SELECT version FROM of_config_versions ORDER BY created_at DESC, version DESC LIMIT 5
+    ) retained_versions
+  ) AND NOT EXISTS (
+    SELECT 1 FROM of_apply_logs WHERE of_apply_logs.version = of_config_versions.version
+  ) AND is_active = ?`, false)
+	return result.RowsAffected, result.Error
+}
+
 // ListEnabledProxyRoutes returns enabled proxy routes ordered by id asc.
 func ListEnabledProxyRoutes(ctx context.Context) ([]*model.ProxyRoute, error) {
 	conn := DB(ctx)

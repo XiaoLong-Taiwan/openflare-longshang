@@ -5,6 +5,7 @@ package logstore
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -27,8 +28,9 @@ func TestGormAccessLogInsertBatchHooks(t *testing.T) {
 
 	var hooked []analyticsmodel.NodeAccessLog
 	SetAccessLogHooks(AccessLogHooks{
-		QueueNodeAccessLogs: func(logs []analyticsmodel.NodeAccessLog) {
+		QueueNodeAccessLogs: func(logs []analyticsmodel.NodeAccessLog) bool {
 			hooked = append(hooked, logs...)
+			return true
 		},
 	})
 	defer SetAccessLogHooks(AccessLogHooks{})
@@ -61,5 +63,18 @@ func TestGormAccessLogInsertBatchHooks(t *testing.T) {
 	}
 	if len(rows) != 2 {
 		t.Fatalf("list after flush want 2, got %d", len(rows))
+	}
+}
+
+func TestGormAccessLogInsertBatchReturnsQueueRejection(t *testing.T) {
+	ResetForTest()
+	SetConfigReader(func(_ context.Context, key string) (string, error) { return "", nil })
+	defer ResetForTest()
+	s := newTestGormStore(t)
+	SetAccessLogHooks(AccessLogHooks{QueueNodeAccessLogs: func([]analyticsmodel.NodeAccessLog) bool { return false }})
+	defer SetAccessLogHooks(AccessLogHooks{})
+	err := s.InsertBatch(context.Background(), []*model.OpenFlareAccessLog{{NodeID: "n1", LoggedAt: time.Now()}})
+	if !errors.Is(err, ErrAccessLogQueueFull) {
+		t.Errorf("InsertBatch(rejected hook) error = %v, want %v", err, ErrAccessLogQueueFull)
 	}
 }

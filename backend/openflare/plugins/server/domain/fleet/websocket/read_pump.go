@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"time"
 
+	"Wavelet/openflare/plugins/server/domain/fleet/reporting"
 	"github.com/gorilla/websocket"
 )
 
@@ -20,6 +21,7 @@ func runReadPump(
 	clientPongType string,
 ) {
 	defer closeFn()
+	conn.SetReadLimit(reporting.MaxPayloadBytes)
 	_ = conn.SetReadDeadline(time.Now().Add(wsReadDeadline))
 	conn.SetPongHandler(func(string) error {
 		return conn.SetReadDeadline(time.Now().Add(wsReadDeadline))

@@ -21,7 +21,7 @@ func registerAgentRoutes(apiV1Router core.RouterExtension) {
 		authorizedRoute.Use(agent.Auth())
 		{
 			authorizedRoute.GET("/ws", agent.WebSocketHandler)
-			authorizedRoute.POST("/nodes/heartbeat", agent.HeartbeatHandler)
+			authorizedRoute.POST("/nodes/heartbeat", limitNodeReport, agent.HeartbeatHandler)
 			authorizedRoute.GET("/config-versions/active", agent.GetActiveConfigHandler)
 			authorizedRoute.GET("/pages/deployments/:deployment_id/hash", agent.GetPagesDeploymentHashHandler)
 			authorizedRoute.GET("/pages/deployments/:deployment_id/package", agent.DownloadPagesPackageHandler)

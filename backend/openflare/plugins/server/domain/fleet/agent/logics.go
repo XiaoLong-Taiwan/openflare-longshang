@@ -6,6 +6,7 @@ package agent
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -139,7 +140,9 @@ func HeartbeatNode(ctx context.Context, authNode *model.OpenFlareNode, payload N
 	if authNode.LastSeenAt != nil {
 		reportedAt = *authNode.LastSeenAt
 	}
-	PersistHeartbeatObservability(ctx, authNode.NodeID, payload, reportedAt)
+	if err := persistHeartbeatObservability(ctx, authNode.NodeID, payload, reportedAt); err != nil {
+		return nil, fmt.Errorf("persist heartbeat observability: %w", err)
+	}
 
 	activeConfig, err := getActiveConfigMeta(ctx)
 	if err != nil && !isActiveConfigNotFound(err) {

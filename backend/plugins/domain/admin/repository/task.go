@@ -244,55 +244,44 @@ func MarkFailedTaskExecutionsSucceededTx(
 
 // CleanupTaskExecutionLogs removes finished task execution logs according to frequency-based retention.
 func CleanupTaskExecutionLogs(ctx context.Context, now time.Time) (model.TaskExecutionCleanupStats, error) {
-	const (
-		frequencyWindowDays    = 30
-		highFrequencyThreshold = frequencyWindowDays
-	)
-
-	frequencyWindowStart := now.AddDate(0, 0, -frequencyWindowDays)
 	highFrequencyCutoff := now.AddDate(0, 0, -3)
 	lowFrequencyCutoff := now.AddDate(0, 0, -30)
-	terminalStatuses := []model.TaskExecutionStatus{model.TaskExecutionStatusSucceeded, model.TaskExecutionStatusFailed}
-
-	var highFrequencyTaskTypes []string
-	if err := GetDB(ctx).
-		Model(&model.TaskExecution{}).
-		Select("task_type").
-		Where("created_at >= ?", frequencyWindowStart).
-		Group("task_type").
-		Having("COUNT(*) > ?", highFrequencyThreshold).
-		Pluck("task_type", &highFrequencyTaskTypes).Error; err != nil {
-		return model.TaskExecutionCleanupStats{}, fmt.Errorf("query high-frequency task types: %w", err)
+	var succeededDeleted, failedDeleted int64
+	if err := deleteTaskExecutionsInBatches(ctx, model.TaskExecutionStatusSucceeded, highFrequencyCutoff, &succeededDeleted); err != nil {
+		return model.TaskExecutionCleanupStats{}, err
 	}
-
-	var highFrequencyDeleted int64
-	if len(highFrequencyTaskTypes) > 0 {
-		highFrequencyResult := GetDB(ctx).
-			Where("status IN ?", terminalStatuses).
-			Where("created_at < ?", highFrequencyCutoff).
-			Where("task_type IN ?", highFrequencyTaskTypes).
-			Delete(&model.TaskExecution{})
-		if highFrequencyResult.Error != nil {
-			return model.TaskExecutionCleanupStats{}, fmt.Errorf("delete high-frequency task execution logs: %w", highFrequencyResult.Error)
-		}
-		highFrequencyDeleted = highFrequencyResult.RowsAffected
-	}
-
-	lowFrequencyQuery := GetDB(ctx).
-		Where("status IN ?", terminalStatuses).
-		Where("created_at < ?", lowFrequencyCutoff)
-	if len(highFrequencyTaskTypes) > 0 {
-		lowFrequencyQuery = lowFrequencyQuery.Where("task_type NOT IN ?", highFrequencyTaskTypes)
-	}
-	lowFrequencyResult := lowFrequencyQuery.Delete(&model.TaskExecution{})
-	if lowFrequencyResult.Error != nil {
-		return model.TaskExecutionCleanupStats{}, fmt.Errorf("delete low-frequency task execution logs: %w", lowFrequencyResult.Error)
+	if err := deleteTaskExecutionsInBatches(ctx, model.TaskExecutionStatusFailed, lowFrequencyCutoff, &failedDeleted); err != nil {
+		return model.TaskExecutionCleanupStats{}, err
 	}
 
 	return model.TaskExecutionCleanupStats{
-		HighFrequencyDeleted: highFrequencyDeleted,
-		LowFrequencyDeleted:  lowFrequencyResult.RowsAffected,
+		HighFrequencyDeleted: succeededDeleted,
+		LowFrequencyDeleted:  failedDeleted,
 	}, nil
+}
+
+func deleteTaskExecutionsInBatches(ctx context.Context, status model.TaskExecutionStatus, cutoff time.Time, total *int64) error {
+	const cleanupBatchSize = 1000
+	gormDB := GetDB(ctx)
+	if gormDB == nil {
+		return errs.ErrDatabaseUninitialized
+	}
+	for {
+		ids := gormDB.WithContext(ctx).Model(&model.TaskExecution{}).
+			Select("id").Where("status = ? AND created_at < ?", status, cutoff).
+			Order("id").Limit(cleanupBatchSize)
+		result := gormDB.WithContext(ctx).
+			Where("id IN (?)", ids).
+			Where("status = ? AND created_at < ?", status, cutoff).
+			Delete(&model.TaskExecution{})
+		if result.Error != nil {
+			return fmt.Errorf("delete expired %s task executions: %w", status, result.Error)
+		}
+		*total += result.RowsAffected
+		if result.RowsAffected < cleanupBatchSize {
+			return nil
+		}
+	}
 }
 
 // TaskExecutionLogRedisKey builds the Redis key for task execution logs.

@@ -92,6 +92,37 @@ func TestFlushTaskExecutionLogCacheMissIsNoop(t *testing.T) {
 	assert.NoError(t, repository.FlushTaskExecutionLog(ctx, "missing-task"))
 }
 
+func TestCleanupTaskExecutionLogsRetainsActiveAndAppliesTerminalRetention(t *testing.T) {
+	ctx := context.Background()
+	sqliteDB, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
+	require.NoError(t, sqliteDB.AutoMigrate(&model.TaskExecution{}))
+	repository.SetDBService(stubDBService{db: sqliteDB})
+	defer repository.SetDBService(nil)
+
+	now := time.Now().UTC()
+	rows := []model.TaskExecution{
+		{TaskID: "s-old", TaskType: "test", Status: model.TaskExecutionStatusSucceeded, CreatedAt: now.AddDate(0, 0, -4)},
+		{TaskID: "f-old", TaskType: "test", Status: model.TaskExecutionStatusFailed, CreatedAt: now.AddDate(0, 0, -31)},
+		{TaskID: "f-recent", TaskType: "test", Status: model.TaskExecutionStatusFailed, CreatedAt: now.AddDate(0, 0, -10)},
+		{TaskID: "pending-old", TaskType: "test", Status: model.TaskExecutionStatusPending, CreatedAt: now.AddDate(0, 0, -90)},
+		{TaskID: "running-old", TaskType: "test", Status: model.TaskExecutionStatusRunning, CreatedAt: now.AddDate(0, 0, -90)},
+	}
+	require.NoError(t, sqliteDB.Create(&rows).Error)
+
+	stats, err := repository.CleanupTaskExecutionLogs(ctx, now)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, stats.HighFrequencyDeleted)
+	assert.EqualValues(t, 1, stats.LowFrequencyDeleted)
+	var remaining []model.TaskExecution
+	require.NoError(t, sqliteDB.Find(&remaining).Error)
+	require.Len(t, remaining, 3)
+	for _, row := range remaining {
+		assert.NotEqual(t, "s-old", row.TaskID)
+		assert.NotEqual(t, "f-old", row.TaskID)
+	}
+}
+
 // TestFlushTaskExecutionLogPersistsAndClears 验证正常路径：缓冲日志写入执行记录后清理缓存。
 func TestFlushTaskExecutionLogPersistsAndClears(t *testing.T) {
 	svc, _, cleanup := newFlushLogTestCache(t)

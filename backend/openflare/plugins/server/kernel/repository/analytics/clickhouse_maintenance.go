@@ -13,14 +13,14 @@ import (
 
 // DDL TTL days for analytics tables (must match goose ClickHouse migrations).
 const (
-	// TableTTLDaysNodeAccessLogs is the of_node_access_logs TTL (90 days).
-	TableTTLDaysNodeAccessLogs = 90
-	// TableTTLDaysNodeMetricSnapshots is the of_node_metric_snapshots TTL (30 days).
-	TableTTLDaysNodeMetricSnapshots = 30
-	// TableTTLDaysNodeObs is the of_node_edge_health / of_node_obs_frps / of_node_obs_frpc TTL (30 days).
-	TableTTLDaysNodeObs = 30
-	// TableTTLDaysUserAccessLogs is the w_user_access_logs TTL (180 days).
-	TableTTLDaysUserAccessLogs = 180
+	// TableTTLDaysNodeAccessLogs is the of_node_access_logs TTL (7 days).
+	TableTTLDaysNodeAccessLogs = 7
+	// TableTTLDaysNodeMetricSnapshots is the of_node_metric_snapshots TTL (3 days).
+	TableTTLDaysNodeMetricSnapshots = 3
+	// TableTTLDaysNodeObs is the of_node_edge_health / of_node_obs_frps / of_node_obs_frpc TTL (3 days).
+	TableTTLDaysNodeObs = 3
+	// TableTTLDaysUserAccessLogs is the w_user_access_logs TTL (7 days).
+	TableTTLDaysUserAccessLogs = 7
 )
 
 const (

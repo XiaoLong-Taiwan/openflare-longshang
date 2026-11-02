@@ -48,14 +48,7 @@ func DeleteUserAccessLogsBefore(ctx context.Context, cutoff time.Time) (int64, e
 	if err != nil {
 		return 0, err
 	}
-	var count int64
-	if err := conn.QueryRow(ctx, fmt.Sprintf("SELECT count() FROM %s WHERE created_at < ?", analyticsmodel.UserAccessLog{}.TableName()), cutoff).Scan(&count); err != nil {
-		return 0, err
-	}
-	if err := conn.Exec(ctx, fmt.Sprintf("ALTER TABLE %s DELETE WHERE created_at < ?", analyticsmodel.UserAccessLog{}.TableName()), cutoff); err != nil {
-		return 0, err
-	}
-	return count, nil
+	return deleteWithExpiredPartitions(ctx, conn, analyticsmodel.UserAccessLog{}.TableName(), "created_at", cutoff)
 }
 
 // CountAccessLogs counts user access logs.

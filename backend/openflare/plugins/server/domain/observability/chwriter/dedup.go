@@ -9,6 +9,7 @@ import (
 )
 
 const dedupTTL = 2 * time.Minute
+const dedupMaxKeys = 100_000
 
 type dedupSet struct {
 	mu          sync.Mutex
@@ -36,6 +37,9 @@ func (s *dedupSet) markIfNew(key string) bool {
 	s.cleanupExpiredLocked(now)
 
 	if expiresAt, exists := s.keys[key]; exists && now.Before(expiresAt) {
+		return false
+	}
+	if len(s.keys) >= dedupMaxKeys {
 		return false
 	}
 	s.keys[key] = now.Add(dedupTTL)

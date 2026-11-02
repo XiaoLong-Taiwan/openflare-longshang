@@ -62,7 +62,9 @@ func (s *clickhouseLogStore) InsertBatch(ctx context.Context, records []*model.O
 		rows = append(rows, toAnalyticsNodeAccessLog(r))
 	}
 	if h := currentAccessLogHooks().QueueNodeAccessLogs; h != nil {
-		h(rows)
+		if !h(rows) {
+			return ErrAccessLogQueueFull
+		}
 	}
 	return nil
 }

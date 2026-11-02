@@ -21,6 +21,29 @@ import (
 	"gorm.io/gorm"
 )
 
+const cleanupBatchSize = 1000
+
+func deleteInBatches(ctx context.Context, db *gorm.DB, model any, condition string, args ...any) (int64, error) {
+	var total int64
+	for {
+		ids := make([]uint64, 0, cleanupBatchSize)
+		if err := db.WithContext(ctx).Model(model).Where(condition, args...).Order("id ASC").Limit(cleanupBatchSize).Pluck("id", &ids).Error; err != nil {
+			return total, err
+		}
+		if len(ids) == 0 {
+			return total, nil
+		}
+		result := db.WithContext(ctx).Where("id IN ?", ids).Delete(model)
+		if result.Error != nil {
+			return total, result.Error
+		}
+		total += result.RowsAffected
+		if len(ids) < cleanupBatchSize {
+			return total, nil
+		}
+	}
+}
+
 // 常用批处理/分页默认值与常量（mnd 禁魔法数字）。
 const (
 	insertBatchSize   = 500  // GORM 分批落库批次大小
@@ -103,7 +126,9 @@ func (s *gormLogStore) InsertBatch(ctx context.Context, records []*model.OpenFla
 		rows = append(rows, toAnalyticsNodeAccessLog(r))
 	}
 	if h := currentAccessLogHooks().QueueNodeAccessLogs; h != nil {
-		h(rows)
+		if !h(rows) {
+			return ErrAccessLogQueueFull
+		}
 	}
 	return nil
 }
@@ -642,16 +667,14 @@ func (s *gormLogStore) DeleteBefore(ctx context.Context, cutoff time.Time) (int6
 	if err := s.ensureWritable(ctx); err != nil {
 		return 0, err
 	}
-	res := s.db.WithContext(ctx).Where("logged_at < ?", cutoff).Delete(&analyticsmodel.NodeAccessLog{})
-	return res.RowsAffected, res.Error
+	return deleteInBatches(ctx, s.db, &analyticsmodel.NodeAccessLog{}, "logged_at < ?", cutoff)
 }
 
 func (s *gormLogStore) DeleteByNodeBefore(ctx context.Context, nodeID string, before time.Time) (int64, error) {
 	if err := s.ensureWritable(ctx); err != nil {
 		return 0, err
 	}
-	res := s.db.WithContext(ctx).Where("node_id = ? AND logged_at < ?", nodeID, before).Delete(&analyticsmodel.NodeAccessLog{})
-	return res.RowsAffected, res.Error
+	return deleteInBatches(ctx, s.db, &analyticsmodel.NodeAccessLog{}, "node_id = ? AND logged_at < ?", nodeID, before)
 }
 
 // ListForMigration 按 id 升序分页读取（迁移复制用）。
@@ -1046,8 +1069,7 @@ func (s *gormLogStore) DeleteMetricSnapshotsBefore(ctx context.Context, cutoff t
 	if err := s.ensureWritable(ctx); err != nil {
 		return 0, err
 	}
-	res := s.db.WithContext(ctx).Where("captured_at < ?", cutoff).Delete(&analyticsmodel.NodeMetricSnapshot{})
-	return res.RowsAffected, res.Error
+	return deleteInBatches(ctx, s.db, &analyticsmodel.NodeMetricSnapshot{}, "captured_at < ?", cutoff)
 }
 
 // BatchInsertNodeMetricSnapshots 是 batchwriter flush 目标：GORM 分批落库。
@@ -1251,8 +1273,7 @@ func (s *gormLogStore) DeleteEdgeHealthBefore(ctx context.Context, cutoff time.T
 	if err := s.ensureWritable(ctx); err != nil {
 		return 0, err
 	}
-	res := s.db.WithContext(ctx).Where("captured_at < ?", cutoff).Delete(&analyticsmodel.NodeEdgeHealth{})
-	return res.RowsAffected, res.Error
+	return deleteInBatches(ctx, s.db, &analyticsmodel.NodeEdgeHealth{}, "captured_at < ?", cutoff)
 }
 
 // BatchInsertNodeEdgeHealth 是 batchwriter flush 目标：GORM 分批落库。
@@ -1306,8 +1327,7 @@ func (s *gormLogStore) DeleteNodeObservationFrpsBefore(ctx context.Context, cuto
 	if err := s.ensureWritable(ctx); err != nil {
 		return 0, err
 	}
-	res := s.db.WithContext(ctx).Where("captured_at < ?", cutoff).Delete(&analyticsmodel.NodeObsFrps{})
-	return res.RowsAffected, res.Error
+	return deleteInBatches(ctx, s.db, &analyticsmodel.NodeObsFrps{}, "captured_at < ?", cutoff)
 }
 
 // BatchInsertNodeObsFrps 是 batchwriter flush 目标：GORM 分批落库。
@@ -1361,8 +1381,7 @@ func (s *gormLogStore) DeleteNodeObservationFrpcBefore(ctx context.Context, cuto
 	if err := s.ensureWritable(ctx); err != nil {
 		return 0, err
 	}
-	res := s.db.WithContext(ctx).Where("captured_at < ?", cutoff).Delete(&analyticsmodel.NodeObsFrpc{})
-	return res.RowsAffected, res.Error
+	return deleteInBatches(ctx, s.db, &analyticsmodel.NodeObsFrpc{}, "captured_at < ?", cutoff)
 }
 
 // BatchInsertNodeObsFrpc 是 batchwriter flush 目标：GORM 分批落库。
@@ -1465,8 +1484,7 @@ func (s *userAccessLogGormStore) DeleteBefore(ctx context.Context, cutoff time.T
 	if err := s.ensureWritable(ctx); err != nil {
 		return 0, err
 	}
-	res := s.db.WithContext(ctx).Where("created_at < ?", cutoff).Delete(&analyticsmodel.UserAccessLog{})
-	return res.RowsAffected, res.Error
+	return deleteInBatches(ctx, s.db, &analyticsmodel.UserAccessLog{}, "created_at < ?", cutoff)
 }
 
 // ListForMigration 按 id 升序分页读取（迁移复制用）。

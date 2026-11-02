@@ -362,10 +362,12 @@ func SetupLogStoresForTest(t *testing.T) {
 	require.NoError(t, err)
 
 	logstore.SetAccessLogHooks(logstore.AccessLogHooks{
-		QueueNodeAccessLogs: func(logs []analyticsmodel.NodeAccessLog) {
+		QueueNodeAccessLogs: func(logs []analyticsmodel.NodeAccessLog) bool {
 			if err := store.AccessLogs.BatchInsertNodeAccessLogs(context.Background(), logs); err != nil {
 				t.Errorf("batch insert node access logs failed in test hook: %v", err)
+				return false
 			}
+			return true
 		},
 	})
 	logstore.SetObservabilityHooks(logstore.ObservabilityHooks{

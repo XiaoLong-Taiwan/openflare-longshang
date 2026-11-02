@@ -24,8 +24,14 @@ const (
 
 // PersistHeartbeatObservability stores profile, host metrics, edge health, and access logs.
 func PersistHeartbeatObservability(ctx context.Context, nodeID string, payload NodePayload, reportedAt time.Time) {
+	if err := persistHeartbeatObservability(ctx, nodeID, payload, reportedAt); err != nil {
+		zap.L().Error("persist heartbeat observability failed", zap.String("node_id", nodeID), zap.Error(err))
+	}
+}
+
+func persistHeartbeatObservability(ctx context.Context, nodeID string, payload NodePayload, reportedAt time.Time) error {
 	if strings.TrimSpace(nodeID) == "" {
-		return
+		return nil
 	}
 	if payload.Profile == nil &&
 		payload.HostMetrics == nil &&
@@ -33,18 +39,33 @@ func PersistHeartbeatObservability(ctx context.Context, nodeID string, payload N
 		len(payload.AccessLogs) == 0 &&
 		len(payload.Buffered) == 0 &&
 		payload.HealthEvents == nil {
-		return
+		return nil
 	}
 
 	accessLogRecords, err := buildNodeAccessLogRecords(ctx, nodeID, payload.AccessLogs, payload.Buffered, reportedAt)
 	if err != nil {
-		zap.L().Error("build heartbeat access logs failed", zap.String("node_id", nodeID), zap.Error(err))
-		return
+		return err
+	}
+	if err := persistNodeAccessLogs(ctx, nodeID, accessLogRecords, reportedAt); err != nil {
+		return err
+	}
+
+	if err := persistBufferedObservability(ctx, nodeID, payload.Buffered, reportedAt); err != nil {
+		zap.L().Error("persist buffered observability failed", zap.String("node_id", nodeID), zap.Error(err))
+		return err
+	}
+	if err := persistNodeMetricSnapshot(ctx, nodeID, payload.HostMetrics, reportedAt); err != nil {
+		zap.L().Error("persist metric snapshot failed", zap.String("node_id", nodeID), zap.Error(err))
+		return err
+	}
+	if err := persistNodeEdgeHealth(ctx, nodeID, payload.EdgeHealth, payload.OpenrestyStatus, reportedAt); err != nil {
+		zap.L().Error("persist edge health failed", zap.String("node_id", nodeID), zap.Error(err))
+		return err
 	}
 
 	profile := buildNodeSystemProfileModel(nodeID, payload.Profile, reportedAt)
 	healthEvents := healthEventInputs(payload.HealthEvents)
-	if err := repository.PersistOpenFlareNodePGObservability(
+	return repository.PersistOpenFlareNodePGObservability(
 		ctx,
 		profile,
 		nodeID,
@@ -52,24 +73,7 @@ func PersistHeartbeatObservability(ctx context.Context, nodeID string, payload N
 		payload.HealthEvents != nil,
 		reportedAt,
 		nil,
-	); err != nil {
-		zap.L().Error("persist heartbeat observability failed", zap.String("node_id", nodeID), zap.Error(err))
-		return
-	}
-
-	if err := persistBufferedObservability(ctx, nodeID, payload.Buffered, reportedAt); err != nil {
-		zap.L().Error("persist buffered observability failed", zap.String("node_id", nodeID), zap.Error(err))
-	}
-	if err := persistNodeMetricSnapshot(ctx, nodeID, payload.HostMetrics, reportedAt); err != nil {
-		zap.L().Error("persist metric snapshot failed", zap.String("node_id", nodeID), zap.Error(err))
-	}
-	if err := persistNodeEdgeHealth(ctx, nodeID, payload.EdgeHealth, payload.OpenrestyStatus, reportedAt); err != nil {
-		zap.L().Error("persist edge health failed", zap.String("node_id", nodeID), zap.Error(err))
-	}
-
-	if err := persistNodeAccessLogs(ctx, nodeID, accessLogRecords, reportedAt); err != nil {
-		zap.L().Error("persist heartbeat access logs failed", zap.String("node_id", nodeID), zap.Error(err))
-	}
+	)
 }
 
 func persistBufferedObservability(ctx context.Context, nodeID string, records []BufferedObservabilityRecord, reportedAt time.Time) error {

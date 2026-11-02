@@ -95,23 +95,55 @@ func readAccessLogDelta(cfg *config.Config, stateStore *state.Store) *trafficAgg
 	offset := snapshot.AccessLogOffset
 	if offset < 0 || offset > info.Size() {
 		offset = 0
+		snapshot.AccessLogDiscarding = false
 	}
 	if _, err = file.Seek(offset, io.SeekStart); err != nil {
 		return nil
 	}
 
-	reader := bufio.NewReader(file)
+	reader := bufio.NewReaderSize(io.LimitReader(file, 1024*1024), 16*1024)
 	currentOffset := offset
 	aggregate := newTrafficAggregate()
 
-	for {
-		line, readErr := reader.ReadBytes('\n')
-		if len(line) > 0 {
+	batchBytes := 0
+	for len(aggregate.logs) < 1000 && currentOffset-offset < 1024*1024 {
+		line, readErr := reader.ReadSlice('\n')
+		if errors.Is(readErr, bufio.ErrBufferFull) || snapshot.AccessLogDiscarding {
+			if !snapshot.AccessLogDiscarding {
+				slog.Warn("access log line exceeds 16 KiB; discarding", "offset", currentOffset)
+			}
+			snapshot.AccessLogDiscarding = readErr != nil
 			currentOffset += int64(len(line))
-			aggregate.consume(line)
+			if errors.Is(readErr, io.EOF) {
+				break
+			}
+			if readErr != nil && !errors.Is(readErr, bufio.ErrBufferFull) {
+				slog.Error("read access log failed", "error", readErr)
+				break
+			}
+			continue
 		}
 		if errors.Is(readErr, io.EOF) {
 			break
+		}
+		if len(line) > 0 {
+			before := len(aggregate.logs)
+			aggregate.consume(line)
+			if len(aggregate.logs) > before {
+				encoded, err := json.Marshal(aggregate.logs[before])
+				if err != nil || len(encoded) > 16*1024 {
+					aggregate.logs = aggregate.logs[:before]
+					slog.Warn("access log exceeds 16 KiB JSON record limit; discarding", "offset", currentOffset)
+				} else if batchBytes+len(encoded) > 512*1024 {
+					aggregate.logs = aggregate.logs[:before]
+					if before > 0 {
+						break
+					}
+				} else {
+					batchBytes += len(encoded)
+				}
+			}
+			currentOffset += int64(len(line))
 		}
 		if readErr != nil {
 			return nil
@@ -119,7 +151,9 @@ func readAccessLogDelta(cfg *config.Config, stateStore *state.Store) *trafficAgg
 	}
 
 	snapshot.AccessLogOffset = currentOffset
-	_ = stateStore.Save(snapshot)
+	if err := stateStore.Save(snapshot); err != nil {
+		slog.Error("save access log position failed", "error", err)
+	}
 
 	return aggregate
 }

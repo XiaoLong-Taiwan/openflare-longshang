@@ -62,8 +62,7 @@ type SystemCleanupHandler struct{}
 
 // PreviewDatabaseMaintenance reports the pending cleanup and maintenance operations.
 func PreviewDatabaseMaintenance(ctx context.Context) (model.DatabaseMaintenancePreview, error) {
-	before := time.Now().Add(-7 * 24 * time.Hour)
-	count, err := repository.CountExpiredTaskExecutions(ctx, before)
+	count, err := repository.CountExpiredTaskExecutions(ctx, time.Now())
 	if err != nil {
 		return model.DatabaseMaintenancePreview{}, err
 	}
@@ -71,7 +70,7 @@ func PreviewDatabaseMaintenance(ctx context.Context) (model.DatabaseMaintenanceP
 	postgres := GetDBConfig().Enabled
 	operations := []string{"clear disk cache", "analyze", "vacuum"}
 	if postgres {
-		operations = []string{"clear disk cache", "reindex schema public", "analyze", "vacuum"}
+		operations = []string{"clear disk cache", "reindex schema public", "analyze", "vacuum full"}
 	}
 	return model.DatabaseMaintenancePreview{
 		DatabaseType:          map[bool]string{true: "postgres", false: "sqlite"}[postgres],
@@ -84,16 +83,16 @@ func PreviewDatabaseMaintenance(ctx context.Context) (model.DatabaseMaintenanceP
 
 // RunDatabaseMaintenance performs the confirmed cleanup and database maintenance.
 func RunDatabaseMaintenance(ctx context.Context) (model.DatabaseMaintenanceResult, error) {
-	before := time.Now().Add(-7 * 24 * time.Hour)
 	if err := EmitEvent(ctx, contracts.EventTopicSystemCleanup, contracts.SystemCleanupEvent{
 		TriggeredAt: time.Now().Format(time.RFC3339),
 	}); err != nil {
 		return model.DatabaseMaintenanceResult{}, err
 	}
-	deleted, err := repository.DeleteExpiredTaskExecutions(ctx, before)
+	stats, err := repository.CleanupTaskExecutionLogs(ctx, time.Now())
 	if err != nil {
 		return model.DatabaseMaintenanceResult{}, err
 	}
+	deleted := stats.HighFrequencyDeleted + stats.LowFrequencyDeleted
 	if err := pkgcache.Default().Clear(); err != nil {
 		return model.DatabaseMaintenanceResult{ExpiredTaskExecutions: deleted}, err
 	}
@@ -129,23 +128,24 @@ func (h *SystemCleanupHandler) Execute(ctx context.Context, _ []byte) (*contract
 		return nil, errors.New("database service not available")
 	}
 
-	// 1. 清理自身域（admin 域）的过期任务执行记录（7 天前）
+	// 1. 清理自身域（admin 域）的过期任务执行记录
 	var deletedExecutions int64
-	sevenDaysAgo := time.Now().Add(-7 * 24 * time.Hour)
-	res := db.Where("created_at < ?", sevenDaysAgo).Delete(&model.TaskExecution{})
-	if err := res.Error; err != nil {
-		logger.WarnF(ctx, "清理过期任务执行日志失败: %v", err)
+	stats, cleanupErr := repository.CleanupTaskExecutionLogs(ctx, time.Now())
+	if cleanupErr != nil {
+		logger.WarnF(ctx, "清理过期任务执行日志失败: %v", cleanupErr)
 	} else {
-		deletedExecutions = res.RowsAffected
-		logger.InfoF(ctx, "已清理 7 天前任务执行日志，共 %d 条", deletedExecutions)
+		deletedExecutions = stats.HighFrequencyDeleted + stats.LowFrequencyDeleted
+		logger.InfoF(ctx, "已清理过期任务执行日志，共 %d 条", deletedExecutions)
 	}
-
 	// 2. 广播 EventTopicSystemCleanup 领域事件，由各业务域插件（upload, msg_gateway, user 等）自治执行各自的清理逻辑
 	nowStr := time.Now().Format(time.RFC3339)
 	if err := EmitEvent(ctx, contracts.EventTopicSystemCleanup, contracts.SystemCleanupEvent{
 		TriggeredAt: nowStr,
 	}); err != nil {
 		return nil, fmt.Errorf("system cleanup listeners failed: %w", err)
+	}
+	if err := cleanupErr; err != nil {
+		return nil, fmt.Errorf("task execution cleanup failed: %w", err)
 	}
 
 	msg := fmt.Sprintf("系统垃圾清理完成，已清理过期任务执行日志 %d 条，并已广播领域清理事件", deletedExecutions)

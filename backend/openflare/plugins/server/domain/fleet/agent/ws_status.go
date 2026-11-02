@@ -14,24 +14,24 @@ import (
 )
 
 // HandleWSStatus processes an agent websocket status payload (replaces HTTP heartbeat in WS mode).
-func HandleWSStatus(ctx context.Context, nodeID, remoteAddr string, rawPayload json.RawMessage) {
+func HandleWSStatus(ctx context.Context, nodeID, remoteAddr string, rawPayload json.RawMessage) error {
 	var payload NodePayload
 	if err := json.Unmarshal(rawPayload, &payload); err != nil {
 		slog.Debug("agent ws status payload decode failed", "node_id", nodeID, "error", err)
-		return
+		return err
 	}
 
 	authNode, err := repository.GetOpenFlareNodeByNodeID(ctx, nodeID)
 	if err != nil {
 		slog.Debug("agent ws status reload node failed", "node_id", nodeID, "error", err)
-		return
+		return err
 	}
 
 	payload.IP = resolveReportedNodeIP(payload.IP, remoteAddr)
 	response, err := HeartbeatNode(ctx, authNode, payload)
 	if err != nil {
 		slog.Debug("agent ws status handling failed", "node_id", nodeID, "error", err)
-		return
+		return err
 	}
 
 	settingsSent := false
@@ -55,4 +55,5 @@ func HandleWSStatus(ctx context.Context, nodeID, remoteAddr string, rawPayload j
 		"active_config_sent", activeConfigSent,
 		"waf_ip_groups_sent", wafIPGroupsSent,
 	)
+	return nil
 }

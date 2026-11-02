@@ -50,7 +50,10 @@ var (
 	edgeHealthDedup     *dedupSet
 	frpsDedup           *dedupSet
 	frpcDedup           *dedupSet
+	nodeAccessLogMu     sync.Mutex
 )
+
+var ErrNodeAccessLogQueueFull = logstore.ErrAccessLogQueueFull
 
 // Init starts OpenFlare log batch writers. Safe to call multiple times.
 // Writers always initialize regardless of ClickHouse.enabled; the active log
@@ -169,21 +172,20 @@ func allDepthZero(stats []batchwriter.Stats) bool {
 
 // WriterStats returns queue depth and failure counters for all OpenFlare writers.
 func WriterStats() []batchwriter.Stats {
-	writers := []statsProvider{
-		metricSnapshotWriter,
-		edgeHealthWriter,
-		frpsWriter,
-		frpcWriter,
-		nodeAccessLogWriter,
-	}
-	out := make([]batchwriter.Stats, 0, len(writers))
-	for _, w := range writers {
-		if w == nil {
-			continue
-		}
-		out = append(out, w.Stats())
-	}
+	out := make([]batchwriter.Stats, 0, 5)
+	out = appendWriterStats(out, metricSnapshotWriter)
+	out = appendWriterStats(out, edgeHealthWriter)
+	out = appendWriterStats(out, frpsWriter)
+	out = appendWriterStats(out, frpcWriter)
+	out = appendWriterStats(out, nodeAccessLogWriter)
 	return out
+}
+
+func appendWriterStats[T any](stats []batchwriter.Stats, writer *batchwriter.Writer[T]) []batchwriter.Stats {
+	if writer != nil {
+		return append(stats, writer.Stats())
+	}
+	return stats
 }
 
 // QueueMetricSnapshot enqueues a metric snapshot for asynchronous flush.
@@ -207,13 +209,25 @@ func QueueFrpcObservation(observation analyticsmodel.NodeObsFrpc) {
 }
 
 // QueueNodeAccessLogs enqueues node access logs for asynchronous flush.
-func QueueNodeAccessLogs(logs []analyticsmodel.NodeAccessLog) {
+func QueueNodeAccessLogs(logs []analyticsmodel.NodeAccessLog) bool {
 	if nodeAccessLogWriter == nil || len(logs) == 0 {
-		return
+		return len(logs) == 0
+	}
+	nodeAccessLogMu.Lock()
+	defer nodeAccessLogMu.Unlock()
+	if len(logs) > nodeAccessLogMaxBatchSize || len(logs) > nodeAccessLogWriter.Cap()-nodeAccessLogWriter.Len() {
+		logger.WarnF(context.Background(), "[OpenFlare] rejecting access log batch (rows=%d, depth=%d)", len(logs), nodeAccessLogWriter.Len())
+		return false
+	}
+	if !nodeAccessLogWriter.Running() {
+		return false
 	}
 	for _, logItem := range logs {
-		nodeAccessLogWriter.TryEnqueue(logItem)
+		if !nodeAccessLogWriter.TryEnqueue(logItem) {
+			return false
+		}
 	}
+	return true
 }
 
 func queueWithDedup[T any](writer *batchwriter.Writer[T], dedup *dedupSet, key string, item T) {
@@ -372,27 +386,23 @@ func flushNodeAccessLogs(ctx context.Context, rows []analyticsmodel.NodeAccessLo
 }
 
 func metricSnapshotKey(snapshot analyticsmodel.NodeMetricSnapshot) string {
-	return fmt.Sprintf("%s|%d", snapshot.NodeID, snapshot.CapturedAt.UTC().UnixNano())
+	return fmt.Sprintf("%s|%d", snapshot.NodeID, snapshot.CapturedAt.UTC().UnixMilli())
 }
 
 func edgeHealthKey(row analyticsmodel.NodeEdgeHealth) string {
-	return fmt.Sprintf("%s|%d", row.NodeID, row.CapturedAt.UTC().UnixNano())
+	return fmt.Sprintf("%s|%d", row.NodeID, row.CapturedAt.UTC().UnixMilli())
 }
 
 func frpsKey(observation analyticsmodel.NodeObsFrps) string {
-	return fmt.Sprintf("%s|%d", observation.NodeID, observation.CapturedAt.UTC().UnixNano())
+	return fmt.Sprintf("%s|%d", observation.NodeID, observation.CapturedAt.UTC().UnixMilli())
 }
 
 func frpcKey(observation analyticsmodel.NodeObsFrpc) string {
-	return fmt.Sprintf("%s|%d", observation.NodeID, observation.CapturedAt.UTC().UnixNano())
+	return fmt.Sprintf("%s|%d", observation.NodeID, observation.CapturedAt.UTC().UnixMilli())
 }
 
 type batchStopper interface {
 	Stop(ctx context.Context) error
-}
-
-type statsProvider interface {
-	Stats() batchwriter.Stats
 }
 
 func running() bool {

@@ -22,18 +22,57 @@ func DeleteAllNodeAccessLogs(ctx context.Context) (int64, error) {
 	return outcome.DeletedCount, nil
 }
 
-// DeleteNodeAccessLogsBefore force-materializes of_node_access_logs table TTL.
-//
-// The cutoff argument is kept for call-site compatibility and is not used to select rows:
-// ClickHouse MATERIALIZE TTL only enforces the DDL policy (TableTTLDaysNodeAccessLogs).
-// Returns an estimate of rows past table TTL as the int64 (not a hard-deleted count).
-// Callers that need honest API fields should prefer MaterializeNodeAccessLogsTTL.
-func DeleteNodeAccessLogsBefore(ctx context.Context, _ time.Time) (int64, error) {
-	outcome, err := MaterializeNodeAccessLogsTTL(ctx)
+// DeleteNodeAccessLogsBefore drops fully expired monthly partitions and mutates the cutoff month.
+func DeleteNodeAccessLogsBefore(ctx context.Context, cutoff time.Time) (int64, error) {
+	conn, err := nodeAccessLogConn()
 	if err != nil {
 		return 0, err
 	}
-	return outcome.EligibleCount, nil
+	var deleted int64
+	cutoffUTC := cutoff.UTC()
+	cutoffMonth := time.Date(cutoffUTC.Year(), cutoffUTC.Month(), 1, 0, 0, 0, 0, time.UTC)
+	var partitions []string
+	rows, err := conn.Query(ctx, "SELECT DISTINCT partition FROM system.parts WHERE database = currentDatabase() AND table = ? AND active", nodeAccessLogTableName())
+	if err != nil {
+		return 0, err
+	}
+	for rows.Next() {
+		var partition string
+		if err := rows.Scan(&partition); err != nil {
+			rows.Close()
+			return 0, err
+		}
+		partitions = append(partitions, partition)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return 0, err
+	}
+	rows.Close()
+	for _, partition := range partitions {
+		month, err := time.Parse("200601", partition)
+		if err != nil || !month.Before(cutoffMonth) {
+			continue
+		}
+		var count uint64
+		if err := conn.QueryRow(ctx, "SELECT count() FROM "+nodeAccessLogTableName()+" WHERE logged_at >= ? AND logged_at < ?", month, month.AddDate(0, 1, 0)).Scan(&count); err != nil {
+			return deleted, err
+		}
+		if err := conn.Exec(ctx, "ALTER TABLE "+nodeAccessLogTableName()+" DROP PARTITION ?", partition); err != nil {
+			return deleted, fmt.Errorf("drop expired node access log partition %s: %w", partition, err)
+		}
+		deleted += safeInt64Count(count)
+	}
+	var count uint64
+	if err := conn.QueryRow(ctx, "SELECT count() FROM "+nodeAccessLogTableName()+" WHERE logged_at < ?", cutoffUTC).Scan(&count); err != nil {
+		return deleted, err
+	}
+	if count > 0 {
+		if err := conn.Exec(ctx, "ALTER TABLE "+nodeAccessLogTableName()+" DELETE WHERE logged_at < ? SETTINGS mutations_sync = 1", cutoffUTC); err != nil {
+			return deleted, fmt.Errorf("delete node access logs before cutoff: %w", err)
+		}
+	}
+	return deleted + safeInt64Count(count), nil
 }
 
 // MaterializeNodeAccessLogsTTL force-materializes table TTL and reports an honest outcome.
@@ -55,16 +94,23 @@ func MaterializeNodeAccessLogsTTL(ctx context.Context) (CleanupOutcome, error) {
 	)
 }
 
-// DeleteNodeAccessLogsByNodeBefore force-materializes table-global TTL.
-//
-// Node-scoped hard delete is not supported: MATERIALIZE TTL is table-global.
-// The returned count is an estimate of rows for nodeID past table TTL only.
-func DeleteNodeAccessLogsByNodeBefore(ctx context.Context, nodeID string, _ time.Time) (int64, error) {
-	outcome, err := MaterializeNodeAccessLogsTTLByNode(ctx, nodeID)
+func DeleteNodeAccessLogsByNodeBefore(ctx context.Context, nodeID string, cutoff time.Time) (int64, error) {
+	conn, err := nodeAccessLogConn()
 	if err != nil {
 		return 0, err
 	}
-	return outcome.EligibleCount, nil
+	cutoff = cutoff.UTC()
+	count, err := countClickHouseRows(ctx, conn, "SELECT count() FROM "+nodeAccessLogTableName()+" WHERE node_id = ? AND logged_at < ?", []any{nodeID, cutoff})
+	if err != nil {
+		return 0, err
+	}
+	if count == 0 {
+		return 0, nil
+	}
+	if err := conn.Exec(ctx, "ALTER TABLE "+nodeAccessLogTableName()+" DELETE WHERE node_id = ? AND logged_at < ? SETTINGS mutations_sync = 1", nodeID, cutoff); err != nil {
+		return 0, fmt.Errorf("delete node access logs before cutoff: %w", err)
+	}
+	return count, nil
 }
 
 // MaterializeNodeAccessLogsTTLByNode materializes table-global TTL and estimates node-scoped rows past TTL.

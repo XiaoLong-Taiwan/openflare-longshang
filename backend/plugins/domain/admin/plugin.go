@@ -146,7 +146,6 @@ func (p *Plugin) Apply(ctx *core.Context) error {
 
 	// 2.1 Register Cron Schedule
 	ctx.Schedule().RegisterCron("0 3 * * *", service.SystemCleanupTask, nil)
-	ctx.Schedule().RegisterCron("30 3 * * *", service.DatabaseMaintenanceTask, nil)
 
 	// 3. Register Settings Schemas
 	ctx.Settings().Register(extpoints.SettingSchema{

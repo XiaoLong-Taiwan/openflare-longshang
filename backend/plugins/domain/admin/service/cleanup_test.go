@@ -28,7 +28,7 @@ func TestSystemCleanupHandler_Execute(t *testing.T) {
 	defer service.ResetServices()
 
 	now := time.Now()
-	oldTime := now.Add(-10 * 24 * time.Hour)
+	oldTime := now.Add(-4 * 24 * time.Hour)
 	recentTime := now.Add(-1 * time.Hour)
 
 	// Seed old execution (should be cleaned)
@@ -36,7 +36,7 @@ func TestSystemCleanupHandler_Execute(t *testing.T) {
 		ID:        1,
 		TaskID:    "task-old",
 		TaskType:  "sample_task",
-		Status:    "success",
+		Status:    model.TaskExecutionStatusSucceeded,
 		CreatedAt: oldTime,
 	}
 	require.NoError(t, sqliteDB.Create(&oldExec).Error)
@@ -46,7 +46,7 @@ func TestSystemCleanupHandler_Execute(t *testing.T) {
 		ID:        2,
 		TaskID:    "task-recent",
 		TaskType:  "sample_task",
-		Status:    "success",
+		Status:    model.TaskExecutionStatusSucceeded,
 		CreatedAt: recentTime,
 	}
 	require.NoError(t, sqliteDB.Create(&recentExec).Error)

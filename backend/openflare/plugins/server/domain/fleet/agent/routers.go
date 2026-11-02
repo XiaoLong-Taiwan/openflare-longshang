@@ -4,10 +4,12 @@
 package agent
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
 	"Wavelet/openflare/plugins/server/domain/fleet/websocket"
+	"Wavelet/openflare/plugins/server/domain/observability/chwriter"
 	"Wavelet/openflare/plugins/server/domain/pages"
 	"Wavelet/openflare/plugins/server/kernel/apiutil"
 	"Wavelet/openflare/share/protocol"
@@ -26,6 +28,7 @@ import (
 // @Param body body agent.NodePayload true "节点上报数据"
 // @Success 200 {object} response.Any{data=agent.RegistrationResponse} "注册成功"
 // @Failure 400 {object} response.Any "参数错误"
+// @Failure 429 {object} response.Any "节点日志队列繁忙"
 // @Failure 401 {object} response.Any "Token 无效"
 // @Router /api/v1/agent/nodes/register [post]
 func RegisterHandler(c *gin.Context) {
@@ -76,6 +79,11 @@ func HeartbeatHandler(c *gin.Context) {
 	}
 
 	heartbeat, err := HeartbeatNode(c.Request.Context(), authNode, payload)
+	if errors.Is(err, chwriter.ErrNodeAccessLogQueueFull) {
+		c.Header("Retry-After", "2")
+		response.AbortTooManyRequests(c, "节点日志队列繁忙")
+		return
+	}
 	if response.AbortBadRequestOnError(c, err) {
 		return
 	}

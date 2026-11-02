@@ -219,7 +219,7 @@ func applyAgentTimingDefaults(cfg *Config) {
 	if cfg.ObservabilityReplayMinutes <= 0 {
 		cfg.ObservabilityReplayMinutes = defaultObservabilityReplayMinutes
 	}
-	if cfg.HeartbeatInterval <= 0 {
+	if cfg.HeartbeatInterval.Duration() < defaultHeartbeatInterval {
 		cfg.HeartbeatInterval = MillisecondDuration(defaultHeartbeatInterval)
 	}
 	if cfg.RequestTimeout <= 0 {

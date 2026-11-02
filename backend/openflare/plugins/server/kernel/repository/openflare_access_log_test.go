@@ -53,8 +53,9 @@ func setupOpenFlareAccessLogTestEnvironment(t *testing.T) (context.Context, func
 	require.NoError(t, err)
 	// 写入入口只入队；测试环境立即 flush，保证后续查询可见。
 	logstore.SetAccessLogHooks(logstore.AccessLogHooks{
-		QueueNodeAccessLogs: func(logs []analyticsmodel.NodeAccessLog) {
+		QueueNodeAccessLogs: func(logs []analyticsmodel.NodeAccessLog) bool {
 			require.NoError(t, store.AccessLogs.BatchInsertNodeAccessLogs(context.Background(), logs))
+			return true
 		},
 	})
 	return ctx, func() {

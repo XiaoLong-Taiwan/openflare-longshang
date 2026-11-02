@@ -5,12 +5,15 @@
 package httpclient
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"Wavelet/openflare/plugins/agent/protocol"
@@ -21,13 +24,19 @@ const pagesControlResponseMaxBytes = int64(64 * 1024)
 
 // Client is a HTTP client used by the agent to communicate with the control plane server.
 type Client struct {
-	base *edgehttp.Client
+	base       *edgehttp.Client
+	baseURL    string
+	token      string
+	httpClient *http.Client
 }
 
 // New creates a new Client instance with the specified base URL, token, and timeout.
 func New(baseURL string, token string, timeout time.Duration) *Client {
 	return &Client{
-		base: edgehttp.New(baseURL, token, timeout, "X-Agent-Token"),
+		base:       edgehttp.New(baseURL, token, timeout, "X-Agent-Token"),
+		baseURL:    strings.TrimRight(baseURL, "/"),
+		token:      token,
+		httpClient: &http.Client{Timeout: timeout},
 	}
 }
 
@@ -45,11 +54,41 @@ func (c *Client) RegisterNode(ctx context.Context, payload protocol.NodePayload)
 
 // Heartbeat sends a heartbeat payload to the control plane and returns the response result.
 func (c *Client) Heartbeat(ctx context.Context, payload protocol.NodePayload) (*protocol.HeartbeatResult, error) {
-	resp := protocol.APIResponse[protocol.HeartbeatData]{}
-	if err := c.base.PostJSON(ctx, "/api/v1/agent/nodes/heartbeat", payload, &resp); err != nil {
+	var resp struct {
+		ErrorMsg *string                 `json:"error_msg"`
+		Data     *protocol.HeartbeatData `json:"data"`
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
 		return nil, err
 	}
-	if err := edgehttp.APIError(resp.ErrorMsg); err != nil {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/api/v1/agent/nodes/heartbeat", bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Agent-Token", c.token)
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = res.Body.Close() }()
+	if res.StatusCode != http.StatusOK {
+		delay := time.Duration(0)
+		if seconds, parseErr := strconv.ParseInt(res.Header.Get("Retry-After"), 10, 32); parseErr == nil && seconds > 0 {
+			delay = time.Duration(seconds) * time.Second
+		} else if deadline, parseErr := http.ParseTime(res.Header.Get("Retry-After")); parseErr == nil {
+			delay = max(time.Until(deadline), 0)
+		}
+		return nil, &reportError{status: res.StatusCode, delay: delay}
+	}
+	if err := json.NewDecoder(io.LimitReader(res.Body, 8*1024*1024)).Decode(&resp); err != nil {
+		return nil, err
+	}
+	if resp.ErrorMsg == nil || resp.Data == nil {
+		return nil, errors.New("agent report missing acknowledgement")
+	}
+	if err := edgehttp.APIError(*resp.ErrorMsg); err != nil {
 		return nil, err
 	}
 	return &protocol.HeartbeatResult{
@@ -234,4 +273,14 @@ func copyPagesPackageResponse(dst io.Writer, res *http.Response, maxBytes int64)
 // SetToken updates the authentication token used for API requests.
 func (c *Client) SetToken(token string) {
 	c.base.SetToken(token)
+	c.token = strings.TrimSpace(token)
 }
+
+type reportError struct {
+	status int
+	delay  time.Duration
+}
+
+func (e *reportError) Error() string             { return fmt.Sprintf("agent report HTTP %d", e.status) }
+func (e *reportError) StatusCode() int           { return e.status }
+func (e *reportError) RetryAfter() time.Duration { return e.delay }

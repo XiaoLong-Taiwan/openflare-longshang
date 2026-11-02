@@ -94,17 +94,13 @@ func mergeAccessLogs(existing []protocol.NodeAccessLog, incoming []protocol.Node
 		return nil
 	}
 	merged := make([]protocol.NodeAccessLog, 0, len(existing)+len(incoming))
-	seen := make(map[string]struct{}, len(existing)+len(incoming))
+	seen := make(map[protocol.NodeAccessLog]struct{}, len(existing)+len(incoming))
 	appendIfNeeded := func(items []protocol.NodeAccessLog) {
 		for _, item := range items {
-			key := accessLogKey(item)
-			if key == "" {
+			if _, ok := seen[item]; ok {
 				continue
 			}
-			if _, ok := seen[key]; ok {
-				continue
-			}
-			seen[key] = struct{}{}
+			seen[item] = struct{}{}
 			merged = append(merged, item)
 		}
 	}

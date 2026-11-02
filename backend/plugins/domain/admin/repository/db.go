@@ -263,11 +263,23 @@ func CountExpiredTaskExecutions(ctx context.Context, before time.Time) (int64, e
 	if gormDB == nil {
 		return 0, errs.ErrDatabaseUninitialized
 	}
-	var count int64
-	if err := gormDB.Model(&model.TaskExecution{}).Where("created_at < ?", before).Count(&count).Error; err != nil {
-		return 0, err
+	var total int64
+	for _, item := range []struct {
+		status model.TaskExecutionStatus
+		cutoff time.Time
+	}{
+		{status: model.TaskExecutionStatusSucceeded, cutoff: before.AddDate(0, 0, -3)},
+		{status: model.TaskExecutionStatusFailed, cutoff: before.AddDate(0, 0, -30)},
+	} {
+		var count int64
+		if err := gormDB.Model(&model.TaskExecution{}).
+			Where("status = ? AND created_at < ?", item.status, item.cutoff).
+			Count(&count).Error; err != nil {
+			return total, err
+		}
+		total += count
 	}
-	return count, nil
+	return total, nil
 }
 
 // DeleteExpiredTaskExecutions deletes task executions older than before.
@@ -276,8 +288,19 @@ func DeleteExpiredTaskExecutions(ctx context.Context, before time.Time) (int64, 
 	if gormDB == nil {
 		return 0, errs.ErrDatabaseUninitialized
 	}
-	result := gormDB.Where("created_at < ?", before).Delete(&model.TaskExecution{})
-	return result.RowsAffected, result.Error
+	var total int64
+	for _, item := range []struct {
+		status model.TaskExecutionStatus
+		cutoff time.Time
+	}{
+		{status: model.TaskExecutionStatusSucceeded, cutoff: before.AddDate(0, 0, 4)},
+		{status: model.TaskExecutionStatusFailed, cutoff: before},
+	} {
+		if err := deleteTaskExecutionsInBatches(ctx, item.status, item.cutoff, &total); err != nil {
+			return total, err
+		}
+	}
+	return total, nil
 }
 
 // OptimizeDatabase refreshes planner statistics and reclaims database space.
@@ -296,10 +319,10 @@ func OptimizeDatabase(ctx context.Context, postgres bool) ([]string, error) {
 			return operations, err
 		}
 		operations = append(operations, "analyze")
-		if err := gormDB.Exec("VACUUM").Error; err != nil {
+		if err := gormDB.Exec("VACUUM FULL").Error; err != nil {
 			return operations, err
 		}
-		operations = append(operations, "vacuum")
+		operations = append(operations, "vacuum full")
 		return operations, nil
 	}
 	if err := gormDB.Exec("PRAGMA optimize").Error; err != nil {

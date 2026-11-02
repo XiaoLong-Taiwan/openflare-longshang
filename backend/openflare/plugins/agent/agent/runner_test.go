@@ -493,8 +493,8 @@ func TestRunnerReplaysBufferedObservabilityAfterHeartbeatRecovery(t *testing.T) 
 		t.Fatalf("expected two heartbeat payloads, got %d", len(heartbeatService.heartbeatPayloads))
 	}
 	secondPayload := heartbeatService.heartbeatPayloads[1]
-	if len(secondPayload.Buffered) != 1 {
-		t.Fatalf("expected second heartbeat to replay one buffered observation, got %+v", secondPayload.Buffered)
+	if len(secondPayload.Buffered) < 2 {
+		t.Fatalf("expected second heartbeat to replay seeded and failed current windows, got %+v", secondPayload.Buffered)
 	}
 	if len(secondPayload.Buffered[0].AccessLogs) != 0 {
 		t.Fatalf("expected seeded buffered observation to keep empty access logs, got %+v", secondPayload.Buffered[0].AccessLogs)

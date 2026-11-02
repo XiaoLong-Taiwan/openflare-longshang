@@ -29,8 +29,8 @@ func TestCleanupModeConstants(t *testing.T) {
 }
 
 func TestTableTTLDaysMatchDDL(t *testing.T) {
-	assert.Equal(t, 90, TableTTLDaysNodeAccessLogs)
-	assert.Equal(t, 30, TableTTLDaysNodeMetricSnapshots)
-	assert.Equal(t, 30, TableTTLDaysNodeObs)
-	assert.Equal(t, 180, TableTTLDaysUserAccessLogs)
+	assert.Equal(t, 7, TableTTLDaysNodeAccessLogs)
+	assert.Equal(t, 3, TableTTLDaysNodeMetricSnapshots)
+	assert.Equal(t, 3, TableTTLDaysNodeObs)
+	assert.Equal(t, 7, TableTTLDaysUserAccessLogs)
 }
