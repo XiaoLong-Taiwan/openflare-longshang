@@ -5,7 +5,6 @@ package handler
 
 import (
 	"Wavelet/pkg/response"
-	"Wavelet/plugins/domain/admin/model"
 	"Wavelet/plugins/domain/admin/service"
 	"net/http"
 
@@ -15,36 +14,6 @@ import (
 type logStorageCleanupRequest struct {
 	Category string `json:"category"`
 	Days     *int   `json:"days"`
-}
-
-// ForceCleanupLogStorage queues deletion of log and observability data older than seven days.
-// @Summary 強制清理七天前日誌
-// @Tags admin
-// @Accept json
-// @Produce json
-// @Security SessionCookie
-// @Param request body model.ForceLogCleanupRequest true "確認請求"
-// @Success 200 {object} response.Any
-// @Failure 400 {object} response.Any
-// @Failure 401 {object} response.Any
-// @Failure 403 {object} response.Any
-// @Failure 500 {object} response.Any
-// @Router /api/v1/admin/logs/storage/force-cleanup [post]
-func ForceCleanupLogStorage(c *gin.Context) {
-	var req model.ForceLogCleanupRequest
-	if err := c.ShouldBindJSON(&req); err != nil || !req.Confirmed {
-		response.AbortBadRequest(c, "需要確認強制清理操作")
-		return
-	}
-	taskID, err := service.DispatchTask(c.Request.Context(), model.DispatchTaskRequest{
-		TaskType: service.ForceLogCleanupTask,
-		Payload:  "{}",
-	})
-	if err != nil {
-		response.AbortInternal(c, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, response.OK(taskID))
 }
 
 // GetLogStorage returns log category row counts and storage sizes.

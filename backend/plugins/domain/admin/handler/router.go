@@ -50,7 +50,6 @@ func RegisterRoutes(adminRouter extpoints.RouterExtension) {
 		logsGroup.GET("/analytics", GetLogsAnalytics)
 		logsGroup.GET("/storage", GetLogStorage)
 		logsGroup.POST("/storage/cleanup", CleanupLogStorage)
-		logsGroup.POST("/storage/force-cleanup", ForceCleanupLogStorage)
 		logsGroup.GET("/ws", HandleLogWebSocket)
 	}
 

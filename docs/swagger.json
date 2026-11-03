@@ -4833,6 +4833,12 @@
                         "schema": {
                             "$ref": "#/definitions/response.Any"
                         }
+                    },
+                    "429": {
+                        "description": "节点日志队列繁忙",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
                     }
                 }
             }
@@ -6866,6 +6872,120 @@
                         "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/response.Any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/d/cloudflare/groups/{id}/members/batch-move": {
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openflare-cloudflare"
+                ],
+                "summary": "批量移动 Cloudflare 指向成员",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "分组 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "批量移动参数",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/cloudflare.MemberBatchMoveInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Any"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/cloudflare.MemberBatchResult"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/d/cloudflare/groups/{id}/members/batch-remove": {
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openflare-cloudflare"
+                ],
+                "summary": "批量移出 Cloudflare 指向成员",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "分组 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "成员 ID 列表",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Any"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/cloudflare.MemberBatchResult"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -11871,7 +11991,7 @@
                         "SessionCookie": []
                     }
                 ],
-                "description": "返回全部 WAF IP 组，需要管理员权限",
+                "description": "返回 WAF IP 组，需要管理员权限；可使用 keyword 按名称筛选",
                 "produces": [
                     "application/json"
                 ],
@@ -11879,6 +11999,14 @@
                     "openflare-waf"
                 ],
                 "summary": "列出 WAF IP 组",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "按名称筛选",
+                        "name": "keyword",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "IP 组列表",
@@ -16111,6 +16239,37 @@
                 },
                 "priority": {
                     "type": "integer"
+                }
+            }
+        },
+        "cloudflare.MemberBatchMoveInput": {
+            "type": "object",
+            "properties": {
+                "member_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "target_group_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "cloudflare.MemberBatchResult": {
+            "type": "object",
+            "properties": {
+                "member_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "task_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

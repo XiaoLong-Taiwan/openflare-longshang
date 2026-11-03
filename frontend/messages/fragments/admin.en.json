@@ -1239,9 +1239,6 @@
         "daysPlaceholder": "Days",
         "clearBeforeDays": "Clear older than {days} days",
         "clearAll": "Clear all",
-        "forceCleanup": "Force cleanup old data",
-        "forceCleanupConfirm": "This queues a background task to delete all access and observability data older than seven days. This cannot be undone. Continue?",
-        "forceCleanupQueued": "Force cleanup queued. Task ID: {taskID}.",
         "clear": "Clear",
         "categories": {
           "node_access": "Node access/request logs",

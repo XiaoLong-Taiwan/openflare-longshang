@@ -144,6 +144,12 @@ export function TaskExecutionsManager() {
     queryKey: ['admin', 'task-execution', selectedExecutionId],
     queryFn: () => services.adminTask.getTaskExecution(selectedExecutionId!),
     enabled: detailOpen && !!selectedExecutionId,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status ?? executionPreview?.status;
+      return detailOpen && (status === 'pending' || status === 'running')
+        ? 5000
+        : false;
+    },
   });
 
   const retryMutation = useMutation({

@@ -1240,9 +1240,6 @@
         "clearBeforeDays": "清理 {days} 天前",
         "clearAll": "清理全部",
         "cancel": "取消",
-        "forceCleanup": "强制清理旧数据",
-        "forceCleanupConfirm": "将加入后台任务，删除所有七天以前的访问与观测数据。此操作无法撤销，是否继续？",
-        "forceCleanupQueued": "强制清理已加入后台任务，任务 ID：{taskID}。",
         "clear": "清理",
         "categories": {
           "node_access": "节点访问／请求日志",

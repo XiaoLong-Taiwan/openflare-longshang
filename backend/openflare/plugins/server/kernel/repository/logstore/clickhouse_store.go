@@ -186,6 +186,10 @@ func (s *clickhouseLogStore) DeleteBefore(ctx context.Context, cutoff time.Time)
 	return analyticsrepo.DeleteNodeAccessLogsBefore(ctx, cutoff)
 }
 
+func (s *clickhouseLogStore) DeleteMonthBeforeBatch(ctx context.Context, _ time.Time, _ time.Time, _ int) (int64, error) {
+	return 0, fmt.Errorf("monthly batched deletion is supported only for PostgreSQL")
+}
+
 func (s *clickhouseLogStore) DeleteByNodeBefore(ctx context.Context, nodeID string, before time.Time) (int64, error) {
 	if err := s.ensureWritable(ctx); err != nil {
 		return 0, err

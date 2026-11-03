@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/glebarez/sqlite"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
@@ -286,6 +288,38 @@ func newTestGormStoreWithModels(t *testing.T, models ...any) *gormLogStore {
 		t.Fatalf("automigrate: %v", err)
 	}
 	return newGormStore(db)
+}
+
+func TestDeleteMonthBeforeBatch(t *testing.T) {
+	ResetForTest()
+	SetConfigReader(func(_ context.Context, _ string) (string, error) { return "", nil })
+	t.Cleanup(ResetForTest)
+
+	s := newTestGormStore(t)
+	month := time.Date(2026, time.October, 1, 0, 0, 0, 0, time.UTC)
+	cutoff := month.AddDate(0, 0, 27)
+	rows := make([]analyticsmodel.NodeAccessLog, 1005)
+	for i := range rows {
+		rows[i] = analyticsmodel.NodeAccessLog{ID: uint64(i + 1), NodeID: "node", LoggedAt: month.Add(time.Duration(i) * time.Minute)}
+	}
+	rows = append(rows,
+		analyticsmodel.NodeAccessLog{ID: 2001, NodeID: "node", LoggedAt: month.AddDate(0, 1, 0)},
+		analyticsmodel.NodeAccessLog{ID: 2002, NodeID: "node", LoggedAt: cutoff},
+	)
+	require.NoError(t, s.db.CreateInBatches(rows, 200).Error)
+
+	deleted, err := s.DeleteMonthBeforeBatch(context.Background(), month, cutoff, 1000)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1000, deleted)
+	var remaining int64
+	require.NoError(t, s.db.Model(&analyticsmodel.NodeAccessLog{}).Count(&remaining).Error)
+	assert.EqualValues(t, 7, remaining)
+}
+
+func TestDeleteMonthBeforeBatchRejectsOtherMonth(t *testing.T) {
+	s := newTestGormStore(t)
+	_, err := s.DeleteMonthBeforeBatch(context.Background(), time.Date(2026, time.November, 1, 0, 0, 0, 0, time.UTC), time.Now(), 1000)
+	assert.Error(t, err)
 }
 
 // TestGormObservabilityInsertList 覆盖 4 张可观测表：flush 写入、查询、删除、

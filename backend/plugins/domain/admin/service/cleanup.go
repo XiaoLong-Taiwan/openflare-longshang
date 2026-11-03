@@ -4,15 +4,19 @@
 package service
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strconv"
+	"time"
+
 	"Wavelet/core/contracts"
 	pkgcache "Wavelet/pkg/cache/disk"
 	"Wavelet/pkg/logger"
 	"Wavelet/plugins/domain/admin/model"
+
 	"Wavelet/plugins/domain/admin/repository"
-	"context"
-	"errors"
-	"fmt"
-	"time"
 )
 
 const (
@@ -41,15 +45,28 @@ var SystemCleanupMeta = contracts.TaskMetaDTO{
 var ForceLogCleanupMeta = contracts.TaskMetaDTO{
 	Type:         "force_log_cleanup",
 	AsynqTask:    ForceLogCleanupTask,
-	Name:         "強制清理舊日誌",
-	DisplayName:  "強制清理舊日誌",
-	Description:  "分批刪除七天以前的存取與觀測資料",
+	Name:         "清理 2026-10 節點存取日誌",
+	DisplayName:  "清理 2026-10 節點存取日誌",
+	Description:  "每批刪除最多 1,000 筆七天前資料，並記錄清理進度；不會直接刪除整個月份分區",
 	Category:     "maintenance",
 	SupportsTime: false,
 	MaxRetry:     3,
 	Queue:        taskQueueDefault,
 	Retryable:    true,
+	Params: []contracts.TaskParamDTO{{
+		Name:        "confirmed",
+		Label:       "確認清理十月分區",
+		Type:        "boolean",
+		Required:    true,
+		Description: "確認每批最多刪除 1,000 筆七天以前的資料。",
+	}},
 }
+
+type forceLogCleanupHandlerPayload struct {
+	Confirmed bool `json:"confirmed"`
+}
+
+var forceLogCleanupPayload = []byte(`{"confirmed":true}`)
 
 // DatabaseMaintenanceTask identifies the full database maintenance task.
 const DatabaseMaintenanceTask = "database:maintenance"
@@ -169,15 +186,57 @@ func (h *SystemCleanupHandler) Execute(ctx context.Context, _ []byte) (*contract
 	return &contracts.TaskResultDTO{Message: msg}, nil
 }
 
-func (h *ForceLogCleanupHandler) Execute(ctx context.Context, _ []byte) (*contracts.TaskResultDTO, error) {
+func (h *ForceLogCleanupHandler) ValidatePayload(payload []byte) ([]byte, error) {
+	var request forceLogCleanupHandlerPayload
+	if err := json.Unmarshal(payload, &request); err != nil || !request.Confirmed {
+		return nil, errors.New("confirmed must be true")
+	}
+	return []byte(`{"confirmed":true}`), nil
+}
+
+func (h *ForceLogCleanupHandler) Execute(ctx context.Context, payload []byte) (*contracts.TaskResultDTO, error) {
+	var request forceLogCleanupHandlerPayload
+	if err := json.Unmarshal(payload, &request); err != nil || !request.Confirmed {
+		return nil, errors.New("confirmed must be true")
+	}
 	storage := GetLogStorageService(ctx)
 	if storage == nil {
 		return nil, errLogStorageUnavailable
 	}
-	cutoff := time.Now().UTC().AddDate(0, 0, -7)
-	results, err := storage.Cleanup(ctx, "all", &cutoff)
-	if err != nil {
-		return nil, fmt.Errorf("force log cleanup failed: %w", err)
+	taskSvc := GetTaskService(ctx)
+	if taskSvc == nil {
+		return nil, errors.New("task service is not available for cleanup progress logging")
 	}
-	return &contracts.TaskResultDTO{Message: "七天前的日誌與觀測資料已完成一輪分批清理", Detail: results}, nil
+	if !GetDBConfig().Enabled {
+		return nil, errors.New("monthly 202610 cleanup requires PostgreSQL")
+	}
+	cutoff := time.Now().UTC().AddDate(0, 0, -7)
+	month := time.Date(2026, time.October, 1, 0, 0, 0, 0, time.UTC)
+	estimatedInitialRows, estimatedInitialBytes, err := storage.NodeAccessLogPartitionStats(ctx, month)
+	if err != nil {
+		return nil, fmt.Errorf("read October partition statistics: %w", err)
+	}
+	taskSvc.AppendLog(ctx, "開始清理 of_node_access_logs_202610：目前統計估計約 %.2f GB、%s 筆；筆數為 PostgreSQL 統計估值。每批最多 1,000 筆，保留 cutoff 之後資料（cutoff=%s）。", float64(estimatedInitialBytes)/1e9, strconv.FormatInt(estimatedInitialRows, 10), cutoff.Format(time.RFC3339))
+	var deletedTotal int64
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		deleted, err := storage.DeleteNodeAccessLogBatch(ctx, month, cutoff, 1000)
+		if err != nil {
+			return nil, fmt.Errorf("delete October 2026 access log batch: %w", err)
+		}
+		if deleted == 0 {
+			break
+		}
+		deletedTotal += deleted
+		taskSvc.AppendLog(ctx, "of_node_access_logs_202610 本批刪除 %d 筆，累計刪除 %s 筆；啟動時估計 %s 筆。", deleted, strconv.FormatInt(deletedTotal, 10), strconv.FormatInt(estimatedInitialRows, 10))
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(250 * time.Millisecond):
+		}
+	}
+	taskSvc.AppendLog(ctx, "十月分區已無 cutoff 前的待刪記錄。本次刪除 %d 筆；PostgreSQL 檔案空間未必立即縮小，VACUUM FULL 需另行於維護窗執行。", deletedTotal)
+	return &contracts.TaskResultDTO{Message: fmt.Sprintf("十月分區過期存取日誌清理完成，共刪除 %d 筆（開始時分區統計估值約 %.2f GB）", deletedTotal, float64(estimatedInitialBytes)/1e9), Detail: map[string]any{"partition": "of_node_access_logs_202610", "cutoff": cutoff, "deleted": deletedTotal, "initial_estimated_rows": estimatedInitialRows, "initial_estimated_bytes": estimatedInitialBytes}}, nil
 }

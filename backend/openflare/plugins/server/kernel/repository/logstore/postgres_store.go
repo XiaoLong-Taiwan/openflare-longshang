@@ -22,33 +22,41 @@ import (
 )
 
 const (
-	cleanupBatchSize       = 1000
-	cleanupBatchesPerRun   = 1000
+	cleanupBatchSize     = 1000
+	cleanupBatchesPerRun = 1000
 )
 
 func deleteInBatches(ctx context.Context, db *gorm.DB, model any, condition string, args ...any) (int64, error) {
 	var total int64
 	for batch := 0; batch < cleanupBatchesPerRun; batch++ {
-		if err := ctx.Err(); err != nil {
+		deleted, err := deleteInBatch(ctx, db, model, condition, args, cleanupBatchSize)
+		if err != nil {
 			return total, err
 		}
-		ids := make([]uint64, 0, cleanupBatchSize)
-		if err := db.WithContext(ctx).Model(model).Where(condition, args...).Order("id ASC").Limit(cleanupBatchSize).Pluck("id", &ids).Error; err != nil {
-			return total, err
-		}
-		if len(ids) == 0 {
+		if deleted == 0 {
 			return total, nil
 		}
-		result := db.WithContext(ctx).Where("id IN ?", ids).Delete(model)
-		if result.Error != nil {
-			return total, result.Error
-		}
-		total += result.RowsAffected
-		if len(ids) < cleanupBatchSize {
+		total += deleted
+		if deleted < cleanupBatchSize {
 			return total, nil
 		}
 	}
 	return total, nil
+}
+
+func deleteInBatch(ctx context.Context, db *gorm.DB, model any, condition string, args []any, limit int) (int64, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	ids := make([]uint64, 0, limit)
+	if err := db.WithContext(ctx).Model(model).Where(condition, args...).Order("id ASC").Limit(limit).Pluck("id", &ids).Error; err != nil {
+		return 0, err
+	}
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	result := db.WithContext(ctx).Where("id IN ?", ids).Delete(model)
+	return result.RowsAffected, result.Error
 }
 
 // 常用批处理/分页默认值与常量（mnd 禁魔法数字）。
@@ -675,6 +683,26 @@ func (s *gormLogStore) DeleteBefore(ctx context.Context, cutoff time.Time) (int6
 		return 0, err
 	}
 	return deleteInBatches(ctx, s.db, &analyticsmodel.NodeAccessLog{}, "logged_at < ?", cutoff)
+}
+
+func (s *gormLogStore) DeleteMonthBeforeBatch(ctx context.Context, month time.Time, cutoff time.Time, limit int) (int64, error) {
+	if err := s.ensureWritable(ctx); err != nil {
+		return 0, err
+	}
+	month = time.Date(month.UTC().Year(), month.UTC().Month(), 1, 0, 0, 0, 0, time.UTC)
+	if month.Format("200601") != "202610" {
+		return 0, fmt.Errorf("unsupported access log partition month %s", month.Format("200601"))
+	}
+	if limit <= 0 || limit > cleanupBatchSize {
+		limit = cleanupBatchSize
+	}
+	if !isPostgresDialect(s.db) {
+		return deleteInBatch(ctx, s.db, &analyticsmodel.NodeAccessLog{}, "logged_at < ? AND logged_at >= ? AND logged_at < ?", []any{cutoff.UTC(), month, month.AddDate(0, 1, 0)}, limit)
+	}
+	partition := "of_node_access_logs_" + month.Format("200601")
+	query := "WITH batch AS (SELECT ctid FROM " + partition + " WHERE logged_at < ? AND logged_at >= ? AND logged_at < ? ORDER BY logged_at ASC, id ASC LIMIT ?) DELETE FROM " + partition + " AS logs USING batch WHERE logs.ctid = batch.ctid AND logs.logged_at < ? AND logs.logged_at >= ? AND logs.logged_at < ?"
+	result := s.db.WithContext(ctx).Exec(query, cutoff.UTC(), month, month.AddDate(0, 1, 0), limit, cutoff.UTC(), month, month.AddDate(0, 1, 0))
+	return result.RowsAffected, result.Error
 }
 
 func (s *gormLogStore) DeleteByNodeBefore(ctx context.Context, nodeID string, before time.Time) (int64, error) {

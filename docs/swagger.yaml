@@ -519,6 +519,26 @@ definitions:
       priority:
         type: integer
     type: object
+  cloudflare.MemberBatchMoveInput:
+    properties:
+      member_ids:
+        items:
+          type: integer
+        type: array
+      target_group_id:
+        type: integer
+    type: object
+  cloudflare.MemberBatchResult:
+    properties:
+      member_ids:
+        items:
+          type: integer
+        type: array
+      task_ids:
+        items:
+          type: string
+        type: array
+    type: object
   cloudflare.MemberCreateInput:
     properties:
       proxied:
@@ -7329,6 +7349,10 @@ paths:
           description: Token 无效
           schema:
             $ref: '#/definitions/response.Any'
+        "429":
+          description: 节点日志队列繁忙
+          schema:
+            $ref: '#/definitions/response.Any'
       security:
       - AgentTokenAuth: []
       summary: 注册或发现 Agent 节点
@@ -8647,6 +8671,72 @@ paths:
       security:
       - SessionCookie: []
       summary: 更新 Cloudflare 指向成员
+      tags:
+      - openflare-cloudflare
+  /api/v1/d/cloudflare/groups/{id}/members/batch-move:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 分组 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 批量移动参数
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/cloudflare.MemberBatchMoveInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Any'
+            - properties:
+                data:
+                  $ref: '#/definitions/cloudflare.MemberBatchResult'
+              type: object
+      security:
+      - SessionCookie: []
+      summary: 批量移动 Cloudflare 指向成员
+      tags:
+      - openflare-cloudflare
+  /api/v1/d/cloudflare/groups/{id}/members/batch-remove:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 分组 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 成员 ID 列表
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Any'
+            - properties:
+                data:
+                  $ref: '#/definitions/cloudflare.MemberBatchResult'
+              type: object
+      security:
+      - SessionCookie: []
+      summary: 批量移出 Cloudflare 指向成员
       tags:
       - openflare-cloudflare
   /api/v1/d/cloudflare/groups/{id}/sync:
@@ -11557,7 +11647,12 @@ paths:
       - openflare-option
   /api/v1/d/waf/ip-groups:
     get:
-      description: 返回全部 WAF IP 组，需要管理员权限
+      description: 返回 WAF IP 组，需要管理员权限；可使用 keyword 按名称筛选
+      parameters:
+      - description: 按名称筛选
+        in: query
+        name: keyword
+        type: string
       produces:
       - application/json
       responses:

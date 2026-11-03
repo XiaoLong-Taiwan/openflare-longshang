@@ -281,9 +281,9 @@ Runtime config after log-store decoupling: the log primary DB is managed by the�
 | --- | --- | --- | --- |
 | `log_database` | `string` | current log primary DB (`postgres` / `sqlite` / `clickhouse`). **Internal protected key**: only written by the「Switch Log Database」migration task; admins can't create/modify manually | follows the primary DB (`postgres` when PostgreSQL enabled, else `sqlite`; `clickhouse` preferred when ClickHouse enabled) |
 | `log_db_migration` | `string` | log migration freeze marker (`migrating` or empty). **Internal protected key**: only the migration task writes it; while set, log writes return 503「log DB migrating, not writable」 | empty |
-| `log_retention_days_postgres` | `int` | access-log retention days in the PostgreSQL log DB (expired logs deleted by the daily garbage-collection task) | `30` |
-| `log_retention_days_sqlite` | `int` | access-log retention days in the SQLite log DB | `30` |
-| `log_retention_days_clickhouse` | `int` | access-log retention days in the ClickHouse log DB | `30` |
+| `log_retention_days_postgres` | `int` | access-log retention days in the PostgreSQL log DB (expired logs deleted by the daily garbage-collection task) | `7` |
+| `log_retention_days_sqlite` | `int` | access-log retention days in the SQLite log DB | `7` |
+| `log_retention_days_clickhouse` | `int` | access-log retention days in the ClickHouse log DB | `7` |
 | `metric_retention_days` | `int` | performance metric (CPU/memory/disk/network) retention days; shared short retention across the three DBs (independent of access-log retention) | `3` |
 
 ---

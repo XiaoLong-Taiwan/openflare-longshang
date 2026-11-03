@@ -43,6 +43,7 @@ type AccessLogStore interface {
 	NodeAggregates(ctx context.Context, filter model.OpenFlareAccessLogQuery) ([]model.OpenFlareAccessLogNodeAggregate, error)
 	DeleteAll(ctx context.Context) (int64, error)
 	DeleteBefore(ctx context.Context, cutoff time.Time) (int64, error)
+	DeleteMonthBeforeBatch(ctx context.Context, month time.Time, cutoff time.Time, limit int) (int64, error)
 	DeleteByNodeBefore(ctx context.Context, nodeID string, before time.Time) (int64, error)
 	// ListForMigration 按 id 升序分页读取（迁移复制用）。
 	ListForMigration(ctx context.Context, afterID uint64, limit int) ([]analyticsmodel.NodeAccessLog, error)

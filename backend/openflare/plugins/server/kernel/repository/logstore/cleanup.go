@@ -83,7 +83,7 @@ func metricRetentionDays(ctx context.Context) int {
 }
 
 // CleanupExpired 按当前激活库保留天数清理过期日志（每日由 system_cleanup 调用）：
-// 访问日志（节点访问/用户访问）按 log_retention_days_* 清理；
+	// 訪問日誌（節點訪問/用戶訪問）按 log_retention_days_* 清理；
 // 性能指标（CPU/内存/磁盘/网络）按三库共用的短留存 metric_retention_days 清理。
 func CleanupExpired(ctx context.Context) (*CleanupSummary, error) {
 	dbName, err := resolveDatabase(ctx)

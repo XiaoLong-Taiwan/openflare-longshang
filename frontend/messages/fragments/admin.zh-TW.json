@@ -1240,9 +1240,6 @@
         "clearBeforeDays": "清理 {days} 天前",
         "clearAll": "清理全部",
         "cancel": "取消",
-        "forceCleanup": "強制清理舊資料",
-        "forceCleanupConfirm": "將排入背景工作，刪除所有七天以前的存取與觀測資料。此操作無法復原，是否繼續？",
-        "forceCleanupQueued": "強制清理已排入背景工作，工作 ID：{taskID}。",
         "clear": "清理",
         "categories": {
           "node_access": "節點存取／請求日誌",

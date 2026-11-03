@@ -372,7 +372,9 @@ export function TaskManager() {
                   <TableHead>{t('colRetry')}</TableHead>
                   <TableHead>{t('colParameters')}</TableHead>
                   <TableHead>{t('colStatus')}</TableHead>
-                  <TableHead className='w-[130px] text-right'>{t('colActions')}</TableHead>
+                  <TableHead className='w-[130px] text-right'>
+                    {t('colActions')}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -388,9 +390,13 @@ export function TaskManager() {
                     >
                       <TableCell>
                         <div className='flex min-w-[220px] items-center gap-2'>
-                          <Icon className={cn('size-4 shrink-0', config.color)} />
+                          <Icon
+                            className={cn('size-4 shrink-0', config.color)}
+                          />
                           <div className='min-w-0'>
-                            <div className='truncate font-medium'>{task.name}</div>
+                            <div className='truncate font-medium'>
+                              {task.name}
+                            </div>
                             <div className='truncate text-xs text-muted-foreground'>
                               {task.description || task.type}
                             </div>
@@ -400,16 +406,28 @@ export function TaskManager() {
                       <TableCell className='font-mono text-xs text-muted-foreground'>
                         {task.type}
                       </TableCell>
-                      <TableCell><Badge variant='outline'>{task.queue}</Badge></TableCell>
-                      <TableCell className='font-mono text-xs'>{task.max_retry}</TableCell>
+                      <TableCell>
+                        <Badge variant='outline'>{task.queue}</Badge>
+                      </TableCell>
+                      <TableCell className='font-mono text-xs'>
+                        {task.max_retry}
+                      </TableCell>
                       <TableCell className='text-xs text-muted-foreground'>
                         {task.params?.length ?? 0} {t('parameters')}
                         {task.supports_time ? ` · ${t('supportsTime')}` : ''}
                       </TableCell>
                       <TableCell>
                         {isLogSwitch && logDbStatus ? (
-                          <Badge variant={logDbStatus.migration === 'migrating' ? 'default' : 'outline'}>
-                            {logDbStatus.migration === 'migrating' ? t('migrating') : t('idle')}
+                          <Badge
+                            variant={
+                              logDbStatus.migration === 'migrating'
+                                ? 'default'
+                                : 'outline'
+                            }
+                          >
+                            {logDbStatus.migration === 'migrating'
+                              ? t('migrating')
+                              : t('idle')}
                           </Badge>
                         ) : (
                           <Badge variant='secondary'>{t('ready')}</Badge>
@@ -451,25 +469,41 @@ export function TaskManager() {
           {detailTask ? (
             <div className='grid gap-3 py-2 sm:grid-cols-2'>
               <div className='rounded-lg border p-3'>
-                <div className='text-xs text-muted-foreground'>{t('taskTypeLabel')}</div>
+                <div className='text-xs text-muted-foreground'>
+                  {t('taskTypeLabel')}
+                </div>
                 <div className='mt-1 font-mono text-sm'>{detailTask.type}</div>
               </div>
               <div className='rounded-lg border p-3'>
-                <div className='text-xs text-muted-foreground'>{t('colQueue')}</div>
+                <div className='text-xs text-muted-foreground'>
+                  {t('colQueue')}
+                </div>
                 <div className='mt-1 font-mono text-sm'>{detailTask.queue}</div>
               </div>
               <div className='rounded-lg border p-3'>
-                <div className='text-xs text-muted-foreground'>{t('colRetry')}</div>
-                <div className='mt-1 font-mono text-sm'>{detailTask.max_retry}</div>
+                <div className='text-xs text-muted-foreground'>
+                  {t('colRetry')}
+                </div>
+                <div className='mt-1 font-mono text-sm'>
+                  {detailTask.max_retry}
+                </div>
               </div>
               <div className='rounded-lg border p-3'>
-                <div className='text-xs text-muted-foreground'>{t('colParameters')}</div>
-                <div className='mt-1 text-sm'>{detailTask.params?.length ?? 0} {t('parameters')}</div>
+                <div className='text-xs text-muted-foreground'>
+                  {t('colParameters')}
+                </div>
+                <div className='mt-1 text-sm'>
+                  {detailTask.params?.length ?? 0} {t('parameters')}
+                </div>
               </div>
               <div className='rounded-lg border p-3 sm:col-span-2'>
-                <div className='text-xs text-muted-foreground'>{t('executionSupport')}</div>
+                <div className='text-xs text-muted-foreground'>
+                  {t('executionSupport')}
+                </div>
                 <div className='mt-1 text-sm'>
-                  {detailTask.supports_time ? t('supportsTime') : t('noTimeSupport')}
+                  {detailTask.supports_time
+                    ? t('supportsTime')
+                    : t('noTimeSupport')}
                 </div>
               </div>
             </div>
