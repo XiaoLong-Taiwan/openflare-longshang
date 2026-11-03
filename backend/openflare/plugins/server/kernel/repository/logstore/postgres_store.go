@@ -21,11 +21,17 @@ import (
 	"gorm.io/gorm"
 )
 
-const cleanupBatchSize = 1000
+const (
+	cleanupBatchSize       = 1000
+	cleanupBatchesPerRun   = 1000
+)
 
 func deleteInBatches(ctx context.Context, db *gorm.DB, model any, condition string, args ...any) (int64, error) {
 	var total int64
-	for {
+	for batch := 0; batch < cleanupBatchesPerRun; batch++ {
+		if err := ctx.Err(); err != nil {
+			return total, err
+		}
 		ids := make([]uint64, 0, cleanupBatchSize)
 		if err := db.WithContext(ctx).Model(model).Where(condition, args...).Order("id ASC").Limit(cleanupBatchSize).Pluck("id", &ids).Error; err != nil {
 			return total, err
@@ -42,6 +48,7 @@ func deleteInBatches(ctx context.Context, db *gorm.DB, model any, condition stri
 			return total, nil
 		}
 	}
+	return total, nil
 }
 
 // 常用批处理/分页默认值与常量（mnd 禁魔法数字）。
