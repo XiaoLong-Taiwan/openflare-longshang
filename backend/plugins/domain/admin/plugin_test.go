@@ -38,6 +38,8 @@ func TestAdminPluginUnit(t *testing.T) {
 	require.True(t, ok)
 	_, ok = ctx.Tasks().Get("system:cleanup")
 	require.True(t, ok)
+	_, ok = ctx.Tasks().Get("system:force-log-cleanup")
+	require.True(t, ok)
 	if _, ok := ctx.Tasks().Get("database:maintenance"); !ok {
 		t.Error("admin.Apply() did not register database:maintenance for manual execution")
 	}

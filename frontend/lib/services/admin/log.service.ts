@@ -65,6 +65,10 @@ export class AdminLogService extends BaseService {
     return this.post('/logs/storage/cleanup', params);
   }
 
+  static async forceCleanupOldLogStorage(): Promise<string> {
+    return this.post('/logs/storage/force-cleanup', { confirmed: true });
+  }
+
   static async getLogsAnalytics(): Promise<{
     trend: Array<{ date: string; count: number }>;
     browsers: Array<{ browser: string; count: number }>;

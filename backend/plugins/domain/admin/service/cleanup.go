@@ -17,7 +17,8 @@ import (
 
 const (
 	// SystemCleanupTask 系统定期垃圾清理任务标识
-	SystemCleanupTask = "system:cleanup"
+	SystemCleanupTask   = "system:cleanup"
+	ForceLogCleanupTask = "system:force-log-cleanup"
 	// TaskTypeSystemCleanup 系统定期垃圾清理管理类型
 	TaskTypeSystemCleanup = "system_cleanup"
 	taskQueueDefault      = "default"
@@ -30,6 +31,19 @@ var SystemCleanupMeta = contracts.TaskMetaDTO{
 	Name:         "系统垃圾清理",
 	DisplayName:  "系统垃圾清理",
 	Description:  "定期清理过期任务执行记录，并通过领域事件广播触发各业务域自治清理（临时文件、历史推送等）",
+	Category:     "maintenance",
+	SupportsTime: false,
+	MaxRetry:     3,
+	Queue:        taskQueueDefault,
+	Retryable:    true,
+}
+
+var ForceLogCleanupMeta = contracts.TaskMetaDTO{
+	Type:         "force_log_cleanup",
+	AsynqTask:    ForceLogCleanupTask,
+	Name:         "強制清理舊日誌",
+	DisplayName:  "強制清理舊日誌",
+	Description:  "分批刪除七天以前的存取與觀測資料",
 	Category:     "maintenance",
 	SupportsTime: false,
 	MaxRetry:     3,
@@ -59,6 +73,8 @@ var DatabaseMaintenanceMeta = contracts.TaskMetaDTO{
 
 // SystemCleanupHandler handles the system-wide garbage cleanup task.
 type SystemCleanupHandler struct{}
+
+type ForceLogCleanupHandler struct{}
 
 // PreviewDatabaseMaintenance reports the pending cleanup and maintenance operations.
 func PreviewDatabaseMaintenance(ctx context.Context) (model.DatabaseMaintenancePreview, error) {
@@ -151,4 +167,17 @@ func (h *SystemCleanupHandler) Execute(ctx context.Context, _ []byte) (*contract
 	msg := fmt.Sprintf("系统垃圾清理完成，已清理过期任务执行日志 %d 条，并已广播领域清理事件", deletedExecutions)
 	logger.InfoF(ctx, "%s", msg)
 	return &contracts.TaskResultDTO{Message: msg}, nil
+}
+
+func (h *ForceLogCleanupHandler) Execute(ctx context.Context, _ []byte) (*contracts.TaskResultDTO, error) {
+	storage := GetLogStorageService(ctx)
+	if storage == nil {
+		return nil, errLogStorageUnavailable
+	}
+	cutoff := time.Now().UTC().AddDate(0, 0, -7)
+	results, err := storage.Cleanup(ctx, "all", &cutoff)
+	if err != nil {
+		return nil, fmt.Errorf("force log cleanup failed: %w", err)
+	}
+	return &contracts.TaskResultDTO{Message: "七天前的日誌與觀測資料已完成一輪分批清理", Detail: results}, nil
 }

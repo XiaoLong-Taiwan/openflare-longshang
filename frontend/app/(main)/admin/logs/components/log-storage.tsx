@@ -1,19 +1,37 @@
 'use client';
 
 import * as React from 'react';
-import { Database, Eraser, Loader2, RefreshCw } from 'lucide-react';
+import {
+  AlertTriangle,
+  Database,
+  Eraser,
+  Loader2,
+  RefreshCw,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import services, { formatFileSize } from '@/lib/services';
 
 export function LogStorage() {
   const t = useTranslations('admin.logs.storage');
   const queryClient = useQueryClient();
   const [days, setDays] = React.useState('');
+  const [forceDialogOpen, setForceDialogOpen] = React.useState(false);
   const query = useQuery({
     queryKey: ['admin', 'logs', 'storage'],
     queryFn: () => services.adminLog.getLogStorage(),
@@ -31,6 +49,18 @@ export function LogStorage() {
     },
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ['admin', 'logs', 'storage'] }),
+  });
+  const forceCleanup = useMutation({
+    mutationFn: () => services.adminLog.forceCleanupOldLogStorage(),
+    onSuccess: (taskID) => {
+      setForceDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['admin', 'logs', 'storage'] });
+      toast.success(t('forceCleanupQueued', { taskID }));
+    },
+    onError: (error) =>
+      toast.error(t('loadFailed'), {
+        description: error instanceof Error ? error.message : undefined,
+      }),
   });
 
   if (query.isLoading) {
@@ -63,6 +93,41 @@ export function LogStorage() {
           <RefreshCw data-icon='inline-start' />
           {t('refresh')}
         </Button>
+        <AlertDialog open={forceDialogOpen} onOpenChange={setForceDialogOpen}>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant='destructive'
+              size='sm'
+              disabled={forceCleanup.isPending || cleanup.isPending}
+            >
+              <AlertTriangle data-icon='inline-start' />
+              {t('forceCleanup')}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('forceCleanup')}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t('forceCleanupConfirm')}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={forceCleanup.isPending}>
+                {t('cancel')}
+              </AlertDialogCancel>
+              <Button
+                variant='destructive'
+                onClick={() => forceCleanup.mutate()}
+                disabled={forceCleanup.isPending}
+              >
+                {forceCleanup.isPending ? (
+                  <Loader2 data-icon='inline-start' className='animate-spin' />
+                ) : null}
+                {t('forceCleanup')}
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       <div className='flex flex-wrap items-end gap-3 border-b pb-5'>

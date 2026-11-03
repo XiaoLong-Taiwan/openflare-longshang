@@ -8,6 +8,7 @@ import (
 	"Wavelet/plugins/domain/admin/model"
 	"Wavelet/plugins/domain/admin/service"
 	"context"
+	"errors"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -17,6 +18,47 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 )
+
+type forceCleanupLogStorage struct {
+	category string
+	before   time.Time
+	calls    int
+}
+
+func (s *forceCleanupLogStorage) Overview(context.Context) (contracts.LogStorageOverview, error) {
+	return contracts.LogStorageOverview{}, nil
+}
+
+func (s *forceCleanupLogStorage) Cleanup(_ context.Context, category string, before *time.Time) ([]contracts.LogStorageCleanupResult, error) {
+	s.calls++
+	s.category = category
+	if before == nil {
+		return nil, errors.New("expected cutoff")
+	}
+	s.before = *before
+	return []contracts.LogStorageCleanupResult{{Category: "node_access", Deleted: 4}}, nil
+}
+
+func TestForceLogCleanupHandler_Execute(t *testing.T) {
+	storage := &forceCleanupLogStorage{}
+	service.SetLogStorageService(storage)
+	t.Cleanup(service.ResetServices)
+
+	result, err := (&service.ForceLogCleanupHandler{}).Execute(context.Background(), nil)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "all", storage.category)
+	assert.Equal(t, 1, storage.calls)
+	assert.WithinDuration(t, time.Now().UTC().AddDate(0, 0, -7), storage.before, time.Second)
+	assert.Contains(t, result.Message, "七天前")
+	assert.NotNil(t, result.Detail)
+}
+
+func TestForceLogCleanupHandler_RequiresLogStorage(t *testing.T) {
+	service.ResetServices()
+	_, err := (&service.ForceLogCleanupHandler{}).Execute(context.Background(), nil)
+	assert.Error(t, err)
+}
 
 func TestSystemCleanupHandler_Execute(t *testing.T) {
 	sqliteDB, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})

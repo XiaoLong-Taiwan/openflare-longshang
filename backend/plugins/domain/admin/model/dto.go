@@ -127,6 +127,10 @@ type DatabaseMaintenanceRequest struct {
 	Confirmed bool `json:"confirmed" binding:"eq=true"`
 }
 
+type ForceLogCleanupRequest struct {
+	Confirmed bool `json:"confirmed" binding:"eq=true"`
+}
+
 // SystemStatusResponse 系统状态响应结构体
 type SystemStatusResponse struct {
 	Uptime       string `json:"uptime"`

@@ -142,6 +142,7 @@ func (p *Plugin) Apply(ctx *core.Context) error {
 	const defaultCleanupRetry = 3
 	ctx.Task().Register(service.LogDBSwitchTask, &service.LogDBSwitchHandler{}, extpoints.WithTaskMeta(service.LogDBSwitchMeta))
 	ctx.Task().Register(service.SystemCleanupTask, &service.SystemCleanupHandler{}, extpoints.WithTaskMeta(service.SystemCleanupMeta), extpoints.WithTaskRetry(defaultCleanupRetry))
+	ctx.Task().Register(service.ForceLogCleanupTask, &service.ForceLogCleanupHandler{}, extpoints.WithTaskMeta(service.ForceLogCleanupMeta), extpoints.WithTaskRetry(defaultCleanupRetry))
 	ctx.Task().Register(service.DatabaseMaintenanceTask, &service.DatabaseMaintenanceHandler{}, extpoints.WithTaskMeta(service.DatabaseMaintenanceMeta), extpoints.WithTaskRetry(1))
 
 	// 2.1 Register Cron Schedule

@@ -11,10 +11,13 @@ import (
 	"Wavelet/plugins/domain/admin/service"
 	"Wavelet/plugins/drivers/driver_asynq_worker"
 	"encoding/json"
+	"strings"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/alicebob/miniredis/v2"
+	"github.com/hibiken/asynq"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,6 +26,58 @@ import (
 type listTaskTypesResponse struct {
 	ErrorMsg string                  `json:"error_msg"`
 	Data     []contracts.TaskMetaDTO `json:"data"`
+}
+
+func TestForceCleanupLogStorageHandler(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	ctx := core.NewContext(t.Context())
+	miniRedis := miniredis.RunT(t)
+	driver_asynq_worker.AsynqClient = asynq.NewClient(asynq.RedisClientOpt{Addr: miniRedis.Addr()})
+	t.Cleanup(func() {
+		_ = driver_asynq_worker.AsynqClient.Close()
+		driver_asynq_worker.AsynqClient = nil
+	})
+	worker := driver_asynq_worker.New()
+	require.NoError(t, worker.Apply(ctx))
+	ctx.Task().Register(service.ForceLogCleanupTask, func(_ any) error { return nil },
+		extpoints.WithTaskType("force_log_cleanup"),
+		extpoints.WithTaskName("強制清理舊日誌"),
+		extpoints.WithTaskRetry(3),
+		extpoints.WithTaskQueue("default"),
+		extpoints.WithTaskRetryable(true),
+	)
+	taskSvc, err := core.Inject[contracts.TaskService](ctx)
+	require.NoError(t, err)
+	service.SetTaskService(taskSvc)
+	t.Cleanup(service.ResetServices)
+
+	r := gin.New()
+	r.POST("/api/v1/admin/logs/storage/force-cleanup", handler.ForceCleanupLogStorage)
+
+	for _, test := range []struct {
+		name string
+		body string
+		want int
+	}{
+		{name: "requires confirmation", body: `{"confirmed":false}`, want: http.StatusBadRequest},
+		{name: "queues confirmed cleanup", body: `{"confirmed":true}`, want: http.StatusOK},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/logs/storage/force-cleanup", strings.NewReader(test.body))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+			assert.Equal(t, test.want, w.Code)
+			if test.want == http.StatusOK {
+				inspector := asynq.NewInspector(asynq.RedisClientOpt{Addr: miniRedis.Addr()})
+				defer inspector.Close()
+				tasks, err := inspector.ListPendingTasks("default")
+				require.NoError(t, err)
+				assert.Len(t, tasks, 1)
+				assert.Equal(t, service.ForceLogCleanupTask, tasks[0].Type)
+			}
+		})
+	}
 }
 
 func TestListTaskTypesHandler(t *testing.T) {
