@@ -37,6 +37,9 @@ func (s *gormLogStore) DropExpiredPartitions(ctx context.Context, cutoff time.Ti
 	if err := s.ensureWritable(ctx); err != nil {
 		return err
 	}
+	if err := s.archiveDaily(ctx); err != nil {
+		return err
+	}
 	cu := cutoff.UTC()
 	cutoffMonth := time.Date(cu.Year(), cu.Month(), 1, 0, 0, 0, 0, time.UTC)
 	for _, table := range accessLogPartitionTables {
@@ -60,7 +63,7 @@ func (s *gormLogStore) DropExpiredPartitions(ctx context.Context, cutoff time.Ti
 			if hasRetained == 1 {
 				continue
 			}
-			if err := s.db.WithContext(ctx).Exec("DROP TABLE IF EXISTS "+name).Error; err != nil {
+			if err := s.db.WithContext(ctx).Exec("DROP TABLE IF EXISTS " + name).Error; err != nil {
 				return fmt.Errorf("drop expired partition %s: %w", name, err)
 			}
 		}

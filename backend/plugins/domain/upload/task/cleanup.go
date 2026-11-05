@@ -24,9 +24,9 @@ import (
 
 const (
 	// SystemCleanupTask 系统定期垃圾清理任务标识
-	SystemCleanupTask = "system:cleanup"
+	SystemCleanupTask = "upload:cleanup-orphans"
 	// TaskTypeSystemCleanup 系统定期垃圾清理管理类型
-	TaskTypeSystemCleanup = "system_cleanup"
+	TaskTypeSystemCleanup = "upload_cleanup_orphans"
 )
 
 // SystemCleanupMeta represents the task metadata.

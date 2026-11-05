@@ -146,20 +146,36 @@ func (logStorageService) NodeAccessLogPartitionStats(ctx context.Context, month 
 		return 0, 0, fmt.Errorf("partition statistics require PostgreSQL")
 	}
 	month = time.Date(month.UTC().Year(), month.UTC().Month(), 1, 0, 0, 0, 0, time.UTC)
-	if month.Format("200601") != "202610" {
-		return 0, 0, fmt.Errorf("unsupported access log partition month %s", month.Format("200601"))
+	db := getGormDB(ctx)
+	if db == nil || month.IsZero() {
+		return 0, 0, fmt.Errorf("database and month are required")
 	}
 	var rows int64
 	var bytes int64
-	err = getGormDB(ctx).Raw(`
+	err = db.WithContext(ctx).Raw(`
 SELECT GREATEST(c.reltuples, 0)::bigint,
        pg_total_relation_size(c.oid)::bigint
 FROM pg_class c
-WHERE c.oid = to_regclass(?)`, "of_node_access_logs_202610").Row().Scan(&rows, &bytes)
+WHERE c.oid = to_regclass(?)`, "of_node_access_logs_"+month.Format("200601")).Row().Scan(&rows, &bytes)
 	if err != nil {
-		return 0, 0, fmt.Errorf("query October access log partition stats: %w", err)
+		return 0, 0, fmt.Errorf("query access log partition stats: %w", err)
 	}
 	return rows, bytes, nil
+}
+
+func (logStorageService) HasNodeAccessLogsBefore(ctx context.Context, month time.Time, before time.Time) (bool, error) {
+	database, err := resolveDatabase(ctx)
+	if err != nil {
+		return false, err
+	}
+	db := getGormDB(ctx)
+	if database != dbNamePostgres || db == nil || month.IsZero() || before.IsZero() {
+		return false, fmt.Errorf("monthly progress requires PostgreSQL, month and cutoff")
+	}
+	month = time.Date(month.UTC().Year(), month.UTC().Month(), 1, 0, 0, 0, 0, time.UTC)
+	var exists bool
+	err = db.WithContext(ctx).Raw("SELECT EXISTS (SELECT 1 FROM of_node_access_logs_"+month.Format("200601")+" WHERE logged_at >= ? AND logged_at < ? AND logged_at < ?)", month, month.AddDate(0, 1, 0), before.UTC()).Scan(&exists).Error
+	return exists, err
 }
 
 func logStorageTableStats(ctx context.Context, database, table string) (int64, int64, error) {

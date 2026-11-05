@@ -16,6 +16,7 @@ import (
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
@@ -77,7 +78,7 @@ func TestGormBatchInsertFillsZeroIDs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	if err := db.AutoMigrate(&analyticsmodel.NodeAccessLog{}); err != nil {
+	if err := db.AutoMigrate(&analyticsmodel.NodeAccessLog{}, &analyticsmodel.NodeAccessDaily{}, &analyticsmodel.NodeAccessQuota{}, &analyticsmodel.NodeAccessBatch{}, &analyticsmodel.NodeAccessCheckpoint{}); err != nil {
 		t.Fatalf("automigrate: %v", err)
 	}
 	s := newGormStore(db)
@@ -100,7 +101,7 @@ func TestGormBatchInsertFillsZeroIDs(t *testing.T) {
 	// 后者无论是否省略列都含 id）。
 	var insertStmt string
 	for _, line := range strings.Split(buf.String(), "\n") {
-		if strings.Contains(line, "INSERT INTO") {
+		if strings.Contains(line, "INSERT INTO `of_node_access_logs`") {
 			insertStmt = line
 			break
 		}
@@ -284,6 +285,7 @@ func newTestGormStoreWithModels(t *testing.T, models ...any) *gormLogStore {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
+	models = append(models, &analyticsmodel.NodeAccessDaily{}, &analyticsmodel.NodeAccessQuota{}, &analyticsmodel.NodeAccessBatch{}, &analyticsmodel.NodeAccessCheckpoint{}, &analyticsmodel.NodeAccessOutbox{})
 	if err := db.AutoMigrate(models...); err != nil {
 		t.Fatalf("automigrate: %v", err)
 	}
@@ -296,7 +298,7 @@ func TestDeleteMonthBeforeBatch(t *testing.T) {
 	t.Cleanup(ResetForTest)
 
 	s := newTestGormStore(t)
-	month := time.Date(2026, time.October, 1, 0, 0, 0, 0, time.UTC)
+	month := time.Date(2020, time.October, 1, 0, 0, 0, 0, time.UTC)
 	cutoff := month.AddDate(0, 0, 27)
 	rows := make([]analyticsmodel.NodeAccessLog, 1005)
 	for i := range rows {
@@ -316,10 +318,78 @@ func TestDeleteMonthBeforeBatch(t *testing.T) {
 	assert.EqualValues(t, 7, remaining)
 }
 
-func TestDeleteMonthBeforeBatchRejectsOtherMonth(t *testing.T) {
+func TestDeleteMonthBeforeBatchAcceptsOtherMonth(t *testing.T) {
 	s := newTestGormStore(t)
-	_, err := s.DeleteMonthBeforeBatch(context.Background(), time.Date(2026, time.November, 1, 0, 0, 0, 0, time.UTC), time.Now(), 1000)
-	assert.Error(t, err)
+	_, err := s.DeleteMonthBeforeBatch(context.Background(), time.Date(2026, time.September, 1, 0, 0, 0, 0, time.UTC), time.Now().AddDate(0, 0, -7), 1000)
+	if err != nil {
+		t.Fatalf("DeleteMonthBeforeBatch(September) error = %v, want nil", err)
+	}
+}
+
+func TestCleanupBatchLimitAndDuplicateIDs(t *testing.T) {
+	ResetForTest()
+	SetConfigReader(func(context.Context, string) (string, error) { return "", nil })
+	t.Cleanup(ResetForTest)
+	s := newTestGormStore(t)
+	if err := s.db.Exec("DROP TABLE of_node_access_logs").Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := s.db.Exec("CREATE TABLE of_node_access_logs (id bigint, logged_at datetime, node_id text DEFAULT '', status_code integer DEFAULT 0, bytes_sent bigint DEFAULT 0, request_length bigint DEFAULT 0, summary_tracked boolean DEFAULT false)").Error; err != nil {
+		t.Fatal(err)
+	}
+	month := time.Date(2020, time.September, 1, 0, 0, 0, 0, time.UTC)
+	cutoff := month.AddDate(0, 0, 15)
+	rows := make([]analyticsmodel.NodeAccessLog, 1005)
+	for i := range rows {
+		rows[i] = analyticsmodel.NodeAccessLog{ID: 1, LoggedAt: month}
+	}
+	for _, row := range rows {
+		if err := s.db.Exec("INSERT INTO of_node_access_logs (id, logged_at) VALUES (?, ?)", row.ID, row.LoggedAt).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := s.db.Exec("INSERT INTO of_node_access_logs (id, logged_at) VALUES (?, ?)", 1, cutoff).Error; err != nil {
+		t.Fatal(err)
+	}
+	deleted, err := s.DeleteMonthBeforeBatch(context.Background(), month, cutoff, 1000000)
+	if err != nil || deleted != 1000 {
+		t.Fatalf("DeleteMonthBeforeBatch(limit=1000000) = (%d, %v), want (1000, nil)", deleted, err)
+	}
+	deleted, err = s.DeleteMonthBeforeBatch(context.Background(), month, cutoff, 1000)
+	if err != nil || deleted != 5 {
+		t.Fatalf("DeleteMonthBeforeBatch(second batch) = (%d, %v), want (5, nil)", deleted, err)
+	}
+	_, err = s.DeleteMonthBeforeBatch(context.Background(), month, time.Now(), 1000)
+	if err == nil {
+		t.Error("DeleteMonthBeforeBatch(recent cutoff) error = nil, want error")
+	}
+}
+
+func TestPostgresCleanupUsesPhysicalKeysAndOuterCutoff(t *testing.T) {
+	db, err := gorm.Open(postgres.New(postgres.Config{DSN: "host=localhost user=test dbname=test", PreferSimpleProtocol: true}), &gorm.Config{
+		DryRun: true, DisableAutomaticPing: true, SkipDefaultTransaction: true,
+	})
+	if err != nil {
+		t.Fatalf("gorm.Open(DryRun) error = %v, want nil", err)
+	}
+	cutoff := time.Date(2020, time.January, 15, 0, 0, 0, 0, time.UTC)
+	var sql string
+	if err := db.Callback().Delete().After("gorm:delete").Register("test:capture_cleanup", func(tx *gorm.DB) {
+		sql = tx.Statement.SQL.String()
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := deleteInBatch(context.Background(), db, &analyticsmodel.NodeAccessLog{}, "logged_at < ?", []any{cutoff}, 1000); err != nil {
+		t.Errorf("deleteInBatch(PostgreSQL) error = %v, want nil", err)
+	}
+	for _, fragment := range []string{"(tableoid, ctid) IN (SELECT tableoid, ctid", "LIMIT $2"} {
+		if !strings.Contains(sql, fragment) {
+			t.Errorf("deleteInBatch(PostgreSQL) SQL = %q, want fragment %q", sql, fragment)
+		}
+	}
+	if got := strings.Count(sql, "logged_at <"); got != 2 {
+		t.Errorf("deleteInBatch(PostgreSQL) cutoff predicate count = %d, want 2; SQL=%s", got, sql)
+	}
 }
 
 // TestGormObservabilityInsertList 覆盖 4 张可观测表：flush 写入、查询、删除、

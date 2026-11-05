@@ -8,6 +8,7 @@ import (
 	"Wavelet/core/contracts"
 	"Wavelet/pkg/idgen"
 	"Wavelet/plugins/domain/admin"
+	adminmodel "Wavelet/plugins/domain/admin/model"
 	"Wavelet/plugins/domain/auth"
 	"Wavelet/plugins/domain/msg_gateway"
 	"Wavelet/plugins/domain/risk_control"
@@ -543,6 +544,13 @@ func TestSystemCleanupEventDrivenCoordination(t *testing.T) {
 	ctx.Config().SetSource(core.NewMapSource(nil))
 	require.NoError(t, ctx.Config().Resolve())
 	testDB := setupTestDB(t)
+	sqlDB, err := testDB.DB()
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		if err := sqlDB.Close(); err != nil {
+			t.Errorf("system cleanup test database Close() = %v, want nil", err)
+		}
+	})
 
 	// Apply Infra & Domain plugins
 	require.NoError(t, db.New(db.WithDB(testDB)).Apply(ctx))
@@ -564,14 +572,14 @@ func TestSystemCleanupEventDrivenCoordination(t *testing.T) {
 		ID:        101,
 		TaskID:    "task-old-exec",
 		TaskType:  "test_task",
-		Status:    "success",
+		Status:    adminmodel.TaskExecutionStatusSucceeded,
 		CreatedAt: oldTime,
 	}
 	recentExec := admin.TaskExecution{
 		ID:        102,
 		TaskID:    "task-recent-exec",
 		TaskType:  "test_task",
-		Status:    "success",
+		Status:    adminmodel.TaskExecutionStatusSucceeded,
 		CreatedAt: recentTime,
 	}
 	require.NoError(t, testDB.Create(&oldExec).Error)

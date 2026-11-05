@@ -265,6 +265,7 @@ func (c *Cycle) PrepareHeartbeatPayload(ctx context.Context, nodeID string) (pay
 			buffered = buffered[:len(buffered)-1]
 			break
 		}
+		batchBytes := len(encoded)
 		rowCount := len(payload.AccessLogs)
 		for _, previous := range buffered {
 			rowCount += len(previous.AccessLogs)
@@ -282,17 +283,19 @@ func (c *Cycle) PrepareHeartbeatPayload(ctx context.Context, nodeID string) (pay
 				break
 			}
 			index := len(buffered) - 1
-			buffered[index].AccessLogs = append(buffered[index].AccessLogs, row)
-			payload.Buffered = buffered
-			encoded, marshalErr = json.Marshal(payload)
-			if marshalErr != nil || len(encoded) > c.byteLimit {
+			addedBytes := len(rowJSON) + 1
+			if len(buffered[index].AccessLogs) == 0 {
+				addedBytes = len(rowJSON) + len(`,"access_logs":[]`)
+			}
+			if batchBytes+addedBytes > c.byteLimit {
 				if rowCount == 0 {
 					c.prepareError = errors.New("single access log cannot fit report byte limit")
 					slog.Error("agent access log cannot fit report", "byte_limit", c.byteLimit)
 				}
-				buffered[index].AccessLogs = buffered[index].AccessLogs[:len(buffered[index].AccessLogs)-1]
 				break
 			}
+			buffered[index].AccessLogs = append(buffered[index].AccessLogs, row)
+			batchBytes += addedBytes
 			rowCount++
 		}
 		selected.AccessLogs = buffered[len(buffered)-1].AccessLogs

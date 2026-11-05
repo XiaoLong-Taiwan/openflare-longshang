@@ -315,7 +315,7 @@ jobs:
           cd backend
           go mod download
           mkdir -p "$GITHUB_WORKSPACE/dist"
-          go build -trimpath -ldflags "-s -w -X 'Wavelet/OpenFlare/plugins/agent/config.Version=$VERSION'" -o "$GITHUB_WORKSPACE/dist/$ASSET_NAME" ./cmd/agent/main.go
+          go build -trimpath -ldflags "-s -w -X 'Wavelet/openflare/plugins/agent/config.Version=$VERSION'" -o "$GITHUB_WORKSPACE/dist/$ASSET_NAME" ./cmd/agent/main.go
 
       - name: Upload release artifact
         uses: softprops/action-gh-release@v2
@@ -363,7 +363,7 @@ jobs:
           cd backend
           go mod download
           mkdir -p "$GITHUB_WORKSPACE/dist"
-          go build -trimpath -ldflags "-s -w -X 'Wavelet/OpenFlare/plugins/relay/config.Version=$VERSION'" -o "$GITHUB_WORKSPACE/dist/$ASSET_NAME" ./cmd/relay/main.go
+          go build -trimpath -ldflags "-s -w -X 'Wavelet/openflare/plugins/relay/config.Version=$VERSION'" -o "$GITHUB_WORKSPACE/dist/$ASSET_NAME" ./cmd/relay/main.go
 
       - name: Upload release artifact
         uses: softprops/action-gh-release@v2
@@ -411,7 +411,7 @@ jobs:
           cd backend
           go mod download
           mkdir -p "$GITHUB_WORKSPACE/dist"
-          go build -trimpath -ldflags "-s -w -X 'Wavelet/OpenFlare/plugins/flared/config.Version=$VERSION'" -o "$GITHUB_WORKSPACE/dist/$ASSET_NAME" ./cmd/flared/main.go
+          go build -trimpath -ldflags "-s -w -X 'Wavelet/openflare/plugins/flared/config.Version=$VERSION'" -o "$GITHUB_WORKSPACE/dist/$ASSET_NAME" ./cmd/flared/main.go
 
       - name: Upload release artifact
         uses: softprops/action-gh-release@v2

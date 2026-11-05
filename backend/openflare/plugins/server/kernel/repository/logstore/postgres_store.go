@@ -48,14 +48,17 @@ func deleteInBatch(ctx context.Context, db *gorm.DB, model any, condition string
 	if err := ctx.Err(); err != nil {
 		return 0, err
 	}
-	ids := make([]uint64, 0, limit)
-	if err := db.WithContext(ctx).Model(model).Where(condition, args...).Order("id ASC").Limit(limit).Pluck("id", &ids).Error; err != nil {
-		return 0, err
+	if db == nil {
+		return 0, errors.New("database is not initialized")
 	}
-	if len(ids) == 0 {
-		return 0, nil
+	key := "rowid"
+	columns := key
+	if isPostgresDialect(db) {
+		key = "(tableoid, ctid)"
+		columns = "tableoid, ctid"
 	}
-	result := db.WithContext(ctx).Where("id IN ?", ids).Delete(model)
+	selection := db.WithContext(ctx).Model(model).Select(columns).Where(condition, args...).Order("id ASC").Limit(limit)
+	result := db.WithContext(ctx).Where(key+" IN (?)", selection).Where(condition, args...).Delete(model)
 	return result.RowsAffected, result.Error
 }
 
@@ -163,7 +166,19 @@ func (s *gormLogStore) BatchInsertNodeAccessLogs(ctx context.Context, rows []ana
 			rows[i].ID = idgen.NextUint64ID()
 		}
 	}
-	return s.db.WithContext(ctx).CreateInBatches(rows, insertBatchSize).Error
+	if s.skipFreeze {
+		return s.db.WithContext(ctx).CreateInBatches(rows, insertBatchSize).Error
+	}
+	if err := s.archiveDaily(ctx); err != nil {
+		return err
+	}
+	if err := backfillSampleKeys(ctx, s.db); err != nil {
+		return err
+	}
+	if err := persistNodeBatch(ctx, s.db, rows, func(*gorm.DB, []analyticsmodel.NodeAccessLog) error { return nil }); err != nil {
+		return err
+	}
+	return finishNodeSamples(ctx, s.db, rows, false)
 }
 
 // countToUint64 将 COUNT 结果转为 uint64（COUNT 非负；防御负值避免 int64→uint64 溢出告警）。
@@ -674,33 +689,61 @@ func (s *gormLogStore) DeleteAll(ctx context.Context) (int64, error) {
 	if err := s.ensureWritable(ctx); err != nil {
 		return 0, err
 	}
-	res := s.db.WithContext(ctx).Where("1 = 1").Delete(&analyticsmodel.NodeAccessLog{})
-	return res.RowsAffected, res.Error
+	if !s.skipFreeze {
+		if err := s.archiveDaily(ctx); err != nil {
+			return 0, err
+		}
+	}
+	var deleted int64
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := accountingLock(tx); err != nil {
+			return err
+		}
+		if err := tx.Where("name = ?", "ch-detail-index").Delete(&analyticsmodel.NodeAccessCheckpoint{}).Error; err != nil {
+			return err
+		}
+		res := tx.Where("1 = 1").Delete(&analyticsmodel.NodeAccessLog{})
+		deleted = res.RowsAffected
+		return res.Error
+	})
+	return deleted, err
 }
 
 func (s *gormLogStore) DeleteBefore(ctx context.Context, cutoff time.Time) (int64, error) {
 	if err := s.ensureWritable(ctx); err != nil {
 		return 0, err
 	}
-	return deleteInBatches(ctx, s.db, &analyticsmodel.NodeAccessLog{}, "logged_at < ?", cutoff)
+	if err := s.archiveScope(ctx, "logged_at < ?", cutoff); err != nil {
+		return 0, err
+	}
+	return deleteInBatches(ctx, s.db, &analyticsmodel.NodeAccessLog{}, "summary_tracked = true AND logged_at < ?", cutoff)
 }
 
 func (s *gormLogStore) DeleteMonthBeforeBatch(ctx context.Context, month time.Time, cutoff time.Time, limit int) (int64, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	if s.db == nil {
+		return 0, errors.New("database is not initialized")
+	}
 	if err := s.ensureWritable(ctx); err != nil {
 		return 0, err
 	}
-	month = time.Date(month.UTC().Year(), month.UTC().Month(), 1, 0, 0, 0, 0, time.UTC)
-	if month.Format("200601") != "202610" {
-		return 0, fmt.Errorf("unsupported access log partition month %s", month.Format("200601"))
+	if month.IsZero() || cutoff.IsZero() || cutoff.After(time.Now().UTC().AddDate(0, 0, -7)) {
+		return 0, errors.New("month and cutoff must be set; cutoff must be at least seven days old")
 	}
+	month = time.Date(month.UTC().Year(), month.UTC().Month(), 1, 0, 0, 0, 0, time.UTC)
 	if limit <= 0 || limit > cleanupBatchSize {
 		limit = cleanupBatchSize
 	}
+	if err := s.archiveScope(ctx, "logged_at >= ? AND logged_at < ? AND logged_at < ?", month, month.AddDate(0, 1, 0), cutoff.UTC()); err != nil {
+		return 0, err
+	}
 	if !isPostgresDialect(s.db) {
-		return deleteInBatch(ctx, s.db, &analyticsmodel.NodeAccessLog{}, "logged_at < ? AND logged_at >= ? AND logged_at < ?", []any{cutoff.UTC(), month, month.AddDate(0, 1, 0)}, limit)
+		return deleteInBatch(ctx, s.db, &analyticsmodel.NodeAccessLog{}, "summary_tracked = true AND logged_at < ? AND logged_at >= ? AND logged_at < ?", []any{cutoff.UTC(), month, month.AddDate(0, 1, 0)}, limit)
 	}
 	partition := "of_node_access_logs_" + month.Format("200601")
-	query := "WITH batch AS (SELECT ctid FROM " + partition + " WHERE logged_at < ? AND logged_at >= ? AND logged_at < ? ORDER BY logged_at ASC, id ASC LIMIT ?) DELETE FROM " + partition + " AS logs USING batch WHERE logs.ctid = batch.ctid AND logs.logged_at < ? AND logs.logged_at >= ? AND logs.logged_at < ?"
+	query := "WITH batch AS (SELECT tableoid, ctid FROM " + partition + " WHERE summary_tracked = true AND logged_at < ? AND logged_at >= ? AND logged_at < ? ORDER BY logged_at ASC, id ASC LIMIT ?) DELETE FROM " + partition + " AS logs USING batch WHERE logs.tableoid = batch.tableoid AND logs.ctid = batch.ctid AND logs.summary_tracked = true AND logs.logged_at < ? AND logs.logged_at >= ? AND logs.logged_at < ?"
 	result := s.db.WithContext(ctx).Exec(query, cutoff.UTC(), month, month.AddDate(0, 1, 0), limit, cutoff.UTC(), month, month.AddDate(0, 1, 0))
 	return result.RowsAffected, result.Error
 }
@@ -709,7 +752,10 @@ func (s *gormLogStore) DeleteByNodeBefore(ctx context.Context, nodeID string, be
 	if err := s.ensureWritable(ctx); err != nil {
 		return 0, err
 	}
-	return deleteInBatches(ctx, s.db, &analyticsmodel.NodeAccessLog{}, "node_id = ? AND logged_at < ?", nodeID, before)
+	if err := s.archiveScope(ctx, "node_id = ? AND logged_at < ?", nodeID, before); err != nil {
+		return 0, err
+	}
+	return deleteInBatches(ctx, s.db, &analyticsmodel.NodeAccessLog{}, "summary_tracked = true AND node_id = ? AND logged_at < ?", nodeID, before)
 }
 
 // ListForMigration 按 id 升序分页读取（迁移复制用）。

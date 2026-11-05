@@ -6,6 +6,7 @@ package httpclient
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -13,6 +14,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -22,6 +24,7 @@ type Client struct {
 	token      string
 	authHeader string
 	httpClient *http.Client
+	reportGzip atomic.Bool
 }
 
 // New creates a new Client instance.
@@ -56,13 +59,48 @@ func (c *Client) PostJSON(ctx context.Context, path string, body any, target any
 	if err != nil {
 		return err
 	}
+	encoding := ""
+	if path == "/api/v1/relay/heartbeat" || path == "/api/v1/tunnel/heartbeat" {
+		data, encoding, err = c.EncodeReport(data)
+		if err != nil {
+			return err
+		}
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, bytes.NewReader(data))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if encoding != "" {
+		req.Header.Set("Content-Encoding", encoding)
+	}
 	c.setAuthHeader(req)
 	return c.do(req, target)
+}
+
+func (c *Client) EncodeReport(data []byte) ([]byte, string, error) {
+	if !c.reportGzip.Load() || len(data) < 1024 {
+		return data, "", nil
+	}
+	var buffer bytes.Buffer
+	writer, err := gzip.NewWriterLevel(&buffer, gzip.BestSpeed)
+	if err != nil {
+		return nil, "", err
+	}
+	if _, err := writer.Write(data); err != nil {
+		return nil, "", err
+	}
+	if err := writer.Close(); err != nil {
+		return nil, "", err
+	}
+	if buffer.Len() >= len(data) {
+		return data, "", nil
+	}
+	return buffer.Bytes(), "gzip", nil
+}
+
+func (c *Client) ObserveReportResponse(res *http.Response) {
+	c.reportGzip.Store(strings.EqualFold(strings.TrimSpace(res.Header.Get("Accept-Encoding")), "gzip"))
 }
 
 // DoRaw performs an HTTP request with custom headers and returns the raw response.
@@ -89,6 +127,9 @@ func (c *Client) do(req *http.Request, target any) error {
 	if err != nil {
 		slog.Error("http request failed", "method", req.Method, "path", req.URL.Path, "error", err)
 		return err
+	}
+	if strings.HasSuffix(req.URL.Path, "/api/v1/relay/heartbeat") || strings.HasSuffix(req.URL.Path, "/api/v1/tunnel/heartbeat") {
+		c.ObserveReportResponse(res)
 	}
 	defer func() {
 		if err := res.Body.Close(); err != nil {

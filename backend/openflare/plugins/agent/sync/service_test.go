@@ -1001,6 +1001,7 @@ func TestSyncOnceSkipsPreviouslyBlockedVersion(t *testing.T) {
 		CurrentChecksum: "checksum-5",
 		BlockedVersion:  "20260309-006",
 		BlockedChecksum: "checksum-6",
+		ApplyRetryAt:    time.Now().Add(time.Minute),
 		BlockedReason:   "apply failed, rolled back to previous config",
 		LastError:       "apply failed, rolled back to previous config",
 	}); err != nil {
@@ -1026,7 +1027,7 @@ func TestSyncOnceSkipsPreviouslyBlockedVersion(t *testing.T) {
 	}
 }
 
-func TestSyncOnStartupKeepsBlockedVersionSuppressedUntilNewTargetArrives(t *testing.T) {
+func TestSyncOnStartupKeepsBlockedVersionSuppressedUntilRetryDue(t *testing.T) {
 	client := &fakeClient{
 		config: protocol.ActiveConfigResponse{
 			Version:          "20260309-007",
@@ -1046,6 +1047,7 @@ func TestSyncOnStartupKeepsBlockedVersionSuppressedUntilNewTargetArrives(t *test
 		CurrentChecksum:  "checksum-5",
 		BlockedVersion:   "20260309-007",
 		BlockedChecksum:  "checksum-7",
+		ApplyRetryAt:     time.Now().Add(time.Minute),
 		BlockedReason:    "apply failed, rolled back to previous config",
 		OpenrestyStatus:  protocol.OpenrestyStatusUnhealthy,
 		OpenrestyMessage: "apply failed, rolled back to previous config",
@@ -1101,6 +1103,7 @@ func TestSyncOnStartupStartsFallbackWhenBlockedVersionHasNoLocalConfig(t *testin
 		NodeID:           nodeID,
 		BlockedVersion:   "20260309-007",
 		BlockedChecksum:  "checksum-7",
+		ApplyRetryAt:     time.Now().Add(time.Minute),
 		BlockedReason:    "apply failed, but fallback runtime started",
 		OpenrestyStatus:  protocol.OpenrestyStatusUnhealthy,
 		OpenrestyMessage: "apply failed, but fallback runtime started",
@@ -1159,6 +1162,7 @@ func TestSyncOnStartupStartsFallbackWhenResidualConfigCannotRecover(t *testing.T
 		NodeID:          nodeID,
 		BlockedVersion:  "20260309-007",
 		BlockedChecksum: "checksum-7",
+		ApplyRetryAt:    time.Now().Add(time.Minute),
 		BlockedReason:   "apply failed, but fallback runtime started",
 	}); err != nil {
 		t.Fatalf("failed to seed state: %v", err)

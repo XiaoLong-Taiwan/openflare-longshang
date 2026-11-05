@@ -62,17 +62,25 @@ func (c *Client) Heartbeat(ctx context.Context, payload protocol.NodePayload) (*
 	if err != nil {
 		return nil, err
 	}
+	data, encoding, err := c.base.EncodeReport(data)
+	if err != nil {
+		return nil, err
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/api/v1/agent/nodes/heartbeat", bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if encoding != "" {
+		req.Header.Set("Content-Encoding", encoding)
+	}
 	req.Header.Set("X-Agent-Token", c.token)
 	res, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = res.Body.Close() }()
+	c.base.ObserveReportResponse(res)
 	if res.StatusCode != http.StatusOK {
 		delay := time.Duration(0)
 		if seconds, parseErr := strconv.ParseInt(res.Header.Get("Retry-After"), 10, 32); parseErr == nil && seconds > 0 {

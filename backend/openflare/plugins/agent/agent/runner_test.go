@@ -94,6 +94,8 @@ type fakeSyncService struct {
 type fakeRuntimeManager struct {
 	mu                   sync.Mutex
 	healthErr            error
+	ensureErr            error
+	ensureCalls          int
 	restartErr           error
 	restartCalls         int
 	clearHealthOnRestart bool
@@ -105,6 +107,16 @@ func (f *fakeRuntimeManager) CheckHealth(ctx context.Context) error {
 	return f.healthErr
 }
 
+func (f *fakeRuntimeManager) EnsureRuntime(ctx context.Context, recreate bool) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.ensureCalls++
+	if f.ensureErr == nil {
+		f.healthErr = nil
+	}
+	return f.ensureErr
+}
+
 func (f *fakeRuntimeManager) Restart(ctx context.Context) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -113,6 +125,23 @@ func (f *fakeRuntimeManager) Restart(ctx context.Context) error {
 		f.healthErr = nil
 	}
 	return f.restartErr
+}
+
+func TestEnsureLocalRuntimeRestoresExistingConfigWhileOffline(t *testing.T) {
+	runtimeManager := &fakeRuntimeManager{healthErr: errors.New("openresty is not running")}
+	runner := &Runner{
+		RuntimeManager: runtimeManager,
+		StateStore:     state.NewStore(filepath.Join(t.TempDir(), "state.json")),
+	}
+
+	runner.ensureLocalRuntime(context.Background())
+
+	if runtimeManager.ensureCalls != 1 {
+		t.Fatalf("expected one local runtime recovery, got %d", runtimeManager.ensureCalls)
+	}
+	if err := runtimeManager.CheckHealth(context.Background()); err != nil {
+		t.Fatalf("expected local runtime to be healthy after recovery, got %v", err)
+	}
 }
 
 func (f *fakeSyncService) SyncOnStartup(ctx context.Context, target *protocol.ActiveConfigMeta) error {
@@ -320,6 +349,7 @@ func TestRunnerReportsOpenrestyHealthAndExecutesRestart(t *testing.T) {
 	}
 	runtimeManager := &fakeRuntimeManager{
 		healthErr:            errors.New("docker openresty container is not running"),
+		ensureErr:            errors.New("local recovery failed"),
 		clearHealthOnRestart: true,
 	}
 	runner := withHeartbeatCycle(&Runner{

@@ -30,7 +30,7 @@ func ListNodeAccessLogs(ctx context.Context, filter NodeAccessLogFilter) ([]anal
 	clause, args := buildNodeAccessLogFilterClause(filter)
 	tableName := nodeAccessLogTableName()
 	sql := fmt.Sprintf(`
-SELECT id, node_id, logged_at, remote_addr, region, host, path, user_agent, cache_status, status_code, bytes_sent, request_length, request_time_ms, created_at
+SELECT id, node_id, logged_at, remote_addr, region, host, path, user_agent, cache_status, status_code, bytes_sent, request_length, request_time_ms, created_at, summary_tracked
 FROM %s
 WHERE %s
 ORDER BY %s`, tableName, clause, nodeAccessLogOrderClause(filter.SortBy, filter.SortOrder))
@@ -69,6 +69,7 @@ func scanNodeAccessLogRows(rows driver.Rows) ([]analyticsmodel.NodeAccessLog, er
 			&item.RequestLength,
 			&item.RequestTimeMs,
 			&item.CreatedAt,
+			&item.SummaryTracked,
 		); err != nil {
 			return nil, fmt.Errorf("scan node access log row: %w", err)
 		}

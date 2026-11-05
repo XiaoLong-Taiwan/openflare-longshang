@@ -24,8 +24,10 @@ const (
 	SystemCleanupTask   = "system:cleanup"
 	ForceLogCleanupTask = "system:force-log-cleanup"
 	// TaskTypeSystemCleanup 系统定期垃圾清理管理类型
-	TaskTypeSystemCleanup = "system_cleanup"
-	taskQueueDefault      = "default"
+	TaskTypeSystemCleanup     = "system_cleanup"
+	taskQueueDefault          = "default"
+	forceLogCleanupBatchLimit = 1000000
+	forceLogCleanupBatchSize  = 1000
 )
 
 // SystemCleanupMeta describes the system-wide cleanup task metadata.
@@ -45,28 +47,34 @@ var SystemCleanupMeta = contracts.TaskMetaDTO{
 var ForceLogCleanupMeta = contracts.TaskMetaDTO{
 	Type:         "force_log_cleanup",
 	AsynqTask:    ForceLogCleanupTask,
-	Name:         "清理 2026-10 節點存取日誌",
-	DisplayName:  "清理 2026-10 節點存取日誌",
-	Description:  "每批刪除最多 1,000 筆七天前資料，並記錄清理進度；不會直接刪除整個月份分區",
+	Name:         "月份日誌清理與彙總壓縮",
+	DisplayName:  "月份日誌清理與彙總壓縮",
+	Description:  "指定 YYYY-MM 月份，先保留節點存取日誌摘要，再分批刪除七天前明細；每批最多 1,000 筆，每工作最多 1,000,000 筆，並回報實際進度。彙總壓縮不代表 VACUUM 縮檔",
 	Category:     "maintenance",
 	SupportsTime: false,
 	MaxRetry:     3,
 	Queue:        taskQueueDefault,
 	Retryable:    true,
+	Timeout:      24 * time.Hour,
 	Params: []contracts.TaskParamDTO{{
+		Name:        "month",
+		Label:       "清理與彙總壓縮月份（YYYY-MM）",
+		Type:        "string",
+		Required:    true,
+		Description: "輸入要清理與彙總壓縮的節點存取日誌 UTC 月份，格式為 YYYY-MM。",
+	}, {
 		Name:        "confirmed",
-		Label:       "確認清理十月分區",
+		Label:       "確認清理與彙總壓縮指定月份",
 		Type:        "boolean",
 		Required:    true,
-		Description: "確認每批最多刪除 1,000 筆七天以前的資料。",
+		Description: "確認先保留摘要，再以每批最多 1,000 筆刪除指定月份七天前明細；不執行 VACUUM 縮檔。",
 	}},
 }
 
 type forceLogCleanupHandlerPayload struct {
-	Confirmed bool `json:"confirmed"`
+	Confirmed bool   `json:"confirmed"`
+	Month     string `json:"month"`
 }
-
-var forceLogCleanupPayload = []byte(`{"confirmed":true}`)
 
 // DatabaseMaintenanceTask identifies the full database maintenance task.
 const DatabaseMaintenanceTask = "database:maintenance"
@@ -191,13 +199,21 @@ func (h *ForceLogCleanupHandler) ValidatePayload(payload []byte) ([]byte, error)
 	if err := json.Unmarshal(payload, &request); err != nil || !request.Confirmed {
 		return nil, errors.New("confirmed must be true")
 	}
-	return []byte(`{"confirmed":true}`), nil
+	month, err := time.Parse("2006-01", request.Month)
+	if err != nil || month.Year() < 1 || month.Year() > 9999 {
+		return nil, errors.New("month must be YYYY-MM")
+	}
+	return json.Marshal(request)
 }
 
 func (h *ForceLogCleanupHandler) Execute(ctx context.Context, payload []byte) (*contracts.TaskResultDTO, error) {
+	validated, err := h.ValidatePayload(payload)
+	if err != nil {
+		return nil, err
+	}
 	var request forceLogCleanupHandlerPayload
-	if err := json.Unmarshal(payload, &request); err != nil || !request.Confirmed {
-		return nil, errors.New("confirmed must be true")
+	if err := json.Unmarshal(validated, &request); err != nil {
+		return nil, err
 	}
 	storage := GetLogStorageService(ctx)
 	if storage == nil {
@@ -208,35 +224,48 @@ func (h *ForceLogCleanupHandler) Execute(ctx context.Context, payload []byte) (*
 		return nil, errors.New("task service is not available for cleanup progress logging")
 	}
 	if !GetDBConfig().Enabled {
-		return nil, errors.New("monthly 202610 cleanup requires PostgreSQL")
+		return nil, errors.New("monthly cleanup requires PostgreSQL")
 	}
 	cutoff := time.Now().UTC().AddDate(0, 0, -7)
-	month := time.Date(2026, time.October, 1, 0, 0, 0, 0, time.UTC)
+	month, err := time.Parse("2006-01", request.Month)
+	if err != nil {
+		return nil, err
+	}
+	partition := "of_node_access_logs_" + month.Format("200601")
 	estimatedInitialRows, estimatedInitialBytes, err := storage.NodeAccessLogPartitionStats(ctx, month)
 	if err != nil {
-		return nil, fmt.Errorf("read October partition statistics: %w", err)
+		return nil, fmt.Errorf("read partition statistics: %w", err)
 	}
-	taskSvc.AppendLog(ctx, "開始清理 of_node_access_logs_202610：目前統計估計約 %.2f GB、%s 筆；筆數為 PostgreSQL 統計估值。每批最多 1,000 筆，保留 cutoff 之後資料（cutoff=%s）。", float64(estimatedInitialBytes)/1e9, strconv.FormatInt(estimatedInitialRows, 10), cutoff.Format(time.RFC3339))
+	taskSvc.AppendLog(ctx, "開始 %s 月份日誌清理與彙總壓縮：%s 估計約 %.2f GB、%s 筆（PostgreSQL 統計估值）。先保留摘要再刪除過期明細，每批最多 1,000 筆，每工作最多 1,000,000 筆；cutoff=%s。", request.Month, partition, float64(estimatedInitialBytes)/1e9, strconv.FormatInt(estimatedInitialRows, 10), cutoff.Format(time.RFC3339))
 	var deletedTotal int64
-	for {
+	for batch := 0; batch < forceLogCleanupBatchLimit/forceLogCleanupBatchSize; batch++ {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		deleted, err := storage.DeleteNodeAccessLogBatch(ctx, month, cutoff, 1000)
+		deleted, err := storage.DeleteNodeAccessLogBatch(ctx, month, cutoff, forceLogCleanupBatchSize)
 		if err != nil {
-			return nil, fmt.Errorf("delete October 2026 access log batch: %w", err)
+			return nil, fmt.Errorf("delete access log batch after %d rows: %w", deletedTotal, err)
 		}
-		if deleted == 0 {
-			break
+		if deleted < 0 || deleted > forceLogCleanupBatchSize {
+			return nil, fmt.Errorf("invalid deleted batch count: %d", deleted)
 		}
 		deletedTotal += deleted
-		taskSvc.AppendLog(ctx, "of_node_access_logs_202610 本批刪除 %d 筆，累計刪除 %s 筆；啟動時估計 %s 筆。", deleted, strconv.FormatInt(deletedTotal, 10), strconv.FormatInt(estimatedInitialRows, 10))
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-time.After(250 * time.Millisecond):
+		if batch%10 == 0 || deleted < forceLogCleanupBatchSize {
+			taskSvc.AppendLog(ctx, "%s 本批實際刪除 %d 筆，累計刪除 %d 筆。", partition, deleted, deletedTotal)
+		}
+		if deleted < forceLogCleanupBatchSize {
+			break
 		}
 	}
-	taskSvc.AppendLog(ctx, "十月分區已無 cutoff 前的待刪記錄。本次刪除 %d 筆；PostgreSQL 檔案空間未必立即縮小，VACUUM FULL 需另行於維護窗執行。", deletedTotal)
-	return &contracts.TaskResultDTO{Message: fmt.Sprintf("十月分區過期存取日誌清理完成，共刪除 %d 筆（開始時分區統計估值約 %.2f GB）", deletedTotal, float64(estimatedInitialBytes)/1e9), Detail: map[string]any{"partition": "of_node_access_logs_202610", "cutoff": cutoff, "deleted": deletedTotal, "initial_estimated_rows": estimatedInitialRows, "initial_estimated_bytes": estimatedInitialBytes}}, nil
+	hasMore, err := storage.HasNodeAccessLogsBefore(ctx, month, cutoff)
+	if err != nil {
+		return nil, fmt.Errorf("check remaining access logs: %w", err)
+	}
+	if hasMore {
+		taskSvc.AppendLog(ctx, "指定月份仍有 cutoff 前明細，重新執行此工作可繼續清理與彙總壓縮。")
+	} else {
+		taskSvc.AppendLog(ctx, "查詢確認指定月份已無 cutoff 前的待刪記錄。")
+	}
+	taskSvc.AppendLog(ctx, "彙總壓縮是保留摘要後刪除過期明細，不執行 VACUUM 縮檔；PostgreSQL 檔案空間未必立即縮小，VACUUM FULL 需另行於維護窗執行。")
+	return &contracts.TaskResultDTO{Message: fmt.Sprintf("%s 本次月份日誌清理與彙總壓縮結束，已保留摘要並實際刪除 %d 筆過期明細，has_more=%t", request.Month, deletedTotal, hasMore), Detail: map[string]any{"partition": partition, "month": request.Month, "cutoff": cutoff, "deleted": deletedTotal, "has_more": hasMore, "initial_estimated_rows": estimatedInitialRows, "initial_estimated_bytes": estimatedInitialBytes}}, nil
 }

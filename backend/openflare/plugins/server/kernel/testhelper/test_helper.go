@@ -344,6 +344,11 @@ func SetupLogStoresForTest(t *testing.T) {
 	require.NoError(t, idgen.Init(1))
 	require.NoError(t, gdb.AutoMigrate(
 		&analyticsmodel.NodeAccessLog{},
+		&analyticsmodel.NodeAccessDaily{},
+		&analyticsmodel.NodeAccessQuota{},
+		&analyticsmodel.NodeAccessBatch{},
+		&analyticsmodel.NodeAccessCheckpoint{},
+		&analyticsmodel.NodeAccessOutbox{},
 		&analyticsmodel.UserAccessLog{},
 		&analyticsmodel.NodeMetricSnapshot{},
 		&analyticsmodel.NodeEdgeHealth{},

@@ -10,25 +10,28 @@ import (
 
 const (
 	nodeAccessLogTableName     = "of_node_access_logs"
-	nodeAccessLogInsertColumns = "id, node_id, logged_at, remote_addr, region, host, path, user_agent, cache_status, status_code, bytes_sent, request_length, request_time_ms, created_at"
+	nodeAccessLogInsertColumns = "id, node_id, logged_at, remote_addr, region, host, path, user_agent, cache_status, status_code, bytes_sent, request_length, request_time_ms, created_at, summary_tracked"
 )
 
 // NodeAccessLog stores OpenFlare edge node access records in ClickHouse.
 type NodeAccessLog struct {
-	ID            uint64    `gorm:"column:id"`
-	NodeID        string    `gorm:"column:node_id"`
-	LoggedAt      time.Time `gorm:"column:logged_at"`
-	RemoteAddr    string    `gorm:"column:remote_addr"`
-	Region        string    `gorm:"column:region"`
-	Host          string    `gorm:"column:host"`
-	Path          string    `gorm:"column:path"`
-	UserAgent     string    `gorm:"column:user_agent"`
-	CacheStatus   string    `gorm:"column:cache_status"`
-	StatusCode    int32     `gorm:"column:status_code"`
-	BytesSent     uint64    `gorm:"column:bytes_sent"`
-	RequestLength uint64    `gorm:"column:request_length"`
-	RequestTimeMs uint32    `gorm:"column:request_time_ms"`
-	CreatedAt     time.Time `gorm:"column:created_at"`
+	ID             uint64    `gorm:"column:id"`
+	NodeID         string    `gorm:"column:node_id"`
+	LoggedAt       time.Time `gorm:"column:logged_at"`
+	RemoteAddr     string    `gorm:"column:remote_addr"`
+	Region         string    `gorm:"column:region"`
+	Host           string    `gorm:"column:host"`
+	Path           string    `gorm:"column:path"`
+	UserAgent      string    `gorm:"column:user_agent"`
+	CacheStatus    string    `gorm:"column:cache_status"`
+	StatusCode     int32     `gorm:"column:status_code"`
+	BytesSent      uint64    `gorm:"column:bytes_sent"`
+	RequestLength  uint64    `gorm:"column:request_length"`
+	RequestTimeMs  uint32    `gorm:"column:request_time_ms"`
+	CreatedAt      time.Time `gorm:"column:created_at"`
+	SummaryTracked bool      `gorm:"column:summary_tracked"`
+	SampleKey      string    `gorm:"column:sample_key"`
+	DetailSize     uint64    `gorm:"column:detail_size"`
 }
 
 // TableName returns the ClickHouse table name.

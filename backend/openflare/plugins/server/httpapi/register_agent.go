@@ -10,6 +10,7 @@ import (
 
 func registerAgentRoutes(apiV1Router core.RouterExtension) {
 	agentRoute := apiV1Router.Group("/agent")
+	agentRoute.RegisterWhitelist("/nodes/register", "/nodes/heartbeat", "/ws")
 	{
 		discoveryRoute := agentRoute.Group("/")
 		discoveryRoute.Use(agent.RegisterAuth())

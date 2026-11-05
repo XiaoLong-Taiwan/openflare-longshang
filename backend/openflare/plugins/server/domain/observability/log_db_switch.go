@@ -103,6 +103,9 @@ func (h *LogDBSwitchHandler) Execute(ctx context.Context, payload []byte) (*task
 	if err := drainLogWriters(ctx); err != nil {
 		return nil, fmt.Errorf("排空日志写入队列失败: %w", err)
 	}
+	if err := logstore.PrepareNodeAccessSwitch(ctx); err != nil {
+		return nil, fmt.Errorf("完成节点日志摘要与待送检查失败: %w", err)
+	}
 
 	src, err := logstore.Active(ctx)
 	if err != nil {

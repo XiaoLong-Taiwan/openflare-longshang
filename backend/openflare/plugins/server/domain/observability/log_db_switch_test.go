@@ -36,6 +36,10 @@ func newLogDBSwitchDB(t *testing.T) *gorm.DB {
 	require.NoError(t, gdb.AutoMigrate(
 		&model.SystemConfig{},
 		&analyticsmodel.NodeAccessLog{},
+		&analyticsmodel.NodeAccessDaily{},
+		&analyticsmodel.NodeAccessQuota{},
+		&analyticsmodel.NodeAccessBatch{},
+		&analyticsmodel.NodeAccessCheckpoint{},
 		&analyticsmodel.NodeMetricSnapshot{},
 		&analyticsmodel.NodeEdgeHealth{},
 		&analyticsmodel.NodeObsFrps{},
@@ -79,6 +83,16 @@ func TestCopyAccessLogsPreservesIDs(t *testing.T) {
 	require.Len(t, got, 3)
 	for i, wantID := range []uint64{101, 202, 303} {
 		assert.Equal(t, wantID, got[i].ID, "row %d id preserved", i)
+		if !got[i].SummaryTracked {
+			t.Errorf("migrated row %d summary_tracked = false, want true", wantID)
+		}
+	}
+	var targetAccounting int64
+	if err := dstDB.Model(&analyticsmodel.NodeAccessDaily{}).Count(&targetAccounting).Error; err != nil {
+		t.Fatal(err)
+	}
+	if targetAccounting != 0 {
+		t.Errorf("migration target accounting = %d, want 0 (shared accounting is not replayed)", targetAccounting)
 	}
 	assert.Equal(t, "n1", got[0].NodeID)
 	assert.Equal(t, "n2", got[1].NodeID)

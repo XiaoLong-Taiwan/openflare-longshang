@@ -83,6 +83,9 @@ func CountOpenFlareAccessLogs(ctx context.Context, query model.OpenFlareAccessLo
 
 // TrafficSummaryOpenFlareAccessLogs returns window-level request/error/UV/bytes summary.
 func TrafficSummaryOpenFlareAccessLogs(ctx context.Context, query model.OpenFlareAccessLogQuery) (model.OpenFlareAccessLogTrafficSummary, error) {
+	if dailySummaryQuery(query) {
+		return dailyTraffic(ctx, query)
+	}
 	s, err := logstore.Active(ctx)
 	if err != nil {
 		return model.OpenFlareAccessLogTrafficSummary{}, err
@@ -92,6 +95,9 @@ func TrafficSummaryOpenFlareAccessLogs(ctx context.Context, query model.OpenFlar
 
 // ValueCountsOpenFlareAccessLogs groups logs by status_code, host, path, remote_addr, or user_agent.
 func ValueCountsOpenFlareAccessLogs(ctx context.Context, query model.OpenFlareAccessLogQuery, column string, limit int) ([]model.OpenFlareAccessLogValueCount, error) {
+	if column == "status_code" && dailySummaryQuery(query) {
+		return dailyStatusCounts(ctx, query, limit)
+	}
 	s, err := logstore.Active(ctx)
 	if err != nil {
 		return nil, err
@@ -101,6 +107,9 @@ func ValueCountsOpenFlareAccessLogs(ctx context.Context, query model.OpenFlareAc
 
 // NodeAggregatesOpenFlareAccessLogs returns per-node request/error/UV for the window.
 func NodeAggregatesOpenFlareAccessLogs(ctx context.Context, query model.OpenFlareAccessLogQuery) ([]model.OpenFlareAccessLogNodeAggregate, error) {
+	if dailySummaryQuery(query) {
+		return dailyNodes(ctx, query)
+	}
 	s, err := logstore.Active(ctx)
 	if err != nil {
 		return nil, err

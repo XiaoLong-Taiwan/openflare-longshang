@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	openrestyrender "Wavelet/openflare/share/render/openresty"
 
@@ -118,7 +119,11 @@ func (s *Service) ForceSyncOnce(ctx context.Context, target *protocol.ActiveConf
 	}
 	if hasBlockedTarget(snapshot) {
 		clearBlockedTarget(snapshot)
-		_ = s.stateStore.Save(snapshot)
+		snapshot.ApplyRetryCount = 0
+		snapshot.ApplyRetryAt = time.Time{}
+		if err := s.stateStore.Save(snapshot); err != nil {
+			return err
+		}
 	}
 	currentChecksum, err := s.nginxManager.CurrentChecksum()
 	if err != nil {
@@ -158,8 +163,10 @@ func (s *Service) applyIfNeeded(ctx context.Context, mode string, startup bool, 
 	if handled, err := s.handleBlockedConfigAfterFetch(ctx, mode, startup, snapshot, currentChecksum, config); handled {
 		return err
 	}
-	if hasBlockedTarget(snapshot) {
+	if hasBlockedTarget(snapshot) && !isBlockedTarget(snapshot, config.Version, config.Checksum) {
 		clearBlockedTarget(snapshot)
+		snapshot.ApplyRetryCount = 0
+		snapshot.ApplyRetryAt = time.Time{}
 	}
 	if snapshot.CurrentVersion == config.Version && snapshot.CurrentChecksum == config.Checksum && !startup {
 		if err := s.syncPagesDeployments(ctx, snapshot, config); err != nil {

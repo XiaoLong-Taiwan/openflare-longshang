@@ -199,6 +199,9 @@ func computeNodeStatus(node *model.OpenFlareNode) string {
 	if node == nil {
 		return nodeStatusOffline
 	}
+	if seen, ok := nodeViewLastSeenAt(node).(string); ok && (seen == ofws.AgentWSConnectedLastSeenValue || seen == ofws.RelayWSConnectedLastSeenValue || seen == ofws.FlaredWSConnectedLastSeenValue) {
+		return nodeStatusOnline
+	}
 	if node.LastSeenAt == nil || node.LastSeenAt.IsZero() {
 		return nodeStatusPending
 	}

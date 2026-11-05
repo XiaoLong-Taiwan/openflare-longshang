@@ -105,6 +105,49 @@ func TestApplyNodeRuntimeRespectsGeoManualOverride(t *testing.T) {
 	}
 }
 
+func TestMergeNodeVersion(t *testing.T) {
+	tests := []struct {
+		name            string
+		knownVersion    string
+		reportedVersion string
+		want            string
+	}{
+		{name: "old binary preserves known release", knownVersion: "v0.0.24", reportedVersion: "dev", want: "v0.0.24"},
+		{name: "new release replaces known release", knownVersion: "v0.0.23", reportedVersion: "v0.0.24", want: "v0.0.24"},
+		{name: "new dev node remains dev", reportedVersion: "dev", want: "dev"},
+		{name: "empty known version accepts dev", reportedVersion: "dev", want: "dev"},
+		{name: "blank report clears version", knownVersion: "v0.0.24", reportedVersion: " ", want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := mergeNodeVersion(tt.knownVersion, tt.reportedVersion); got != tt.want {
+				t.Errorf("mergeNodeVersion(%q, %q) = %q, want %q", tt.knownVersion, tt.reportedVersion, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestApplyNodeRuntimePreservesReleaseVersionFromDev(t *testing.T) {
+	withFakeGeoIPProvider(t, nil)
+	node := &model.OpenFlareNode{Version: "v0.0.24"}
+	applyNodeRuntime(context.Background(), node, NodePayload{
+		IP:      "203.0.113.24",
+		Version: "dev",
+	}, true)
+	if node.Version != "v0.0.24" {
+		t.Errorf("applyNodeRuntime(version=dev) stored version = %q, want v0.0.24", node.Version)
+	}
+
+	newNode := &model.OpenFlareNode{}
+	applyNodeRuntime(context.Background(), newNode, NodePayload{
+		IP:      "203.0.113.25",
+		Version: "dev",
+	}, false)
+	if newNode.Version != "dev" {
+		t.Errorf("applyNodeRuntime(new node, version=dev) stored version = %q, want dev", newNode.Version)
+	}
+}
+
 func TestCollectHeartbeatChangesTracksGeoFields(t *testing.T) {
 	before := &model.OpenFlareNode{
 		IP:      "10.0.0.1",

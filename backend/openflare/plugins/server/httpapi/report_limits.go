@@ -2,9 +2,12 @@ package httpapi
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -15,13 +18,32 @@ import (
 )
 
 func limitNodeReport(c *gin.Context) {
-	data, err := io.ReadAll(io.LimitReader(c.Request.Body, reporting.MaxPayloadBytes+1))
-	if err != nil {
-		response.AbortBadRequest(c, "无法读取节点上报")
+	c.Header("Accept-Encoding", "gzip")
+	encoding := strings.TrimSpace(c.GetHeader("Content-Encoding"))
+	if encoding != "" && !strings.EqualFold(encoding, "identity") && !strings.EqualFold(encoding, "gzip") {
+		response.AbortWithError(c, http.StatusUnsupportedMediaType, "不支持的节点上报编码")
 		return
 	}
-	if len(data) > reporting.MaxPayloadBytes {
+	body := http.MaxBytesReader(c.Writer, c.Request.Body, reporting.MaxPayloadBytes)
+	defer func() { _ = body.Close() }()
+	var reader io.Reader = body
+	if strings.EqualFold(encoding, "gzip") {
+		compressed, err := gzip.NewReader(body)
+		if err != nil {
+			response.AbortBadRequest(c, "节点上报 gzip 格式无效")
+			return
+		}
+		defer func() { _ = compressed.Close() }()
+		reader = compressed
+	}
+	data, err := io.ReadAll(io.LimitReader(reader, reporting.MaxPayloadBytes+1))
+	var tooLarge *http.MaxBytesError
+	if len(data) > reporting.MaxPayloadBytes || errors.As(err, &tooLarge) {
 		response.AbortWithError(c, http.StatusRequestEntityTooLarge, "节点上报超过 8 MiB")
+		return
+	}
+	if err != nil {
+		response.AbortBadRequest(c, "无法读取节点上报")
 		return
 	}
 	var payload protocol.NodePayload
@@ -45,4 +67,6 @@ func limitNodeReport(c *gin.Context) {
 		}
 	}
 	c.Request.Body = io.NopCloser(bytes.NewReader(data))
+	c.Request.ContentLength = int64(len(data))
+	c.Request.Header.Del("Content-Encoding")
 }

@@ -45,4 +45,5 @@ type LogStorageService interface {
 	Cleanup(ctx context.Context, category string, before *time.Time) ([]LogStorageCleanupResult, error)
 	DeleteNodeAccessLogBatch(ctx context.Context, month time.Time, before time.Time, limit int) (int64, error)
 	NodeAccessLogPartitionStats(ctx context.Context, month time.Time) (int64, int64, error)
+	HasNodeAccessLogsBefore(ctx context.Context, month time.Time, before time.Time) (bool, error)
 }

@@ -36,6 +36,12 @@ func TestUserUploadRoutes(t *testing.T) {
 	if err := New().Apply(ctx); err != nil {
 		t.Fatal(err)
 	}
+	if _, ok := ctx.Tasks().Get("system:cleanup"); ok {
+		t.Fatal("upload plugin must not register the admin system cleanup task")
+	}
+	if _, ok := ctx.Tasks().Get("upload:cleanup-orphans"); ok {
+		t.Fatal("orphan upload cleanup must be triggered through the system cleanup event")
+	}
 
 	want := []string{
 		"POST /api/v1/upload",

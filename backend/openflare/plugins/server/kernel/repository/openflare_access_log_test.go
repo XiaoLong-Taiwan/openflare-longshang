@@ -34,7 +34,7 @@ func setupOpenFlareAccessLogTestEnvironment(t *testing.T) (context.Context, func
 		Logger:                                   logger.Default.LogMode(logger.Silent),
 	})
 	require.NoError(t, err)
-	require.NoError(t, gdb.AutoMigrate(&analyticsmodel.NodeAccessLog{}))
+	require.NoError(t, gdb.AutoMigrate(&analyticsmodel.NodeAccessLog{}, &analyticsmodel.NodeAccessDaily{}, &analyticsmodel.NodeAccessQuota{}, &analyticsmodel.NodeAccessBatch{}, &analyticsmodel.NodeAccessCheckpoint{}))
 	SetDBForTest(gdb)
 	require.NoError(t, idgen.Init(1))
 

@@ -102,3 +102,42 @@ func TestReportingCollectionFrequency(t *testing.T) {
 		t.Fatalf("NodePayload(immediate repeat) metrics = %v then %v, want first sample only", first.HostMetrics, second.HostMetrics)
 	}
 }
+
+func TestReportingDrainsCompleteTrafficTotals(t *testing.T) {
+	dir := t.TempDir()
+	buffer := state.NewObservabilityBufferStore(filepath.Join(dir, "buffer.json"))
+	window := time.Now().Unix()/60*60 - 120
+	logs := make([]protocol.NodeAccessLog, 1200)
+	var wantBytes int64
+	for i := range logs {
+		logs[i] = protocol.NodeAccessLog{LoggedAtUnix: window, Path: fmt.Sprintf("/<>\"/%d", i), UserAgent: strings.Repeat("<&>", 100), BytesSent: int64(i + 1)}
+		wantBytes += logs[i].BytesSent
+	}
+	if err := buffer.Upsert(state.ObservabilityBufferRecord{WindowStartedAtUnix: window, AccessLogs: logs}, 0); err != nil {
+		t.Fatal(err)
+	}
+	c := &Cycle{Config: &config.Config{DataDir: dir, NodeIPConfigured: true, ObservabilityReplayMinutes: 60}, StateStore: state.NewStore(filepath.Join(dir, "state.json")), ObservabilityBuffer: buffer, byteLimit: 64 * 1024, logLimit: 1000, bufferLimit: 4}
+	seen := make(map[string]bool)
+	var gotBytes int64
+	for attempt := 0; attempt < 100 && len(seen) < len(logs); attempt++ {
+		c.lastCollection = time.Time{}
+		payload, ack := c.PrepareHeartbeatPayload(context.Background(), "node")
+		encoded, err := json.Marshal(payload)
+		if err != nil || payload.SchemaVersion == 0 || len(encoded) > c.byteLimit {
+			t.Fatalf("PrepareHeartbeatPayload(attempt=%d) schema=%d bytes=%d error=%v, want valid <=%d", attempt, payload.SchemaVersion, len(encoded), err, c.byteLimit)
+		}
+		for _, record := range payload.Buffered {
+			for _, row := range record.AccessLogs {
+				if seen[row.Path] {
+					t.Fatalf("PrepareHeartbeatPayload() duplicate path %q, want each acknowledged row once", row.Path)
+				}
+				seen[row.Path] = true
+				gotBytes += row.BytesSent
+			}
+		}
+		c.AckObservabilityWindows(ack)
+	}
+	if len(seen) != len(logs) || gotBytes != wantBytes {
+		t.Errorf("drained traffic = %d rows/%d bytes, want %d/%d", len(seen), gotBytes, len(logs), wantBytes)
+	}
+}

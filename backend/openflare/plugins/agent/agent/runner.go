@@ -40,6 +40,7 @@ type SyncService interface {
 // RuntimeManager manages the lifecycle and health checks of the OpenResty runtime.
 type RuntimeManager interface {
 	CheckHealth(ctx context.Context) error
+	EnsureRuntime(ctx context.Context, recreate bool) error
 	Restart(ctx context.Context) error
 }
 
@@ -76,6 +77,7 @@ func (r *Runner) Run(ctx context.Context) error {
 		return err
 	}
 	slog.Info("agent runner started", "node_id", nodeID, "node", r.Config.NodeName, "ip", r.Config.NodeIP)
+	r.ensureLocalRuntime(ctx)
 	r.runStartupAuth(ctx, &nodeID)
 
 	heartbeatTicker := time.NewTicker(r.Config.HeartbeatInterval.Duration())
@@ -123,6 +125,24 @@ func (r *Runner) Run(ctx context.Context) error {
 			r.handleHeartbeatTick(ctx, &nodeID, heartbeatTicker, tryStartWebSocket)
 		}
 	}
+}
+
+func (r *Runner) ensureLocalRuntime(ctx context.Context) {
+	if r.RuntimeManager == nil {
+		return
+	}
+	if err := r.RuntimeManager.CheckHealth(ctx); err == nil {
+		return
+	} else if strings.Contains(err.Error(), "openresty config not exists") {
+		return
+	}
+	if err := r.RuntimeManager.EnsureRuntime(ctx, false); err != nil {
+		slog.Error("restore local openresty runtime before control-plane connection", "error", err)
+		r.recordOpenrestyUnhealthy(err, true)
+		return
+	}
+	slog.Info("restored local openresty runtime from existing configuration")
+	r.recordOpenrestyHealthy()
 }
 
 func (r *Runner) runStartupAuth(ctx context.Context, nodeID *string) {

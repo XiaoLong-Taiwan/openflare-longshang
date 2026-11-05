@@ -109,7 +109,7 @@ func applyNodeRuntime(ctx context.Context, node *model.OpenFlareNode, payload No
 	if !node.IPManualOverride {
 		node.IP = strings.TrimSpace(payload.IP)
 	}
-	node.Version = strings.TrimSpace(payload.Version)
+	node.Version = mergeNodeVersion(node.Version, payload.Version)
 	node.ExtVersion = strings.TrimSpace(payload.ExtVersion)
 	node.OpenrestyStatus = normalizeOpenrestyStatus(payload.OpenrestyStatus)
 	node.OpenrestyMessage = truncateForDatabase(payload.OpenrestyMessage, maxDatabaseTextLength)
@@ -121,6 +121,14 @@ func applyNodeRuntime(ctx context.Context, node *model.OpenFlareNode, payload No
 	if !node.GeoManualOverride {
 		ofgeoip.ApplyNodeGeoFromIP(ctx, node, node.IP)
 	}
+}
+
+func mergeNodeVersion(knownVersion string, reportedVersion string) string {
+	reportedVersion = strings.TrimSpace(reportedVersion)
+	if strings.EqualFold(reportedVersion, "dev") && strings.TrimSpace(knownVersion) != "" {
+		return strings.TrimSpace(knownVersion)
+	}
+	return reportedVersion
 }
 
 func truncateForDatabase(value string, maxVal int) string {

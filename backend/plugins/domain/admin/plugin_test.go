@@ -7,6 +7,8 @@ import (
 	"Wavelet/core"
 	"Wavelet/core/contracts"
 	"Wavelet/plugins/domain/admin"
+	"Wavelet/plugins/domain/admin/service"
+	"Wavelet/plugins/domain/upload"
 	"context"
 	"testing"
 
@@ -58,6 +60,37 @@ func TestAdminPluginUnit(t *testing.T) {
 	provider, err := core.Inject[contracts.PublicConfigProvider](ctx)
 	require.NoError(t, err)
 	require.NotNil(t, provider)
+}
+
+func TestSystemCleanupRegistrationOrder(t *testing.T) {
+	for _, order := range []string{"admin_then_upload", "upload_then_admin"} {
+		t.Run(order, func(t *testing.T) {
+			ctx := core.NewContext(context.Background())
+			plugins := []core.Plugin{admin.New(), upload.New()}
+			if order == "upload_then_admin" {
+				plugins[0], plugins[1] = plugins[1], plugins[0]
+			}
+			for _, plugin := range plugins {
+				if err := plugin.Apply(ctx); err != nil {
+					t.Fatalf("%s.Apply(%s) = %v, want nil", plugin.Name(), order, err)
+				}
+			}
+			cleanup, ok := ctx.Tasks().Get("system:cleanup")
+			if !ok {
+				t.Fatalf("Tasks.Get(system:cleanup, %s) missing, want admin task", order)
+			}
+			if _, ok := cleanup.Handler.(*service.SystemCleanupHandler); !ok {
+				t.Errorf("system:cleanup handler(%s) = %T, want *service.SystemCleanupHandler", order, cleanup.Handler)
+			}
+			if _, ok := ctx.Tasks().Get("upload:cleanup-orphans"); ok {
+				t.Errorf("Tasks.Get(upload:cleanup-orphans, %s) present, want event-only cleanup", order)
+			}
+			schedule, ok := ctx.Schedule().Get("system:cleanup")
+			if !ok || schedule.Spec != "0 3 * * *" {
+				t.Errorf("Schedule.Get(system:cleanup, %s) = %+v, present=%t, want daily at 03:00", order, schedule, ok)
+			}
+		})
+	}
 }
 
 func TestAdminMigrationsIncludeTaskExecutionsAndSchedules(t *testing.T) {

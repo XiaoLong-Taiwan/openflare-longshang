@@ -107,17 +107,7 @@ func (s *Service) reconcilePages(ctx context.Context, mode string, snapshot *sta
 }
 
 func (s *Service) syncMismatchedChecksum(ctx context.Context, mode string, startup bool, snapshot *state.Snapshot, currentChecksum string, target *protocol.ActiveConfigMeta) error {
-	if isBlockedTarget(snapshot, target.Version, target.Checksum) {
-		if !snapshot.ApplyRetryAt.IsZero() && time.Now().Before(snapshot.ApplyRetryAt) {
-			if startup {
-				if err := s.ensureRuntimeForCurrentConfig(ctx, mode, snapshot, currentChecksum); err != nil {
-					return err
-				}
-				return s.stateStore.Save(snapshot)
-			}
-			return nil
-		}
-		slog.Warn("skipping blocked config version after previous failed apply", "mode", mode, "version", target.Version, "checksum", target.Checksum)
+	if isBlockedTarget(snapshot, target.Version, target.Checksum) && time.Now().Before(snapshot.ApplyRetryAt) {
 		if startup {
 			if err := s.ensureRuntimeForCurrentConfig(ctx, mode, snapshot, currentChecksum); err != nil {
 				return err
@@ -126,7 +116,7 @@ func (s *Service) syncMismatchedChecksum(ctx context.Context, mode string, start
 		}
 		return nil
 	}
-	if hasBlockedTarget(snapshot) {
+	if hasBlockedTarget(snapshot) && !isBlockedTarget(snapshot, target.Version, target.Checksum) {
 		clearBlockedTarget(snapshot)
 		snapshot.ApplyRetryCount = 0
 		snapshot.ApplyRetryAt = time.Time{}
@@ -185,19 +175,9 @@ func (s *Service) handleUpToDateConfig(ctx context.Context, mode string, snapsho
 }
 
 func (s *Service) handleBlockedConfigAfterFetch(ctx context.Context, mode string, startup bool, snapshot *state.Snapshot, currentChecksum string, config *protocol.ActiveConfigResponse) (bool, error) {
-	if !isBlockedTarget(snapshot, config.Version, config.Checksum) {
+	if !isBlockedTarget(snapshot, config.Version, config.Checksum) || !time.Now().Before(snapshot.ApplyRetryAt) {
 		return false, nil
 	}
-	if !snapshot.ApplyRetryAt.IsZero() && time.Now().Before(snapshot.ApplyRetryAt) {
-		if startup {
-			if err := s.ensureRuntimeForCurrentConfig(ctx, mode, snapshot, currentChecksum); err != nil {
-				return true, err
-			}
-			return true, s.stateStore.Save(snapshot)
-		}
-		return true, nil
-	}
-	slog.Warn("skipping blocked config after fetch because the same version previously failed", "mode", mode, "version", config.Version, "checksum", config.Checksum)
 	if startup {
 		if err := s.ensureRuntimeForCurrentConfig(ctx, mode, snapshot, currentChecksum); err != nil {
 			return true, err
@@ -274,8 +254,8 @@ func applyRetryDelay(attempt int) time.Duration {
 	if attempt < 1 {
 		attempt = 1
 	}
-	if attempt > 6 {
-		attempt = 6
+	if attempt >= 4 {
+		return 5 * time.Minute
 	}
 	return time.Duration(1<<(attempt-1)) * time.Minute
 }

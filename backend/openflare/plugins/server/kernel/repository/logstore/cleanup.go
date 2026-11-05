@@ -83,7 +83,7 @@ func metricRetentionDays(ctx context.Context) int {
 }
 
 // CleanupExpired 按当前激活库保留天数清理过期日志（每日由 system_cleanup 调用）：
-	// 訪問日誌（節點訪問/用戶訪問）按 log_retention_days_* 清理；
+// 訪問日誌（節點訪問/用戶訪問）按 log_retention_days_* 清理；
 // 性能指标（CPU/内存/磁盘/网络）按三库共用的短留存 metric_retention_days 清理。
 func CleanupExpired(ctx context.Context) (*CleanupSummary, error) {
 	dbName, err := resolveDatabase(ctx)
@@ -99,6 +99,22 @@ func CleanupExpired(ctx context.Context) (*CleanupSummary, error) {
 	cutoff := time.Now().AddDate(0, 0, -days)
 	metricCutoff := time.Now().AddDate(0, 0, -metricDays)
 	summary := &CleanupSummary{ActiveDatabase: dbName, RetentionDays: days, MetricRetentionDays: metricDays, Tables: []string{}}
+	if access, ok := s.AccessLogs.(*gormLogStore); ok {
+		if err := access.maintainNodeAccounting(ctx); err != nil {
+			return nil, fmt.Errorf("maintain node accounting: %w", err)
+		}
+	}
+	if access, ok := s.AccessLogs.(*clickhouseLogStore); ok {
+		if err := access.archiveDaily(ctx); err != nil {
+			return nil, err
+		}
+		if err := newGormStore(getGormDB(ctx)).maintainNodeAccounting(ctx); err != nil {
+			return nil, err
+		}
+		if err := flushNodeOutbox(ctx, getGormDB(ctx), deliverNodeChanges); err != nil {
+			return nil, err
+		}
+	}
 
 	// PG 分区表仅在迁移时预建「当前+2 月」分区，此处确保分区持续存在，
 	// 否则跨月后新写入会报 "no partition of relation found"（SQLite/CH 为 no-op）。
@@ -109,12 +125,13 @@ func CleanupExpired(ctx context.Context) (*CleanupSummary, error) {
 
 	// 先直接删除完全过期的整月分区（比逐行 DELETE 快几个数量级、无 MVCC/WAL 负担），
 	// 再对边界月份执行 DeleteBefore（边界月仍可能含未过期数据，不可整表删）。
-	if err := s.AccessLogs.DropExpiredPartitions(ctx, cutoff); err != nil {
+	nodeCutoff := time.Now().UTC().AddDate(0, 0, -7)
+	if err := s.AccessLogs.DropExpiredPartitions(ctx, nodeCutoff); err != nil {
 		return nil, fmt.Errorf("drop expired partitions: %w", err)
 	}
 
 	if err := cleanupTable("node_access_logs", func() (int64, error) {
-		return s.AccessLogs.DeleteBefore(ctx, cutoff)
+		return s.AccessLogs.DeleteBefore(ctx, nodeCutoff)
 	}, summary); err != nil {
 		return nil, err
 	}

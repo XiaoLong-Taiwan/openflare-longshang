@@ -14,6 +14,7 @@ import (
 	analyticsrepo "Wavelet/openflare/plugins/server/kernel/repository/analytics"
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
+	"gorm.io/gorm"
 )
 
 // clickhouseLogStore 实现 AccessLogStore / ObservabilityStore / StatusStore，
@@ -74,7 +75,28 @@ func (s *clickhouseLogStore) BatchInsertNodeAccessLogs(ctx context.Context, rows
 	if err := s.ensureWritable(ctx); err != nil {
 		return err
 	}
-	return analyticsrepo.BatchInsertNodeAccessLogs(ctx, rows)
+	if s.skipFreeze {
+		return analyticsrepo.BatchInsertNodeAccessLogs(ctx, rows)
+	}
+	if len(rows) == 0 {
+		return nil
+	}
+	db := getGormDB(ctx)
+	if err := newGormStore(db).archiveDaily(ctx); err != nil {
+		return err
+	}
+	if err := backfillSampleKeys(ctx, db); err != nil {
+		return err
+	}
+	if err := persistNodeBatch(ctx, db, rows, func(tx *gorm.DB, selected []analyticsmodel.NodeAccessLog) error {
+		return enqueueNodeDelivery(tx, nodeDelivery{Rows: selected})
+	}); err != nil {
+		return err
+	}
+	if err := finishNodeSamples(ctx, db, rows, true); err != nil {
+		return err
+	}
+	return flushNodeOutbox(ctx, db, deliverNodeChanges)
 }
 
 func (s *clickhouseLogStore) List(ctx context.Context, query model.OpenFlareAccessLogQuery) ([]*model.OpenFlareAccessLog, error) {
@@ -176,6 +198,11 @@ func (s *clickhouseLogStore) DeleteAll(ctx context.Context) (int64, error) {
 	if err := s.ensureWritable(ctx); err != nil {
 		return 0, err
 	}
+	if !s.skipFreeze {
+		if err := s.archiveDaily(ctx); err != nil {
+			return 0, err
+		}
+	}
 	return analyticsrepo.DeleteAllNodeAccessLogs(ctx)
 }
 
@@ -183,7 +210,15 @@ func (s *clickhouseLogStore) DeleteBefore(ctx context.Context, cutoff time.Time)
 	if err := s.ensureWritable(ctx); err != nil {
 		return 0, err
 	}
-	return analyticsrepo.DeleteNodeAccessLogsBefore(ctx, cutoff)
+	if err := s.archiveDaily(ctx); err != nil {
+		return 0, err
+	}
+	count, err := analyticsrepo.DeleteNodeAccessLogsBefore(ctx, cutoff)
+	if err != nil {
+		return count, err
+	}
+	_, err = deleteInBatches(ctx, getGormDB(ctx), &analyticsmodel.NodeAccessLog{}, "summary_tracked = true AND logged_at < ?", cutoff)
+	return count, err
 }
 
 func (s *clickhouseLogStore) DeleteMonthBeforeBatch(ctx context.Context, _ time.Time, _ time.Time, _ int) (int64, error) {
@@ -194,7 +229,15 @@ func (s *clickhouseLogStore) DeleteByNodeBefore(ctx context.Context, nodeID stri
 	if err := s.ensureWritable(ctx); err != nil {
 		return 0, err
 	}
-	return analyticsrepo.DeleteNodeAccessLogsByNodeBefore(ctx, nodeID, before)
+	if err := s.archiveDaily(ctx); err != nil {
+		return 0, err
+	}
+	count, err := analyticsrepo.DeleteNodeAccessLogsByNodeBefore(ctx, nodeID, before)
+	if err != nil {
+		return count, err
+	}
+	_, err = deleteInBatches(ctx, getGormDB(ctx), &analyticsmodel.NodeAccessLog{}, "summary_tracked = true AND node_id = ? AND logged_at < ?", nodeID, before)
+	return count, err
 }
 
 // ListForMigration 按 id 升序分页读取（迁移复制用）：直接查询 CH 原生表。
@@ -231,6 +274,7 @@ LIMIT ?`, afterID, limitOr(limit, migrationPageSize))
 			&item.RequestLength,
 			&item.RequestTimeMs,
 			&item.CreatedAt,
+			&item.SummaryTracked,
 		); err != nil {
 			return nil, fmt.Errorf("scan node access log row: %w", err)
 		}

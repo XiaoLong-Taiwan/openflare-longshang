@@ -14,9 +14,11 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"Wavelet/openflare/share/ofutil"
@@ -40,6 +42,9 @@ type Config struct {
 
 // Service handles checking and applying application binary updates.
 type Service struct {
+	updateMu     sync.Mutex
+	requestMu    sync.Mutex
+	retryAfter   map[string]time.Time
 	httpClient   *http.Client
 	lastCheckKey string
 	localVersion string
@@ -79,6 +84,11 @@ type githubAsset struct {
 
 // CheckAndUpdate checks for a newer release on GitHub and performs an update if available.
 func (s *Service) CheckAndUpdate(ctx context.Context, repo string, options UpdateOptions) error {
+	s.updateMu.Lock()
+	defer s.updateMu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	release, err := s.getRelease(ctx, repo, options)
 	if err != nil {
 		return fmt.Errorf("check latest release: %w", err)
@@ -107,9 +117,6 @@ func (s *Service) CheckAndUpdate(ctx context.Context, repo string, options Updat
 
 	downloadURL, expectedChecksum, err := s.resolveReleaseAsset(ctx, release, assetName)
 	if err != nil {
-		if downloadURL == "" {
-			s.lastCheckKey = checkKey
-		}
 		return err
 	}
 
@@ -125,14 +132,25 @@ func (s *Service) CheckAndUpdate(ctx context.Context, repo string, options Updat
 }
 
 func (s *Service) getRelease(ctx context.Context, repo string, options UpdateOptions) (*githubRelease, error) {
+	repo = strings.TrimSpace(repo)
+	if !validRepository(repo) {
+		return nil, errors.New("invalid update repository")
+	}
 	tagName := strings.TrimSpace(options.TagName)
+	var release *githubRelease
+	var err error
 	if tagName != "" {
-		return s.getReleaseByTag(ctx, repo, tagName)
-	}
-	if strings.EqualFold(strings.TrimSpace(options.Channel), "preview") {
+		release, err = s.getReleaseByTag(ctx, repo, tagName)
+	} else if strings.EqualFold(strings.TrimSpace(options.Channel), "preview") {
 		return s.getLatestPreviewRelease(ctx, repo)
+	} else {
+		release, err = s.getLatestStableRelease(ctx, repo)
 	}
-	return s.getLatestStableRelease(ctx, repo)
+	var failure *githubHTTPError
+	if errors.As(err, &failure) && (failure.status == http.StatusForbidden || failure.status == http.StatusTooManyRequests) {
+		return s.fallbackRelease(ctx, repo, tagName)
+	}
+	return release, err
 }
 
 func (s *Service) getLatestStableRelease(ctx context.Context, repo string) (*githubRelease, error) {
@@ -142,25 +160,19 @@ func (s *Service) getLatestStableRelease(ctx context.Context, repo string) (*git
 
 func (s *Service) getLatestPreviewRelease(ctx context.Context, repo string) (*githubRelease, error) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/releases?per_page=20", repo)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Accept", "application/vnd.github+json")
-
-	resp, err := s.httpClient.Do(req)
+	resp, err := s.request(ctx, url, true)
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("github api returned %s", resp.Status)
+		return nil, &githubHTTPError{status: resp.StatusCode}
 	}
 
 	var releases []githubRelease
-	if err = json.NewDecoder(resp.Body).Decode(&releases); err != nil {
-		return nil, err
+	if err = json.NewDecoder(io.LimitReader(resp.Body, 4<<20)).Decode(&releases); err != nil {
+		return nil, errors.New("invalid github release list")
 	}
 	for _, release := range releases {
 		if release.Draft || !release.Prerelease {
@@ -173,32 +185,22 @@ func (s *Service) getLatestPreviewRelease(ctx context.Context, repo string) (*gi
 }
 
 func (s *Service) getReleaseByTag(ctx context.Context, repo string, tag string) (*githubRelease, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/releases/tags/%s", repo, strings.TrimSpace(tag))
+	url := fmt.Sprintf("https://api.github.com/repos/%s/releases/tags/%s", repo, url.PathEscape(strings.TrimSpace(tag)))
 	return s.fetchReleaseFromURL(ctx, url)
 }
 
 func (s *Service) fetchReleaseFromURL(ctx context.Context, url string) (*githubRelease, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	resp, err := s.request(ctx, url, true)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Accept", "application/vnd.github+json")
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			slog.Error("failed to close response body", "error", err)
-		}
-	}()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, nil
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("github api returned %s", resp.Status)
+		return nil, &githubHTTPError{status: resp.StatusCode}
 	}
 
 	return decodeRelease(resp.Body)
@@ -206,8 +208,8 @@ func (s *Service) fetchReleaseFromURL(ctx context.Context, url string) (*githubR
 
 func decodeRelease(reader io.Reader) (*githubRelease, error) {
 	var release githubRelease
-	if err := json.NewDecoder(reader).Decode(&release); err != nil {
-		return nil, err
+	if err := json.NewDecoder(io.LimitReader(reader, 4<<20)).Decode(&release); err != nil {
+		return nil, errors.New("invalid github release metadata")
 	}
 	return &release, nil
 }
@@ -259,23 +261,19 @@ func normalizeGitHubDigest(digest string) string {
 }
 
 func (s *Service) downloadChecksum(ctx context.Context, url string, assetName string) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return "", err
-	}
-	resp, err := s.httpClient.Do(req)
+	resp, err := s.request(ctx, url, false)
 	if err != nil {
 		return "", err
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("checksum download returned %s", resp.Status)
+		return "", &githubHTTPError{status: resp.StatusCode}
 	}
 
 	content, err := io.ReadAll(io.LimitReader(resp.Body, maxChecksumAssetSize+1))
 	if err != nil {
-		return "", err
+		return "", errors.New("read checksum response failed")
 	}
 	if len(content) > maxChecksumAssetSize {
 		return "", fmt.Errorf("checksum asset exceeds %d bytes", maxChecksumAssetSize)
@@ -346,18 +344,14 @@ func (s *Service) downloadAndRestart(ctx context.Context, url string, expectedCh
 	if !isSHA256Hex(expectedChecksum) {
 		return errors.New("invalid expected sha256 checksum")
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return err
-	}
-	resp, err := s.httpClient.Do(req)
+	resp, err := s.request(ctx, url, false)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("download returned %s", resp.Status)
+		return &githubHTTPError{status: resp.StatusCode}
 	}
 
 	tmpPath := targetPath + ".update"
@@ -372,7 +366,7 @@ func (s *Service) downloadAndRestart(ctx context.Context, url string, expectedCh
 	if _, err = io.Copy(io.MultiWriter(tmpFile, hasher), resp.Body); err != nil {
 		_ = tmpFile.Close()
 		_ = os.Remove(tmpPath)
-		return err
+		return errors.New("read binary response or write update file failed")
 	}
 	if err = tmpFile.Close(); err != nil {
 		_ = os.Remove(tmpPath)

@@ -22,6 +22,11 @@ import (
 func cleanupTestModels() []any {
 	return []any{
 		&analyticsmodel.NodeAccessLog{},
+		&analyticsmodel.NodeAccessDaily{},
+		&analyticsmodel.NodeAccessQuota{},
+		&analyticsmodel.NodeAccessBatch{},
+		&analyticsmodel.NodeAccessCheckpoint{},
+		&analyticsmodel.NodeAccessOutbox{},
 		&analyticsmodel.UserAccessLog{},
 		&analyticsmodel.NodeMetricSnapshot{},
 		&analyticsmodel.NodeEdgeHealth{},
