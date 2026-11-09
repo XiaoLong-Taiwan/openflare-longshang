@@ -70,7 +70,7 @@ func renderPagesRouteHTTPS(
 	}
 	for _, certID := range certIDs {
 		if assignedDomains := partition.domainsByCertID[certID]; len(assignedDomains) > 0 {
-			builder.WriteString(renderHTTPSPagesServer(renderServerNames(assignedDomains), displayName, certID, route.PagesDeployment, limitConfig, powEnabled, route.BasicAuthEnabled, route.BasicAuthUsername, route.BasicAuthPassword, routeSWEnabled(assignedDomains, cfg), cfg))
+			builder.WriteString(renderHTTPSPagesServerHTTP2(renderServerNames(assignedDomains), displayName, certID, route.PagesDeployment, limitConfig, powEnabled, route.BasicAuthEnabled, route.BasicAuthUsername, route.BasicAuthPassword, routeSWEnabled(assignedDomains, cfg), cfg, route.EnableHTTP2 == nil || *route.EnableHTTP2))
 		}
 	}
 }
@@ -101,7 +101,7 @@ func renderProxyRouteHTTPS(
 	}
 	for _, certID := range certIDs {
 		if assignedDomains := partition.domainsByCertID[certID]; len(assignedDomains) > 0 {
-			builder.WriteString(renderHTTPSServer(renderServerNames(assignedDomains), displayName, route.OriginURL, route.OriginHost, certID, route.CustomHeaders, cacheConfig, limitConfig, upstreamConfig, powEnabled, route.BasicAuthEnabled, route.BasicAuthUsername, route.BasicAuthPassword, routeSWEnabled(assignedDomains, cfg), cfg))
+			builder.WriteString(renderHTTPSServerWithProxyConfig(renderServerNames(assignedDomains), displayName, route.OriginURL, route.OriginHost, certID, route.CustomHeaders, cacheConfig, limitConfig, upstreamConfig, powEnabled, route.BasicAuthEnabled, route.BasicAuthUsername, route.BasicAuthPassword, routeSWEnabled(assignedDomains, cfg), cfg, route.ProxyConfig, route.EnableHTTP2 == nil || *route.EnableHTTP2))
 		}
 	}
 }
@@ -146,7 +146,7 @@ func renderProxyRouteByDomain(builder *strings.Builder, route Route, displayName
 		} else {
 			builder.WriteString(renderHTTPProxyServerWithProxyConfig(domain, displayName, route.OriginURL, route.OriginHost, route.CustomHeaders, cacheConfig, limitConfig, upstreamConfig, powEnabled, route.BasicAuthEnabled, route.BasicAuthUsername, route.BasicAuthPassword, cfg, route.ProxyConfig))
 		}
-		builder.WriteString(renderHTTPSServerWithProxyConfig(domain, displayName, route.OriginURL, route.OriginHost, certificateID, route.CustomHeaders, cacheConfig, limitConfig, upstreamConfig, powEnabled, route.BasicAuthEnabled, route.BasicAuthUsername, route.BasicAuthPassword, routeSWEnabled([]string{domain}, cfg), cfg, route.ProxyConfig))
+		builder.WriteString(renderHTTPSServerWithProxyConfig(domain, displayName, route.OriginURL, route.OriginHost, certificateID, route.CustomHeaders, cacheConfig, limitConfig, upstreamConfig, powEnabled, route.BasicAuthEnabled, route.BasicAuthUsername, route.BasicAuthPassword, routeSWEnabled([]string{domain}, cfg), cfg, route.ProxyConfig, route.EnableHTTP2 == nil || *route.EnableHTTP2))
 	}
 	return nil
 }

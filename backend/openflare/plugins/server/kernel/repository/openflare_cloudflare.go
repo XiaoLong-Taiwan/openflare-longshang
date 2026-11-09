@@ -152,6 +152,7 @@ func ListCFPointingMembersByActiveNodeID(ctx context.Context, nodeID uint) ([]mo
 		Select("DISTINCT members.*").
 		Joins("JOIN of_cf_pointing_groups AS groups ON groups.id = members.group_id").
 		Joins("LEFT JOIN of_cf_pointing_group_nodes AS group_nodes ON group_nodes.group_id = groups.id").
+		Where("groups.target_mode <> ?", "custom").
 		Where("(group_nodes.node_id = ? OR (group_nodes.id IS NULL AND groups.active_node_id = ?)) AND groups.enabled = ?", nodeID, nodeID, true).
 		Order("members.id asc").Scan(&items).Error
 	return items, err
@@ -291,12 +292,18 @@ func GetCFPointingMemberContext(ctx context.Context, memberID uint) (*CFPointing
 	if err != nil {
 		return nil, err
 	}
+	if group.TargetMode == "custom" {
+		return &CFPointingMemberContext{Member: *member, Group: *group, Domain: *domain, Zone: *zone}, nil
+	}
 	if len(groupNodes) == 0 {
 		groupNodes = []model.CFPointingGroupNode{{GroupID: group.ID, NodeID: group.ActiveNodeID, Priority: 0}}
 	}
 	nodes := make([]CFPointingGroupNodeContext, 0, len(groupNodes))
 	for i := range groupNodes {
 		node, nodeErr := GetOpenFlareNodeByID(ctx, groupNodes[i].NodeID)
+		if errors.Is(nodeErr, gorm.ErrRecordNotFound) {
+			continue
+		}
 		if nodeErr != nil {
 			return nil, nodeErr
 		}

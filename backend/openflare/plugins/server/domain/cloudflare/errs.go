@@ -4,6 +4,9 @@
 package cloudflare
 
 const (
+	errGroupTargetModeInvalid  = "請選擇有效的目標模式"
+	errRecordContentInvalid    = "請填寫有效的 A、AAAA 或 CNAME 記錄值"
+	errGroupTTLInvalid         = "TTL 必須為 1（自動）或 60 至 86400 秒的整數"
 	errConnectionNotConfigured = "尚未配置 Cloudflare 连接"
 	errConnectionSourceInvalid = "无效的 Cloudflare 连接来源"
 	errStandaloneInputRequired = "请填写 Cloudflare API Token"
@@ -17,7 +20,7 @@ const (
 	errGroupDisabled           = "指向分组已停用"
 	errMemberExists            = "该域名已加入其他指向分组"
 	errMultipleARecords        = "检测到 Cloudflare 中存在多条同名 A 记录，请先手动清理"
-	errSyncFailed              = "Cloudflare DNS 同步失败"
+	errSyncFailed              = "同步 Cloudflare DNS 失败"
 	errDeleteRemoteFailed      = "删除 Cloudflare DNS 记录失败"
 	errTaskDispatchFailed      = "无法投递 Cloudflare 同步任务"
 )

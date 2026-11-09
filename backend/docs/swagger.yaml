@@ -139,6 +139,53 @@ definitions:
       total_size:
         type: integer
     type: object
+  Wavelet_openflare_share_protocol.RegisterNodeRequest:
+    properties:
+      access_logs:
+        items:
+          $ref: '#/definitions/Wavelet_openflare_share_protocol.NodeAccessLog'
+        type: array
+      buffered:
+        items:
+          $ref: '#/definitions/Wavelet_openflare_share_protocol.BufferedObservabilityRecord'
+        type: array
+      current_version:
+        type: string
+      edge_health:
+        $ref: '#/definitions/Wavelet_openflare_share_protocol.NodeEdgeHealth'
+      ext_version:
+        type: string
+      health_events:
+        items:
+          $ref: '#/definitions/Wavelet_openflare_share_protocol.NodeHealthEvent'
+        type: array
+      host_metrics:
+        $ref: '#/definitions/Wavelet_openflare_share_protocol.NodeMetricSnapshot'
+      ip:
+        type: string
+      last_error:
+        type: string
+      name:
+        type: string
+      node_id:
+        type: string
+      openresty_message:
+        type: string
+      openresty_status:
+        type: string
+      profile:
+        $ref: '#/definitions/Wavelet_openflare_share_protocol.NodeSystemProfile'
+      registration_key:
+        type: string
+      schema_version:
+        type: integer
+      version:
+        type: string
+      waf_ip_group_checksums:
+        additionalProperties:
+          type: string
+        type: object
+    type: object
   Wavelet_openflare_share_protocol.WAFIPGroup:
     properties:
       checksum:
@@ -312,9 +359,11 @@ definitions:
           type: string
         type: object
     type: object
-  agent.RegistrationResponse:
+  agent.RegistrationResponseDocs:
     properties:
       access_token:
+        type: string
+      agent_token:
         type: string
       name:
         type: string
@@ -473,6 +522,16 @@ definitions:
         type: array
       primary_node_id:
         type: integer
+      record_content:
+        type: string
+      record_type:
+        type: string
+      target_mode:
+        type: string
+      ttl:
+        description: TTL 为 1 时自动，否则为 60～86400 秒的整数；省略时创建默认自动，更新保留原值。
+        example: 1
+        type: integer
     type: object
   cloudflare.GroupItem:
     properties:
@@ -498,6 +557,16 @@ definitions:
         type: array
       primary_node:
         $ref: '#/definitions/cloudflare.NodeOption'
+      record_content:
+        type: string
+      record_type:
+        type: string
+      target_mode:
+        type: string
+      ttl:
+        description: TTL 为 1 时自动，否则为 DNS-only 成员使用的秒数。
+        example: 1
+        type: integer
       updated_at:
         type: string
     type: object
@@ -2462,6 +2531,19 @@ definitions:
       relay_web_server_enabled:
         type: boolean
     type: object
+  node.ListResult:
+    properties:
+      page:
+        type: integer
+      page_size:
+        type: integer
+      results:
+        items:
+          $ref: '#/definitions/node.View'
+        type: array
+      total:
+        type: integer
+    type: object
   node.ObservabilityView:
     properties:
       analytics:
@@ -3626,6 +3708,8 @@ definitions:
         items:
           $ref: '#/definitions/proxy_route.CustomHeaderInput'
         type: array
+      enable_http2:
+        type: boolean
       enable_https:
         type: boolean
       enabled:
@@ -3747,6 +3831,8 @@ definitions:
         type: array
       custom_headers:
         type: string
+      enable_http2:
+        type: boolean
       enable_https:
         type: boolean
       enabled:
@@ -4746,7 +4832,7 @@ paths:
       - admin
   /api/v1/admin/db-export:
     get:
-      description: SQLite 时直接下载 .db 文件；PostgreSQL 时执行 pg_dump 并流式下载 .sql 文件，需要管理员权限
+      description: SQLite 时下载一致性快照 .db 文件；PostgreSQL 时执行 pg_dump 并流式下载 .sql 文件，需要管理员权限
       produces:
       - application/octet-stream
       responses:
@@ -7323,12 +7409,12 @@ paths:
       - application/json
       description: 使用节点 access token 重新注册，或使用全局 discovery token 发现新节点；请求头需携带 X-Agent-Token
       parameters:
-      - description: 节点上报数据
+      - description: 节点上报数据；registration_key 为首次注册重试凭证
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/agent.NodePayload'
+          $ref: '#/definitions/Wavelet_openflare_share_protocol.RegisterNodeRequest'
       produces:
       - application/json
       responses:
@@ -7339,7 +7425,7 @@ paths:
             - $ref: '#/definitions/response.Any'
             - properties:
                 data:
-                  $ref: '#/definitions/agent.RegistrationResponse'
+                  $ref: '#/definitions/agent.RegistrationResponseDocs'
               type: object
         "400":
           description: 参数错误
@@ -9387,6 +9473,48 @@ paths:
       summary: 创建节点
       tags:
       - openflare-node
+  /api/v1/d/nodes/{id}:
+    get:
+      description: 返回指定节点及最新配置下发记录，需要管理员权限
+      parameters:
+      - description: 节点 ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 节点详情
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Any'
+            - properties:
+                data:
+                  $ref: '#/definitions/node.View'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/response.Any'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/response.Any'
+        "404":
+          description: 无权限或不存在
+          schema:
+            $ref: '#/definitions/response.Any'
+        "500":
+          description: 查询失败
+          schema:
+            $ref: '#/definitions/response.Any'
+      security:
+      - SessionCookie: []
+      summary: 获取节点详情
+      tags:
+      - openflare-node
   /api/v1/d/nodes/{id}/agent-release:
     get:
       description: 返回指定节点可用的最新 Agent 版本信息，需要管理员权限
@@ -9772,6 +9900,63 @@ paths:
       security:
       - SessionCookie: []
       summary: 轮换引导令牌
+      tags:
+      - openflare-node
+  /api/v1/d/nodes/page:
+    get:
+      description: 返回分页节点和筛选后的总数；旧版 /nodes 列表接口保持兼容，需要管理员权限
+      parameters:
+      - description: 页码（默认 1）
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量（默认 20，最大 100）
+        in: query
+        name: page_size
+        type: integer
+      - description: 名称、节点标识或 IP 的字面子串（最多 256 字节）
+        in: query
+        name: search
+        type: string
+      - description: pending、online 或 offline
+        in: query
+        name: status
+        type: string
+      - description: edge_node、tunnel_relay 或 tunnel_client
+        in: query
+        name: node_type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 节点分页
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Any'
+            - properties:
+                data:
+                  $ref: '#/definitions/node.ListResult'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/response.Any'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/response.Any'
+        "404":
+          description: 无权限
+          schema:
+            $ref: '#/definitions/response.Any'
+        "500":
+          description: 查询失败
+          schema:
+            $ref: '#/definitions/response.Any'
+      security:
+      - SessionCookie: []
+      summary: 获取分页节点列表
       tags:
       - openflare-node
   /api/v1/d/option:
@@ -12382,6 +12567,7 @@ paths:
     post:
       consumes:
       - application/json
+      description: 支持具体域名或最左侧完整标签为 * 的通配符域名，例如 *.s3.example.com；域名必须属于当前 Zone。
       parameters:
       - description: Zone ID
         in: path
@@ -12460,6 +12646,7 @@ paths:
     post:
       consumes:
       - application/json
+      description: 支持具体域名与通配符域名互相修改；通配符仅允许出现在最左侧完整标签，且域名必须属于当前 Zone。
       parameters:
       - description: Zone ID
         in: path

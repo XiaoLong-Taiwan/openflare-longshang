@@ -160,6 +160,11 @@ func OpenSQLiteExportFile() (*os.File, os.FileInfo, error) {
 	return repository.OpenSQLiteExportFile()
 }
 
+// ExportSQLiteSnapshot writes a consistent snapshot to a new destination file.
+func ExportSQLiteSnapshot(ctx context.Context, path string) error {
+	return repository.ExportSQLiteSnapshot(ctx, path)
+}
+
 // NewPgDumpCommand builds the streaming pg_dump command for the active database.
 func NewPgDumpCommand(ctx context.Context) (*exec.Cmd, string, error) {
 	return repository.NewPgDumpCommand(ctx)

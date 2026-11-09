@@ -83,7 +83,7 @@
     "expiresAt": "到期時間",
     "selectZone": "请先选择 Zone",
     "enterDomain": "請輸入網域",
-    "noWildcard": "Zone 網域不支持通配符",
+    "noWildcard": "萬用字元只能是最左側的完整標籤 *，例如 *.example.com，且只能出現一次",
     "invalidFormat": "網域格式不合法",
     "invalidSubdomain": "子網域稱格式不合法",
     "mustBelongToZone": "網域必須属于 Zone {root}",
@@ -224,7 +224,6 @@
     "loadingDetail": "載入憑證详情中...",
     "status": "狀態",
     "notBefore": "生效時間",
-    "notAfter": "到期時間",
     "certPemCopied": "憑證 PEM 已複制",
     "keyPemCopied": "私钥 PEM 已複制",
     "copy": "複制",
@@ -336,6 +335,8 @@
     "saveChanges": "儲存修改"
   },
   "proxyRoutes": {
+    "enableHttp2": "啟用 HTTP/2",
+    "enableHttp2Desc": "為此路由的 HTTPS 監聽啟用 HTTP/2。HTTP/3 由獨立設定控制。",
     "title": "規則設定",
     "refresh": "刷新",
     "createRule": "新建規則",

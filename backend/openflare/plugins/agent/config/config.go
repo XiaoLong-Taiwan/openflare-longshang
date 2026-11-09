@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"Wavelet/openflare/plugins/agent/localfile"
 	"Wavelet/openflare/share/edge/nodeip"
 	"Wavelet/openflare/share/ofutil"
 )
@@ -406,7 +407,7 @@ func (cfg *Config) Save() error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(cfg.configPath, data, configFilePerm)
+	return localfile.WriteAtomic(cfg.configPath, data, configFilePerm)
 }
 
 func detectHostname() string {

@@ -306,9 +306,9 @@ func TestSecurityWAFTLSMigrationFlow(t *testing.T) {
 		rec := performJSONRequest(t, engine, http.MethodPost, fmt.Sprintf("%s/zones/%d/domains", apiPath(""), zoneID), map[string]any{
 			"domain": "*.example.com",
 		}, adminAuthHeaders(seed.Token))
-		require.Equal(t, http.StatusBadRequest, rec.Code)
-		errResp := decodeAPIResponse(t, rec)
-		assert.NotEmpty(t, errResp.ErrorMsg)
+		require.Equal(t, http.StatusOK, rec.Code)
+		wildcard := unmarshalAPIMap(t, requireAPIOK(t, rec).Data)
+		assert.Equal(t, "*.example.com", wildcard["domain"])
 
 		rec = performJSONRequest(t, engine, http.MethodPost, fmt.Sprintf("%s/zones/%d/domains", apiPath(""), zoneID), map[string]any{
 			"domain": "security.example.com", "cert_id": certID,

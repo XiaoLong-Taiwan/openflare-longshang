@@ -1,7 +1,7 @@
 // Copyright 2026 Arctel.net
 // SPDX-License-Identifier: Apache-2.0
 
-// Package zone manages registered roots and their explicit hostnames.
+// Package zone manages registered roots and their exact or wildcard hostnames.
 package zone
 
 import (
@@ -18,6 +18,8 @@ import (
 	"golang.org/x/net/publicsuffix"
 	"gorm.io/gorm"
 )
+
+const maxDomainLength = 253
 
 // Input is the mutable Zone payload.
 type Input struct {
@@ -46,7 +48,8 @@ type ListItem struct {
 }
 
 func zoneRoot(domain string) (string, error) {
-	return publicsuffix.EffectiveTLDPlusOne(strings.ToLower(strings.TrimSpace(domain)))
+	domain = strings.ToLower(strings.TrimSpace(domain))
+	return publicsuffix.EffectiveTLDPlusOne(strings.TrimPrefix(domain, "*."))
 }
 
 func normalizeDomain(raw string) (string, error) {
@@ -54,11 +57,20 @@ func normalizeDomain(raw string) (string, error) {
 	if domain == "" {
 		return "", errors.New(errZoneDomainRequired)
 	}
-	if strings.Contains(domain, "*") {
-		return "", errors.New(errDomainWildcardUnsupported)
-	}
-	if strings.Contains(domain, "://") || strings.Contains(domain, "/") || strings.Contains(domain, "?") || strings.Contains(domain, "#") || strings.Contains(domain, "@") {
+	// 只允许最左侧完整标签为通配符；其余字符必须是 DNS 标签，不能进入配置语法。
+	host := strings.TrimPrefix(domain, "*.")
+	if len(domain) > maxDomainLength {
 		return "", errors.New(errDomainInvalid)
+	}
+	for _, label := range strings.Split(host, ".") {
+		if len(label) == 0 || len(label) > 63 || label[0] == '-' || label[len(label)-1] == '-' {
+			return "", errors.New(errDomainInvalid)
+		}
+		for _, char := range label {
+			if (char < 'a' || char > 'z') && (char < '0' || char > '9') && char != '-' {
+				return "", errors.New(errDomainInvalid)
+			}
+		}
 	}
 	if _, err := zoneRoot(domain); err != nil {
 		return "", errors.New(errDomainInvalid)
@@ -141,7 +153,7 @@ func List(ctx context.Context) ([]ListItem, error) {
 
 // CatalogItem is a lightweight Zone selector item with its explicit domains.
 type CatalogItem struct {
-	Zone    ListItem          `json:"zone"`
+	Zone    ListItem           `json:"zone"`
 	Domains []model.ZoneDomain `json:"domains"`
 }
 
@@ -162,7 +174,7 @@ func Catalog(ctx context.Context) ([]CatalogItem, error) {
 	items := make([]CatalogItem, 0, len(zones))
 	for _, zone := range zones {
 		items = append(items, CatalogItem{
-			Zone: ListItem{ID: zone.ID, Domain: zone.Domain, CreatedAt: zone.CreatedAt, UpdatedAt: zone.UpdatedAt},
+			Zone:    ListItem{ID: zone.ID, Domain: zone.Domain, CreatedAt: zone.CreatedAt, UpdatedAt: zone.UpdatedAt},
 			Domains: byZone[zone.ID],
 		})
 	}
@@ -182,7 +194,7 @@ func GetOverview(ctx context.Context, id uint) (*Overview, error) {
 	return &Overview{Zone: *zone, Domains: domains}, nil
 }
 
-// CreateDomain adds a validated exact hostname to a Zone.
+// CreateDomain adds a validated exact or wildcard hostname to a Zone.
 func CreateDomain(ctx context.Context, zoneID uint, input DomainInput) (*model.ZoneDomain, error) {
 	zone, err := repository.GetZoneByID(ctx, zoneID)
 	if err != nil {

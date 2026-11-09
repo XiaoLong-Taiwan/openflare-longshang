@@ -260,6 +260,10 @@
       "titleNamed": "View {name}",
       "title": "View IP group",
       "summary": "{type} · {count} IPs",
+      "summaryFiltered": "{type} · {count} IPs · {matched} matched",
+      "searchPlaceholder": "Search IP / CIDR…",
+      "clearSearch": "Clear search",
+      "noSearchResult": "No IPs match the search.",
       "fallbackDesc": "View IPs in this group and remove entries you no longer need.",
       "loading": "Loading IP list...",
       "noGroup": "No IP group selected.",
@@ -828,7 +832,6 @@
       "status": "Status",
       "updatedAt": "Updated",
       "actions": "Actions",
-
       "domain": "Domain",
       "desiredIp": "Desired IP",
       "proxied": "Proxied",
@@ -837,6 +840,11 @@
     "pendingSync": "Pending sync",
     "remove": "Remove",
     "groupDialog": {
+      "targetMode": "Target mode",
+      "nodeTarget": "Multiple nodes",
+      "customTarget": "Custom DNS",
+      "recordType": "Record type",
+      "recordContent": "Record value",
       "editTitle": "Edit pointing group",
       "createTitle": "New pointing group",
       "description": "Select multiple edge nodes and assign priorities. Sync uses every online node at the lowest available priority.",
@@ -851,7 +859,13 @@
       "priorityFor": "Priority for node {name}",
       "defaultProxied": "Enable orange cloud for new members by default",
       "enableSync": "Enable sync",
-      "save": "Save"
+      "save": "Save",
+      "ttl": "Group TTL",
+      "ttlAuto": "Auto",
+      "ttlManual": "Manual",
+      "ttlSeconds": "TTL (seconds)",
+      "ttlHint": "Changes apply to all DNS-only (gray-cloud) members in this group; proxied (orange-cloud) members always use Auto. Auto is currently about 300 seconds.",
+      "ttlError": "Enter a whole number of seconds between 60 and 86400."
     },
     "memberDialog": {
       "title": "Add domain members",
@@ -944,7 +958,11 @@
       "statusTitle": "Current status",
       "ready": "Token verified. Cloudflare pointing sync can run.",
       "notReady": "After saving, you still need to test the connection. Sync is rejected until it is verified."
-    }
+    },
+    "ttlAutoSummary": "DNS-only TTL: Auto (about 300 seconds)",
+    "ttlSecondsSummary": "DNS-only TTL: {seconds} seconds",
+    "moveDialog": {},
+    "batchRemoveDialog": {}
   },
   "openflareOps": {
     "saved": "OpenFlare operations settings saved",

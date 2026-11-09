@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"net/http"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -65,8 +66,33 @@ func assetCandidates(urlPath string) []string {
 	if !strings.Contains(clean, ".") {
 		candidates = append(candidates, clean+".html", path.Join(clean, indexFile))
 	}
+	if template := nextExportIDTemplate(clean); template != "" {
+		candidates = append(candidates, template)
+	}
 
 	return append(candidates, indexFile)
+}
+
+func nextExportIDTemplate(clean string) string {
+	parts := strings.Split(clean, "/")
+	if len(parts) <= 1 {
+		return ""
+	}
+	idIndex := len(parts) - 1
+	suffix := ".html"
+	if strings.HasPrefix(parts[idIndex], "__next.") && strings.HasSuffix(parts[idIndex], ".txt") {
+		idIndex--
+		suffix = ""
+	} else if strings.HasSuffix(parts[idIndex], ".txt") {
+		parts[idIndex] = strings.TrimSuffix(parts[idIndex], ".txt")
+		suffix = ".txt"
+	}
+	id, err := strconv.ParseUint(parts[idIndex], 10, 64)
+	if err != nil || id == 0 || idIndex == 0 {
+		return ""
+	}
+	parts[idIndex] = "1"
+	return strings.Join(parts, "/") + suffix
 }
 
 // serveAsset writes name when it exists as a regular file, reporting whether it served.

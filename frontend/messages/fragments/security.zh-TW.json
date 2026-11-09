@@ -260,6 +260,10 @@
       "titleNamed": "查看 {name}",
       "title": "查看 IP 组",
       "summary": "{type} · 共 {count} 條 IP",
+      "summaryFiltered": "{type} · 共 {count} 條 IP · 符合 {matched} 條",
+      "searchPlaceholder": "搜尋 IP / CIDR…",
+      "clearSearch": "清空搜尋",
+      "noSearchResult": "沒有符合搜尋條件的 IP。",
       "fallbackDesc": "查看目前 IP 组中的 IP 清單，並可移除不需要的條目。",
       "loading": "載入 IP 清單...",
       "noGroup": "未选择 IP 组。",
@@ -828,7 +832,6 @@
       "status": "狀態",
       "updatedAt": "更新時間",
       "actions": "操作",
-
       "domain": "網域",
       "desiredIp": "期望 IP",
       "proxied": "橙雲",
@@ -837,6 +840,11 @@
     "pendingSync": "待同步",
     "remove": "移出",
     "groupDialog": {
+      "targetMode": "目標模式",
+      "nodeTarget": "多節點",
+      "customTarget": "自訂 DNS",
+      "recordType": "記錄類型",
+      "recordContent": "記錄值",
       "editTitle": "編輯指向分组",
       "createTitle": "新增指向分组",
       "description": "选择多個邊缘節點並設定优先級；同步会使用最低可用优先級的全部在線節點。",
@@ -851,7 +859,13 @@
       "priorityFor": "節點 {name} 的优先級",
       "defaultProxied": "新成员預設開啟橙云",
       "enableSync": "啟用同步",
-      "save": "儲存"
+      "save": "儲存",
+      "ttl": "分組 TTL",
+      "ttlAuto": "自動",
+      "ttlManual": "手動",
+      "ttlSeconds": "TTL（秒）",
+      "ttlHint": "修改將套用至分組內所有灰雲（僅 DNS）成員；橙雲一律自動。Auto 目前約為 300 秒。",
+      "ttlError": "請輸入 60 至 86400 之間的整數秒數。"
     },
     "memberDialog": {
       "title": "添加網域成员",
@@ -944,7 +958,9 @@
       "statusTitle": "目前狀態",
       "ready": "Token 已驗證，Cloudflare 指向同步可以执行。",
       "notReady": "儲存設定後仍需测试连接；未驗證狀態下同步工作会被拒绝。"
-    }
+    },
+    "ttlAutoSummary": "灰雲 TTL：自動（約 300 秒）",
+    "ttlSecondsSummary": "灰雲 TTL：{seconds} 秒"
   },
   "openflareOps": {
     "saved": "OpenFlare 運维設定已儲存",

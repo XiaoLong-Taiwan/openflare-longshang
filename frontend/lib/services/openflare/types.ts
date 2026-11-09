@@ -56,6 +56,21 @@ export interface NodeItem {
   updated_at: string;
 }
 
+export interface NodeListQuery {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  status?: NodeStatus | '';
+  node_type?: NodeType | '';
+}
+
+export interface NodeListResult {
+  total: number;
+  results: NodeItem[];
+  page: number;
+  page_size: number;
+}
+
 export interface NodeBootstrapToken {
   discovery_token: string;
 }
@@ -265,6 +280,7 @@ export interface ProxyRouteItem {
   load_balancing: ProxyRouteLoadBalancing;
   enabled: boolean;
   enable_https: boolean;
+  enable_http2?: boolean;
   redirect_http: boolean;
   limit_conn_per_server: number;
   limit_conn_per_ip: number;
@@ -306,6 +322,7 @@ export interface ProxyRouteMutationPayload {
   load_balancing?: ProxyRouteLoadBalancing;
   enabled: boolean;
   enable_https: boolean;
+  enable_http2?: boolean;
   redirect_http: boolean;
   limit_conn_per_server?: number;
   limit_conn_per_ip?: number;
@@ -1420,12 +1437,16 @@ export interface CloudflareGroupNode extends CloudflareNodeOption {
 }
 
 export interface CloudflareGroup {
+  target_mode?: 'node' | 'custom';
+  record_type?: 'A' | 'AAAA' | 'CNAME' | '';
+  record_content?: string;
   id: number;
   name: string;
   primary_node: CloudflareNodeOption;
   backup_node: CloudflareNodeOption | null;
   active_node: CloudflareNodeOption;
   nodes?: CloudflareGroupNode[];
+  ttl: number;
   default_proxied: boolean;
   enabled: boolean;
   member_count: number;
@@ -1434,10 +1455,14 @@ export interface CloudflareGroup {
 }
 
 export interface CloudflareGroupPayload {
+  target_mode?: 'node' | 'custom';
+  record_type?: 'A' | 'AAAA' | 'CNAME';
+  record_content?: string;
   name: string;
   primary_node_id?: number;
   backup_node_id?: number | null;
   nodes?: Array<{ node_id: number; priority: number }>;
+  ttl?: number;
   default_proxied: boolean;
   enabled: boolean;
 }

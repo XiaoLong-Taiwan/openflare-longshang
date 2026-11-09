@@ -498,6 +498,17 @@
       "summaryHint": "近 24 小時 · 平均速率",
       "read": "磁盘读",
       "write": "磁盘寫"
+    },
+    "pagination": {
+      "search": "搜尋節點",
+      "searchPlaceholder": "名稱、節點識別碼或 IP",
+      "searchTooLong": "搜尋內容過長，請縮短後重試。",
+      "allStatuses": "全部狀態",
+      "pageSize": "每頁數量",
+      "summary": "第 {page} / {totalPages} 頁 · 共 {total} 個節點",
+      "navigation": "節點分頁",
+      "previous": "上一頁",
+      "next": "下一頁"
     }
   },
   "performance": {

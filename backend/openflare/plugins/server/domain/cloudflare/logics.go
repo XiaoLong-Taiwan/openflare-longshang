@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -18,6 +19,15 @@ import (
 	"Wavelet/pkg/logger"
 
 	"gorm.io/gorm"
+)
+
+const (
+	automaticTTL     = 1
+	legacyDefaultTTL = 300
+	minManualTTL     = 60
+	maxManualTTL     = 86400
+	targetModeNode   = "node"
+	targetModeCustom = "custom"
 )
 
 var clientFactory = func(token string) Client { return NewHTTPClient(token) }
@@ -221,29 +231,34 @@ func groupFromInput(ctx context.Context, existing *model.CFPointingGroup, input 
 	if name == "" {
 		return nil, nil, errors.New(errGroupNameRequired)
 	}
+	ttl := automaticTTL
+	if existing != nil {
+		ttl = groupTTL(existing)
+	}
+	if input.TTL != nil {
+		ttl = *input.TTL
+	}
+	if ttl != automaticTTL && (ttl < minManualTTL || ttl > maxManualTTL) {
+		return nil, nil, errors.New(errGroupTTLInvalid)
+	}
+	mode, recordType, content, err := groupTargetFromInput(existing, input)
+	if err != nil {
+		return nil, nil, err
+	}
 	inputs := input.Nodes
-	if len(inputs) == 0 {
+	if mode == targetModeCustom {
+		inputs = nil
+	} else if len(inputs) == 0 {
 		inputs = []GroupNodeInput{{NodeID: input.PrimaryNodeID, Priority: 0}}
 		if input.BackupNodeID != nil {
 			inputs = append(inputs, GroupNodeInput{NodeID: *input.BackupNodeID, Priority: 1})
 		}
 	}
-	seen := make(map[uint]struct{}, len(inputs))
-	nodes := make([]model.CFPointingGroupNode, 0, len(inputs))
-	for _, item := range inputs {
-		if item.NodeID == 0 || item.Priority < 0 {
-			return nil, nil, errors.New(errNodeInvalid)
-		}
-		if _, ok := seen[item.NodeID]; ok {
-			return nil, nil, errors.New(errGroupNodeSame)
-		}
-		seen[item.NodeID] = struct{}{}
-		if _, err := validEdgeNode(ctx, item.NodeID, false); err != nil {
-			return nil, nil, err
-		}
-		nodes = append(nodes, model.CFPointingGroupNode{NodeID: item.NodeID, Priority: item.Priority})
+	nodes, err := groupNodesFromInput(ctx, inputs)
+	if err != nil {
+		return nil, nil, err
 	}
-	if len(nodes) == 0 {
+	if mode == targetModeNode && len(nodes) == 0 {
 		return nil, nil, errors.New(errNodeInvalid)
 	}
 	sort.SliceStable(nodes, func(i, j int) bool { return nodes[i].Priority < nodes[j].Priority })
@@ -251,8 +266,14 @@ func groupFromInput(ctx context.Context, existing *model.CFPointingGroup, input 
 		existing = &model.CFPointingGroup{}
 	}
 	existing.Name = name
-	existing.PrimaryNodeID = nodes[0].NodeID
-	existing.ActiveNodeID = nodes[0].NodeID
+	existing.TTL = ttl
+	existing.TargetMode, existing.RecordType, existing.RecordContent = mode, recordType, content
+	existing.PrimaryNodeID = 0
+	existing.ActiveNodeID = 0
+	if len(nodes) > 0 {
+		existing.PrimaryNodeID = nodes[0].NodeID
+		existing.ActiveNodeID = nodes[0].NodeID
+	}
 	existing.BackupNodeID = nil
 	if len(nodes) > 1 {
 		backupID := nodes[1].NodeID
@@ -261,6 +282,74 @@ func groupFromInput(ctx context.Context, existing *model.CFPointingGroup, input 
 	existing.DefaultProxied = input.DefaultProxied
 	existing.Enabled = input.Enabled
 	return existing, nodes, nil
+}
+
+func groupNodesFromInput(ctx context.Context, inputs []GroupNodeInput) ([]model.CFPointingGroupNode, error) {
+	seen := make(map[uint]struct{}, len(inputs))
+	nodes := make([]model.CFPointingGroupNode, 0, len(inputs))
+	for _, item := range inputs {
+		if item.NodeID == 0 || item.Priority < 0 {
+			return nil, errors.New(errNodeInvalid)
+		}
+		if _, ok := seen[item.NodeID]; ok {
+			return nil, errors.New(errGroupNodeSame)
+		}
+		seen[item.NodeID] = struct{}{}
+		if _, err := validEdgeNode(ctx, item.NodeID, false); err != nil {
+			return nil, err
+		}
+		nodes = append(nodes, model.CFPointingGroupNode{NodeID: item.NodeID, Priority: item.Priority})
+	}
+	return nodes, nil
+}
+
+func groupTargetFromInput(existing *model.CFPointingGroup, input GroupInput) (string, string, string, error) {
+	mode := strings.TrimSpace(input.TargetMode)
+	if mode == "" {
+		mode = targetModeNode
+		if existing != nil && existing.TargetMode != "" {
+			mode = existing.TargetMode
+		}
+	}
+	if mode == targetModeNode {
+		return mode, "A", "", nil
+	}
+	if mode != targetModeCustom {
+		return "", "", "", errors.New(errGroupTargetModeInvalid)
+	}
+	recordType := strings.ToUpper(strings.TrimSpace(input.RecordType))
+	content := strings.TrimSpace(input.RecordContent)
+	if existing != nil && input.TargetMode == "" && recordType == "" && content == "" {
+		recordType, content = existing.RecordType, existing.RecordContent
+	}
+	if !validCustomRecordContent(recordType, content) {
+		return "", "", "", errors.New(errRecordContentInvalid)
+	}
+	return mode, recordType, content, nil
+}
+
+var cnameHostPattern = regexp.MustCompile(`^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$`)
+
+func validCustomRecordContent(recordType, content string) bool {
+	ip := net.ParseIP(content)
+	switch recordType {
+	case "A":
+		return ip != nil && ip.To4() != nil
+	case "AAAA":
+		return ip != nil && ip.To4() == nil
+	case "CNAME":
+		host := strings.TrimSuffix(strings.ToLower(content), ".")
+		return len(host) > 0 && len(host) <= 253 && net.ParseIP(host) == nil && cnameHostPattern.MatchString(host)
+	default:
+		return false
+	}
+}
+
+func groupTTL(group *model.CFPointingGroup) int {
+	if group.TTL == 0 {
+		return legacyDefaultTTL
+	}
+	return group.TTL
 }
 
 func validEdgeNode(ctx context.Context, id uint, requireIPv4 bool) (*model.OpenFlareNode, error) {
@@ -275,11 +364,11 @@ func validEdgeNode(ctx context.Context, id uint, requireIPv4 bool) (*model.OpenF
 }
 
 func buildGroupItem(ctx context.Context, group *model.CFPointingGroup) (*GroupItem, error) {
-	primary, err := repository.GetOpenFlareNodeByID(ctx, group.PrimaryNodeID)
+	primary, err := groupNodeOption(ctx, group.PrimaryNodeID)
 	if err != nil {
 		return nil, err
 	}
-	active, err := repository.GetOpenFlareNodeByID(ctx, group.ActiveNodeID)
+	active, err := groupNodeOption(ctx, group.ActiveNodeID)
 	if err != nil {
 		return nil, err
 	}
@@ -291,26 +380,44 @@ func buildGroupItem(ctx context.Context, group *model.CFPointingGroup) (*GroupIt
 	if err != nil {
 		return nil, err
 	}
-	item := &GroupItem{ID: group.ID, Name: group.Name, PrimaryNode: nodeOption(primary), ActiveNode: nodeOption(active), Nodes: make([]GroupNodeItem, 0, len(groupNodes)), DefaultProxied: group.DefaultProxied, Enabled: group.Enabled, MemberCount: count, CreatedAt: group.CreatedAt, UpdatedAt: group.UpdatedAt}
+	mode := group.TargetMode
+	if mode == "" {
+		mode = targetModeNode
+	}
+	item := &GroupItem{ID: group.ID, Name: group.Name, TargetMode: mode, RecordType: group.RecordType, RecordContent: group.RecordContent, PrimaryNode: primary, ActiveNode: active, Nodes: make([]GroupNodeItem, 0, len(groupNodes)), DefaultProxied: group.DefaultProxied, Enabled: group.Enabled, MemberCount: count, CreatedAt: group.CreatedAt, UpdatedAt: group.UpdatedAt}
 	for _, groupNode := range groupNodes {
-		node, nodeErr := repository.GetOpenFlareNodeByID(ctx, groupNode.NodeID)
+		node, nodeErr := groupNodeOption(ctx, groupNode.NodeID)
 		if nodeErr != nil {
 			return nil, nodeErr
 		}
-		item.Nodes = append(item.Nodes, GroupNodeItem{NodeOption: nodeOption(node), Priority: groupNode.Priority})
+		item.Nodes = append(item.Nodes, GroupNodeItem{NodeOption: node, Priority: groupNode.Priority})
 	}
-	if len(item.Nodes) == 0 {
+	if len(item.Nodes) == 0 && mode == targetModeNode {
 		item.Nodes = append(item.Nodes, GroupNodeItem{NodeOption: item.PrimaryNode, Priority: 0})
 	}
+	item.TTL = groupTTL(group)
 	if group.BackupNodeID != nil {
-		backup, backupErr := repository.GetOpenFlareNodeByID(ctx, *group.BackupNodeID)
+		backup, backupErr := groupNodeOption(ctx, *group.BackupNodeID)
 		if backupErr != nil {
 			return nil, backupErr
 		}
-		option := nodeOption(backup)
-		item.BackupNode = &option
+		item.BackupNode = &backup
 	}
 	return item, nil
+}
+
+func groupNodeOption(ctx context.Context, id uint) (NodeOption, error) {
+	if id == 0 {
+		return NodeOption{}, nil
+	}
+	node, err := repository.GetOpenFlareNodeByID(ctx, id)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return NodeOption{ID: id}, nil
+	}
+	if err != nil {
+		return NodeOption{}, err
+	}
+	return nodeOption(node), nil
 }
 
 func nodeOption(node *model.OpenFlareNode) NodeOption {
@@ -407,6 +514,7 @@ func RemoveMember(ctx context.Context, groupID, memberID uint) error {
 
 // MoveMembers moves selected members and queues their DNS reconciliation.
 func MoveMembers(ctx context.Context, sourceGroupID uint, input MemberBatchMoveInput) (*MemberBatchResult, error) {
+	input.MemberIDs = uniqueIDs(input.MemberIDs)
 	if len(input.MemberIDs) == 0 || input.TargetGroupID == 0 {
 		return nil, errors.New("请选择成员和目标分组")
 	}
@@ -444,6 +552,7 @@ func MoveMembers(ctx context.Context, sourceGroupID uint, input MemberBatchMoveI
 
 // RemoveMembers removes selected members and their managed Cloudflare records.
 func RemoveMembers(ctx context.Context, groupID uint, memberIDs []uint) (*MemberBatchResult, error) {
+	memberIDs = uniqueIDs(memberIDs)
 	if len(memberIDs) == 0 {
 		return nil, errors.New("请选择成员")
 	}
@@ -460,6 +569,18 @@ func RemoveMembers(ctx context.Context, groupID uint, memberIDs []uint) (*Member
 		return nil, err
 	}
 	return &MemberBatchResult{MemberIDs: memberIDs}, nil
+}
+
+func uniqueIDs(ids []uint) []uint {
+	seen := make(map[uint]struct{}, len(ids))
+	result := make([]uint, 0, len(ids))
+	for _, id := range ids {
+		if _, exists := seen[id]; !exists {
+			seen[id] = struct{}{}
+			result = append(result, id)
+		}
+	}
+	return result
 }
 
 // DeleteGroup removes every managed remote A record and then local state.

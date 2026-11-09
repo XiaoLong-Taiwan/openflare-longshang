@@ -364,6 +364,18 @@
       "indexingDenied": "禁止收录",
       "searchEngineIndexingDesc": "控制 Google、Baidu、Bing 等搜尋引擎是否可以索引公開页面。",
       "addressChangeWarning": "位址變更会影响跨域存取策略，请填寫完整协议與網域。",
+      "trustedProxyTitle": "可信代理範圍",
+      "trustedProxyDesc": "只信任指定代理網段提供的轉發來源 IP；預設包含 Cloudflare 官方網段。",
+      "trustedProxyEnabled": "啟用可信代理解析",
+      "trustedProxyEnabledDesc": "關閉後 Gin 不會採用 X-Forwarded-For 或其他代理標頭。",
+      "trustedProxyMode": "網段模式",
+      "trustedProxyAppend": "追加 Cloudflare 官方網段",
+      "trustedProxyOverride": "覆蓋並只使用自訂網段",
+      "trustedProxyCIDRs": "自訂 CIDR 網段",
+      "trustedProxyCIDRsPlaceholder": "每行一個，例如 10.0.0.0/8",
+      "trustedProxyRestartWarning": "儲存後需重啟 HTTP 服務才會套用；空白追加模式仍使用 Cloudflare 官方網段。",
+      "trustedProxySaved": "可信代理設定已儲存",
+      "trustedProxyMissing": "找不到可信代理設定項目",
       "saving": "儲存中...",
       "saveConfig": "儲存設定",
       "smtpSettings": "SMTP 邮件設定",
@@ -1226,6 +1238,7 @@
         "daysPlaceholder": "天數",
         "clearBeforeDays": "清理 {days} 天前",
         "clearAll": "清理全部",
+        "cancel": "取消",
         "clear": "清理",
         "categories": {
           "node_access": "節點存取／請求日誌",
@@ -2650,6 +2663,17 @@
       "summaryHint": "近 24 小時 · 平均速率",
       "read": "磁盘读",
       "write": "磁盘寫"
+    },
+    "pagination": {
+      "search": "搜尋節點",
+      "searchPlaceholder": "名稱、節點識別碼或 IP",
+      "searchTooLong": "搜尋內容過長，請縮短後重試。",
+      "allStatuses": "全部狀態",
+      "pageSize": "每頁數量",
+      "summary": "第 {page} / {totalPages} 頁 · 共 {total} 個節點",
+      "navigation": "節點分頁",
+      "previous": "上一頁",
+      "next": "下一頁"
     }
   },
   "performance": {
@@ -3035,6 +3059,9 @@
     "listTitle": "IP 组清單",
     "listDesc": "维护可被 WAF IP 黑白名單引用的手動、自動與订阅 IP 集合。",
     "refresh": "刷新",
+    "searchPlaceholder": "按名稱搜尋",
+    "searchLabel": "搜尋 IP 組",
+    "noSearchResults": "沒有符合搜尋條件的 IP 組。",
     "loading": "載入 IP 组中...",
     "empty": "暫無 IP 组，请先建立一個。",
     "updated": "IP 组已更新",
@@ -3125,6 +3152,10 @@
       "titleNamed": "查看 {name}",
       "title": "查看 IP 组",
       "summary": "{type} · 共 {count} 條 IP",
+      "summaryFiltered": "{type} · 共 {count} 條 IP · 符合 {matched} 條",
+      "searchPlaceholder": "搜尋 IP / CIDR…",
+      "clearSearch": "清空搜尋",
+      "noSearchResult": "沒有符合搜尋條件的 IP。",
       "fallbackDesc": "查看目前 IP 组中的 IP 清單，並可移除不需要的條目。",
       "loading": "載入 IP 清單...",
       "noGroup": "未选择 IP 组。",
@@ -3664,6 +3695,12 @@
     "proxyUpdated": "橙云設定已更新並排队同步",
     "memberSyncQueued": "成员同步工作已入队",
     "memberDeleted": "成员及远端 A 記录已刪除",
+    "membersMoved": "所選成員已移動並排隊同步",
+    "membersRemoved": "所選成員及遠端記錄已刪除",
+    "targetGroup": "目標分組",
+    "moveSelected": "移動所選",
+    "removeSelected": "移出所選",
+    "selectAll": "全選成員",
     "back": "返回清單",
     "refresh": "刷新",
     "edit": "編輯",
@@ -3695,6 +3732,11 @@
     "pendingSync": "待同步",
     "remove": "移出",
     "groupDialog": {
+      "targetMode": "目標模式",
+      "nodeTarget": "多節點",
+      "customTarget": "自訂 DNS",
+      "recordType": "記錄類型",
+      "recordContent": "記錄值",
       "editTitle": "編輯指向分组",
       "createTitle": "新增指向分组",
       "description": "选择多個邊缘節點並設定优先級；同步会使用最低可用优先級的全部在線節點。",
@@ -3709,7 +3751,13 @@
       "priorityFor": "節點 {name} 的优先級",
       "defaultProxied": "新成员預設開啟橙云",
       "enableSync": "啟用同步",
-      "save": "儲存"
+      "save": "儲存",
+      "ttl": "分組 TTL",
+      "ttlAuto": "自動",
+      "ttlManual": "手動",
+      "ttlSeconds": "TTL（秒）",
+      "ttlHint": "修改將套用至分組內所有灰雲（僅 DNS）成員；橙雲一律自動。Auto 目前約為 300 秒。",
+      "ttlError": "請輸入 60 至 86400 之間的整數秒數。"
     },
     "memberDialog": {
       "title": "添加網域成员",
@@ -3802,7 +3850,9 @@
       "statusTitle": "目前狀態",
       "ready": "Token 已驗證，Cloudflare 指向同步可以执行。",
       "notReady": "儲存設定後仍需测试连接；未驗證狀態下同步工作会被拒绝。"
-    }
+    },
+    "ttlAutoSummary": "灰雲 TTL：自動（約 300 秒）",
+    "ttlSecondsSummary": "灰雲 TTL：{seconds} 秒"
   },
   "openflareOps": {
     "saved": "OpenFlare 運维設定已儲存",
@@ -4046,7 +4096,7 @@
     "expiresAt": "到期時間",
     "selectZone": "请先选择 Zone",
     "enterDomain": "請輸入網域",
-    "noWildcard": "Zone 網域不支持通配符",
+    "noWildcard": "萬用字元只能是最左側的完整標籤 *，例如 *.example.com，且只能出現一次",
     "invalidFormat": "網域格式不合法",
     "invalidSubdomain": "子網域稱格式不合法",
     "mustBelongToZone": "網域必須属于 Zone {root}",
@@ -4298,6 +4348,8 @@
     "saveChanges": "儲存修改"
   },
   "proxyRoutes": {
+    "enableHttp2": "啟用 HTTP/2",
+    "enableHttp2Desc": "為此路由的 HTTPS 監聽啟用 HTTP/2。HTTP/3 由獨立設定控制。",
     "title": "規則設定",
     "refresh": "刷新",
     "createRule": "新建規則",

@@ -72,7 +72,8 @@ func setupCloudflareLogicDB(t *testing.T) (context.Context, uint) {
 		t.Fatalf("UpsertCFConnection() error = %v", err)
 	}
 	zone := model.Zone{Domain: "example.com"}
-	node := model.OpenFlareNode{Name: "edge", NodeID: "node-1", NodeType: "edge_node", IP: "203.0.113.10", Status: "online"}
+	now := time.Now()
+	node := model.OpenFlareNode{LastSeenAt: &now, Name: "edge", NodeID: "node-1", NodeType: "edge_node", IP: "203.0.113.10", Status: "online"}
 	if err := conn.Create(&zone).Error; err != nil {
 		t.Fatalf("Create(zone) error = %v", err)
 	}

@@ -75,6 +75,7 @@ func proxyRouteUpdateMap(route *model.ProxyRoute) map[string]any {
 		"load_balancing":         route.LoadBalancing,
 		colEnabled:               route.Enabled,
 		"enable_https":           route.EnableHTTPS,
+		"enable_http2":           route.EnableHTTP2,
 		"redirect_http":          route.RedirectHTTP,
 		"limit_conn_per_server":  route.LimitConnPerServer,
 		"limit_conn_per_ip":      route.LimitConnPerIP,

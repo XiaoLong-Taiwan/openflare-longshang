@@ -1240,6 +1240,7 @@
         "clearBeforeDays": "Clear older than {days} days",
         "clearAll": "Clear all",
         "clear": "Clear",
+        "cancel": "Cancel",
         "categories": {
           "node_access": "Node access/request logs",
           "user_access": "User access logs",

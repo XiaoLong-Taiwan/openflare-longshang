@@ -50,3 +50,14 @@ type OpenFlareNode struct {
 func (OpenFlareNode) TableName() string {
 	return "of_nodes"
 }
+
+// OpenFlareNodeListQuery describes a bounded node query.
+type OpenFlareNodeListQuery struct {
+	ConnectedNodeIDs []string
+	Page             int
+	PageSize         int
+	Search           string
+	Status           string
+	NodeType         string
+	Now              time.Time
+}

@@ -43,27 +43,37 @@ type GroupNodeItem struct {
 
 // GroupInput creates or updates a pointing group.
 type GroupInput struct {
-	Name           string `json:"name"`
-	PrimaryNodeID  uint   `json:"primary_node_id"`
-	BackupNodeID   *uint  `json:"backup_node_id"`
+	TargetMode     string           `json:"target_mode"`
+	RecordType     string           `json:"record_type"`
+	RecordContent  string           `json:"record_content"`
+	Name           string           `json:"name"`
+	PrimaryNodeID  uint             `json:"primary_node_id"`
+	BackupNodeID   *uint            `json:"backup_node_id"`
 	Nodes          []GroupNodeInput `json:"nodes"`
-	DefaultProxied bool   `json:"default_proxied"`
-	Enabled        bool   `json:"enabled"`
+	DefaultProxied bool             `json:"default_proxied"`
+	Enabled        bool             `json:"enabled"`
+	// TTL 为 1 时自动，否则为 60～86400 秒的整数；省略时创建默认自动，更新保留原值。
+	TTL *int `json:"ttl" example:"1"`
 }
 
 // GroupItem is the admin-facing pointing group summary.
 type GroupItem struct {
-	ID             uint        `json:"id"`
-	Name           string      `json:"name"`
-	PrimaryNode    NodeOption  `json:"primary_node"`
-	BackupNode     *NodeOption `json:"backup_node"`
-	ActiveNode     NodeOption  `json:"active_node"`
+	TargetMode     string          `json:"target_mode"`
+	RecordType     string          `json:"record_type"`
+	RecordContent  string          `json:"record_content"`
+	ID             uint            `json:"id"`
+	Name           string          `json:"name"`
+	PrimaryNode    NodeOption      `json:"primary_node"`
+	BackupNode     *NodeOption     `json:"backup_node"`
+	ActiveNode     NodeOption      `json:"active_node"`
 	Nodes          []GroupNodeItem `json:"nodes"`
-	DefaultProxied bool        `json:"default_proxied"`
-	Enabled        bool        `json:"enabled"`
-	MemberCount    int64       `json:"member_count"`
-	CreatedAt      time.Time   `json:"created_at"`
-	UpdatedAt      time.Time   `json:"updated_at"`
+	DefaultProxied bool            `json:"default_proxied"`
+	Enabled        bool            `json:"enabled"`
+	MemberCount    int64           `json:"member_count"`
+	CreatedAt      time.Time       `json:"created_at"`
+	UpdatedAt      time.Time       `json:"updated_at"`
+	// TTL 为 1 时自动，否则为 DNS-only 成员使用的秒数。
+	TTL int `json:"ttl" example:"1"`
 }
 
 // MemberCreateInput adds a ZoneDomain to a group. Nil Proxied copies the group default.
@@ -79,13 +89,13 @@ type MemberUpdateInput struct {
 
 // MemberBatchMoveInput moves selected members to another pointing group.
 type MemberBatchMoveInput struct {
-	MemberIDs []uint `json:"member_ids"`
-	TargetGroupID uint `json:"target_group_id"`
+	MemberIDs     []uint `json:"member_ids"`
+	TargetGroupID uint   `json:"target_group_id"`
 }
 
 // MemberBatchResult reports the members accepted for asynchronous processing.
 type MemberBatchResult struct {
-	MemberIDs []uint `json:"member_ids"`
+	MemberIDs []uint   `json:"member_ids"`
 	TaskIDs   []string `json:"task_ids"`
 }
 

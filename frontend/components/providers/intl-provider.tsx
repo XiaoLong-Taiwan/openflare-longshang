@@ -9,11 +9,13 @@ import type { AppLocale } from '@/i18n/config';
 import enMessages from '@/messages/en.json';
 import zhCNMessages from '@/messages/zh-CN.json';
 import zhTWMessages from '@/messages/zh-TW.json';
+import ruMessages from '@/messages/ru.json';
 
 const messagesByLocale: Record<AppLocale, AbstractIntlMessages> = {
   'zh-CN': zhCNMessages,
   'zh-TW': zhTWMessages,
   en: enMessages,
+  ru: ruMessages,
 };
 
 type Props = {

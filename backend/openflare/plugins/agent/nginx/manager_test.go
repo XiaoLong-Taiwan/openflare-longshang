@@ -104,9 +104,10 @@ func (e *scriptedExecutor) Restart(ctx context.Context) error {
 func TestPathExecutorCommands(t *testing.T) {
 	runner := &fakeRunner{}
 	executor := &PathExecutor{
-		Path:       "/usr/local/openresty/nginx/sbin/openresty",
-		ConfigPath: "/data/etc/nginx/nginx.conf",
-		Runner:     runner,
+		Path:             "/usr/local/openresty/nginx/sbin/openresty",
+		ConfigPath:       "/data/etc/nginx/nginx.conf",
+		Runner:           runner,
+		inspectProcesses: func() ([]runtimeProcess, error) { return nil, nil },
 	}
 
 	if err := executor.Test(context.Background()); err != nil {
@@ -118,7 +119,7 @@ func TestPathExecutorCommands(t *testing.T) {
 
 	expected := []runCall{
 		{name: "/usr/local/openresty/nginx/sbin/openresty", args: []string{"-t", "-c", "/data/etc/nginx/nginx.conf"}},
-		{name: "/usr/local/openresty/nginx/sbin/openresty", args: []string{"-s", "reload", "-c", "/data/etc/nginx/nginx.conf"}},
+		{name: "/usr/local/openresty/nginx/sbin/openresty", args: []string{"-c", "/data/etc/nginx/nginx.conf"}},
 	}
 	if !reflect.DeepEqual(runner.calls, expected) {
 		t.Fatalf("unexpected calls: %#v", runner.calls)
@@ -128,9 +129,10 @@ func TestPathExecutorCommands(t *testing.T) {
 func TestPathExecutorEnsureRuntimeNoop(t *testing.T) {
 	runner := &fakeRunner{}
 	executor := &PathExecutor{
-		Path:       "/usr/local/openresty/nginx/sbin/openresty",
-		ConfigPath: "/data/etc/nginx/nginx.conf",
-		Runner:     runner,
+		Path:             "/usr/local/openresty/nginx/sbin/openresty",
+		ConfigPath:       "/data/etc/nginx/nginx.conf",
+		Runner:           runner,
+		inspectProcesses: func() ([]runtimeProcess, error) { return nil, nil },
 	}
 	if err := executor.EnsureRuntime(context.Background(), true); err != nil {
 		t.Fatalf("EnsureRuntime failed: %v", err)
@@ -150,15 +152,16 @@ func TestPathExecutorRestartIgnoresMissingPID(t *testing.T) {
 		},
 	}
 	executor := &PathExecutor{
-		Path:       "/usr/local/openresty/nginx/sbin/openresty",
-		ConfigPath: "/data/etc/nginx/nginx.conf",
-		Runner:     runner,
+		Path:             "/usr/local/openresty/nginx/sbin/openresty",
+		ConfigPath:       "/data/etc/nginx/nginx.conf",
+		Runner:           runner,
+		inspectProcesses: func() ([]runtimeProcess, error) { return nil, nil },
 	}
 	if err := executor.Restart(context.Background()); err != nil {
 		t.Fatalf("Restart failed: %v", err)
 	}
-	if len(runner.calls) != 2 {
-		t.Fatalf("expected 2 restart calls, got %d", len(runner.calls))
+	if len(runner.calls) != 1 {
+		t.Fatalf("expected one start call, got %d", len(runner.calls))
 	}
 }
 
@@ -172,15 +175,16 @@ func TestPathExecutorReloadStartsOnInvalidPID(t *testing.T) {
 		},
 	}
 	executor := &PathExecutor{
-		Path:       "/usr/local/openresty/nginx/sbin/openresty",
-		ConfigPath: "/data/etc/nginx/nginx.conf",
-		Runner:     runner,
+		Path:             "/usr/local/openresty/nginx/sbin/openresty",
+		ConfigPath:       "/data/etc/nginx/nginx.conf",
+		Runner:           runner,
+		inspectProcesses: func() ([]runtimeProcess, error) { return nil, nil },
 	}
 	if err := executor.Reload(context.Background()); err != nil {
 		t.Fatalf("Reload failed: %v", err)
 	}
-	if len(runner.calls) != 2 {
-		t.Fatalf("expected reload and start calls, got %d", len(runner.calls))
+	if len(runner.calls) != 1 {
+		t.Fatalf("expected one verified start call, got %d", len(runner.calls))
 	}
 }
 

@@ -1,0 +1,3597 @@
+{
+  "scope": "frontend TypeScript literals and explicit Chinese formatters; comments, tests and catalogs excluded; findings require manual classification",
+  "count": 718,
+  "files": 78,
+  "findings": [
+    {
+      "file": "frontend/app/(docs)/docs/api/page.tsx",
+      "line": 7,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(docs)/docs/api/page.tsx",
+      "line": 12,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(docs)/docs/how-to-use/page.tsx",
+      "line": 8,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(docs)/docs/how-to-use/page.tsx",
+      "line": 13,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(docs)/docs/privacy-policy/page.tsx",
+      "line": 8,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(docs)/docs/privacy-policy/page.tsx",
+      "line": 13,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(docs)/docs/privacy-policy/page.tsx",
+      "line": 15,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(docs)/docs/terms-of-service/page.tsx",
+      "line": 10,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(docs)/docs/terms-of-service/page.tsx",
+      "line": 13,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/access-logs/components/access-log-utils.ts",
+      "line": 69,
+      "kind": "fixed-formatting-locale"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/page.tsx",
+      "line": 62,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/page.tsx",
+      "line": 70,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/page.tsx",
+      "line": 77,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/page.tsx",
+      "line": 85,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/page.tsx",
+      "line": 96,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/page.tsx",
+      "line": 110,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/page.tsx",
+      "line": 124,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/page.tsx",
+      "line": 132,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/tabs/controls-tab.tsx",
+      "line": 169,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/tabs/controls-tab.tsx",
+      "line": 173,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/tabs/controls-tab.tsx",
+      "line": 177,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/tabs/controls-tab.tsx",
+      "line": 181,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/tabs/controls-tab.tsx",
+      "line": 185,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/tabs/controls-tab.tsx",
+      "line": 189,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/tabs/controls-tab.tsx",
+      "line": 196,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/tabs/controls-tab.tsx",
+      "line": 200,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/tabs/controls-tab.tsx",
+      "line": 204,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/tabs/controls-tab.tsx",
+      "line": 211,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/tabs/controls-tab.tsx",
+      "line": 215,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/tabs/controls-tab.tsx",
+      "line": 219,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/tabs/controls-tab.tsx",
+      "line": 223,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/tabs/controls-tab.tsx",
+      "line": 228,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/tabs/controls-tab.tsx",
+      "line": 229,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/tabs/controls-tab.tsx",
+      "line": 233,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/tabs/controls-tab.tsx",
+      "line": 234,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/tabs/dashboard-tab.tsx",
+      "line": 132,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/demo/tabs/table-tab.tsx",
+      "line": 236,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/files/components/file-list.tsx",
+      "line": 75,
+      "kind": "fixed-formatting-locale"
+    },
+    {
+      "file": "frontend/app/(main)/admin/logs/components/access-analytics.tsx",
+      "line": 120,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/logs/components/access-logs.tsx",
+      "line": 97,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/push/components/events-tab.tsx",
+      "line": 738,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/push/components/events-tab.tsx",
+      "line": 930,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/push/components/settings-tab.tsx",
+      "line": 609,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/push/components/settings-tab.tsx",
+      "line": 626,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/push/components/settings-tab.tsx",
+      "line": 636,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/push/components/settings-tab.tsx",
+      "line": 653,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/push/components/settings-tab.tsx",
+      "line": 663,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/push/components/settings-tab.tsx",
+      "line": 686,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/admin/push/components/settings-tab.tsx",
+      "line": 691,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/components/dashboard/node-rank-panel.tsx",
+      "line": 19,
+      "kind": "fixed-formatting-locale"
+    },
+    {
+      "file": "frontend/app/(main)/components/dashboard/world-stage-map.tsx",
+      "line": 320,
+      "kind": "fixed-formatting-locale"
+    },
+    {
+      "file": "frontend/app/(main)/components/dashboard/world-stage-map.tsx",
+      "line": 321,
+      "kind": "fixed-formatting-locale"
+    },
+    {
+      "file": "frontend/app/(main)/components/dashboard/world-stage-map.tsx",
+      "line": 610,
+      "kind": "fixed-formatting-locale"
+    },
+    {
+      "file": "frontend/app/(main)/components/placeholder-page.tsx",
+      "line": 25,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/components/placeholder-page.tsx",
+      "line": 26,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/nodes/components/node-observability.tsx",
+      "line": 655,
+      "kind": "fixed-formatting-locale"
+    },
+    {
+      "file": "frontend/app/(main)/nodes/components/node-utils.ts",
+      "line": 258,
+      "kind": "fixed-formatting-locale"
+    },
+    {
+      "file": "frontend/app/(main)/nodes/components/relay-node-detail.tsx",
+      "line": 119,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/proxy-routes/components/helpers.ts",
+      "line": 155,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/rate-limits/components/analysis-tab.tsx",
+      "line": 34,
+      "kind": "fixed-formatting-locale"
+    },
+    {
+      "file": "frontend/app/(main)/rate-limits/components/analysis-tab.tsx",
+      "line": 36,
+      "kind": "fixed-formatting-locale"
+    },
+    {
+      "file": "frontend/app/(main)/rate-limits/components/rate-pressure-chart.tsx",
+      "line": 51,
+      "kind": "fixed-formatting-locale"
+    },
+    {
+      "file": "frontend/app/(main)/waf/components/helpers.ts",
+      "line": 4,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/components/helpers.ts",
+      "line": 20,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/components/helpers.ts",
+      "line": 31,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/components/helpers.ts",
+      "line": 36,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/components/helpers.ts",
+      "line": 78,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/components/helpers.ts",
+      "line": 86,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/components/helpers.ts",
+      "line": 94,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/components/helpers.ts",
+      "line": 97,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/editor-behavior.ts",
+      "line": 112,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/editor-behavior.ts",
+      "line": 114,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/editor-behavior.ts",
+      "line": 135,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/editor-behavior.ts",
+      "line": 135,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/editor-behavior.ts",
+      "line": 138,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/editor-behavior.ts",
+      "line": 138,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/editor-behavior.ts",
+      "line": 138,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/editor-behavior.ts",
+      "line": 142,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/geo-options.ts",
+      "line": 30,
+      "kind": "fixed-formatting-locale"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 42,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 48,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 54,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 60,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 60,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 77,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 83,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 83,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 90,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 98,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 103,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 115,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 115,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 128,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 128,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 128,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 134,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 134,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 134,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 154,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 154,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 165,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 165,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 169,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 176,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 176,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 189,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 189,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 191,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 191,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 200,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 200,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 208,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 208,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 214,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 214,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 217,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 217,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 219,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 219,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 221,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 221,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 223,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 223,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 225,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 225,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 227,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 227,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 231,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 231,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 238,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/graph-validation.ts",
+      "line": 238,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/node-factory.ts",
+      "line": 11,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/node-factory.ts",
+      "line": 12,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/node-factory.ts",
+      "line": 13,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/node-factory.ts",
+      "line": 14,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/node-factory.ts",
+      "line": 15,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/node-factory.ts",
+      "line": 16,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/node-factory.ts",
+      "line": 17,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/node-factory.ts",
+      "line": 18,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/waf/rules/editor/components/ua-options.ts",
+      "line": 8,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/websites/components/website-utils.ts",
+      "line": 20,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/websites/components/website-utils.ts",
+      "line": 28,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/websites/components/website-utils.ts",
+      "line": 29,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/(main)/websites/components/website-utils.ts",
+      "line": 60,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/not-found.tsx",
+      "line": 46,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/not-found.tsx",
+      "line": 48,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/not-found.tsx",
+      "line": 59,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/app/not-found.tsx",
+      "line": 69,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 22,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 27,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 35,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 37,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 41,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 42,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 43,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 53,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 61,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 67,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 80,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 82,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 93,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 96,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 100,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 100,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 104,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 105,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 111,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 129,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 130,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 135,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 142,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 145,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 151,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 151,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 156,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 157,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 158,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 159,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 167,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 169,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 175,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 177,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 183,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 185,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 194,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 197,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 203,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 203,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 209,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 210,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 211,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 212,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 220,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 222,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 228,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 230,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 239,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 242,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 248,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 248,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 255,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 258,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 264,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 264,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 270,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 271,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 272,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 273,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 278,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 283,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 292,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 295,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 301,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 302,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 309,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 312,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 318,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 319,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 322,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 322,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 326,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 328,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 329,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 331,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 354,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 357,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 363,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 363,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 371,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 374,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 380,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 381,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 387,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 388,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 389,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 390,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 395,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 402,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 405,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 411,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 412,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 414,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 434,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 437,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 437,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 442,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 448,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 454,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 460,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 469,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/api.tsx",
+      "line": 470,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 12,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 17,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 22,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 22,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 26,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 26,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 30,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 30,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 34,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 34,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 43,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 46,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 51,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 55,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 56,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 60,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 63,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 64,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 72,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 74,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 77,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 77,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 77,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 80,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 84,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 90,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 91,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 96,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 100,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 107,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 111,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 111,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 116,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 120,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 120,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 129,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 132,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 137,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 148,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 160,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 161,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 166,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 170,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 174,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 174,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 178,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 184,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 190,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 196,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 202,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 212,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 216,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 221,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 221,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 225,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 225,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 234,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 237,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 240,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 246,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/how-to-use.tsx",
+      "line": 247,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/legal-page-layout.tsx",
+      "line": 195,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/legal-page-layout.tsx",
+      "line": 306,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/legal-page-layout.tsx",
+      "line": 321,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/legal-page-layout.tsx",
+      "line": 325,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/legal-page-layout.tsx",
+      "line": 339,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/legal-page-layout.tsx",
+      "line": 339,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/legal-page-layout.tsx",
+      "line": 360,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/legal-page-layout.tsx",
+      "line": 448,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/legal-page-layout.tsx",
+      "line": 456,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 11,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 15,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 20,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 23,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 27,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 33,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 36,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 47,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 50,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 53,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 54,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 57,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 58,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 62,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 62,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 71,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 74,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 77,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 78,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 81,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 81,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 85,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 85,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 90,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 90,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 90,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 91,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 98,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 102,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 103,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 106,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 108,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 112,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 113,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 120,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 124,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 129,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 132,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 138,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 141,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 150,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 153,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/privacy.tsx",
+      "line": 155,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 13,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 17,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 18,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 21,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 22,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 27,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 28,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 35,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 40,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 41,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 49,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 53,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 54,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 58,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 62,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 62,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 65,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 65,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 68,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 78,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 82,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 83,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 88,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 89,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 92,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 92,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 96,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 97,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 100,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 101,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 104,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 105,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 110,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 111,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 113,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 122,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 126,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 127,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 130,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 131,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 134,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 135,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 136,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 137,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 144,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 148,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 149,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 150,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 150,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 153,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/docs/terms.tsx",
+      "line": 154,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/file-image-preview.tsx",
+      "line": 37,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/file-image-preview.tsx",
+      "line": 50,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/manage-pannel.tsx",
+      "line": 81,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/manage-pannel.tsx",
+      "line": 82,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/manage-pannel.tsx",
+      "line": 128,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/manage-pannel.tsx",
+      "line": 130,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/manage-pannel.tsx",
+      "line": 131,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/manage-pannel.tsx",
+      "line": 147,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/manage-pannel.tsx",
+      "line": 155,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/manage-pannel.tsx",
+      "line": 156,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/manage-pannel.tsx",
+      "line": 219,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/manage-pannel.tsx",
+      "line": 242,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/manage-pannel.tsx",
+      "line": 244,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/manage-pannel.tsx",
+      "line": 248,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/manage-pannel.tsx",
+      "line": 253,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/manage-pannel.tsx",
+      "line": 274,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/manage-pannel.tsx",
+      "line": 276,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/manage-pannel.tsx",
+      "line": 304,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/manage-pannel.tsx",
+      "line": 307,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/manage-pannel.tsx",
+      "line": 361,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/password-dialog.tsx",
+      "line": 39,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/password-dialog.tsx",
+      "line": 40,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/password-dialog.tsx",
+      "line": 95,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/password-dialog.tsx",
+      "line": 106,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/general/password-dialog.tsx",
+      "line": 109,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 26,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 27,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 35,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 36,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 48,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 49,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 57,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 58,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 66,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 67,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 75,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 76,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 84,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 85,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 112,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 121,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 129,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 140,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 182,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 192,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 208,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/home/home-main.tsx",
+      "line": 243,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/html-editor-workspace.tsx",
+      "line": 42,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/html-editor-workspace.tsx",
+      "line": 82,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/html-editor-workspace.tsx",
+      "line": 84,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/html-editor-workspace.tsx",
+      "line": 85,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/html-editor-workspace.tsx",
+      "line": 112,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/html-editor-workspace.tsx",
+      "line": 119,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/html-editor-workspace.tsx",
+      "line": 126,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/html-editor-workspace.tsx",
+      "line": 142,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/auth-source-modal.tsx",
+      "line": 111,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/auth-source-modal.tsx",
+      "line": 121,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/auth-source-modal.tsx",
+      "line": 172,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/operation-tab.tsx",
+      "line": 111,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/operation-tab.tsx",
+      "line": 134,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/other-tab.tsx",
+      "line": 252,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/security-tab.tsx",
+      "line": 157,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/security-tab.tsx",
+      "line": 206,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/system-tab.tsx",
+      "line": 106,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/system-tab.tsx",
+      "line": 132,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/system-tab.tsx",
+      "line": 136,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/system-tab.tsx",
+      "line": 304,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/system-tab.tsx",
+      "line": 336,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/system-tab.tsx",
+      "line": 368,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/system-tab.tsx",
+      "line": 497,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/system-tab.tsx",
+      "line": 511,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/system-tab.tsx",
+      "line": 528,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/system-tab.tsx",
+      "line": 612,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/templates.tsx",
+      "line": 289,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/templates.tsx",
+      "line": 308,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/templates.tsx",
+      "line": 343,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/templates.tsx",
+      "line": 364,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/settings/templates.tsx",
+      "line": 378,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/common/user/file-manager.tsx",
+      "line": 63,
+      "kind": "fixed-formatting-locale"
+    },
+    {
+      "file": "frontend/components/data/rank-card.tsx",
+      "line": 46,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/data/rank-card.tsx",
+      "line": 46,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/data/rank-chart.tsx",
+      "line": 27,
+      "kind": "fixed-formatting-locale"
+    },
+    {
+      "file": "frontend/components/data/rank-chart.tsx",
+      "line": 34,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/data/trend-chart.tsx",
+      "line": 187,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/developer-section.tsx",
+      "line": 20,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/developer-section.tsx",
+      "line": 100,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/developer-section.tsx",
+      "line": 133,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/developer-section.tsx",
+      "line": 135,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/developer-section.tsx",
+      "line": 138,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/developer-section.tsx",
+      "line": 145,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/developer-section.tsx",
+      "line": 146,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/developer-section.tsx",
+      "line": 147,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/developer-section.tsx",
+      "line": 148,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/developer-section.tsx",
+      "line": 173,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/footer-section.tsx",
+      "line": 51,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/footer-section.tsx",
+      "line": 63,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/footer-section.tsx",
+      "line": 66,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/footer-section.tsx",
+      "line": 69,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/footer-section.tsx",
+      "line": 75,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/footer-section.tsx",
+      "line": 79,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/footer-section.tsx",
+      "line": 84,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/footer-section.tsx",
+      "line": 91,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/footer-section.tsx",
+      "line": 100,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/footer-section.tsx",
+      "line": 114,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/footer-section.tsx",
+      "line": 120,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/hero-section.tsx",
+      "line": 45,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/hero-section.tsx",
+      "line": 59,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/hero-section.tsx",
+      "line": 61,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/hero-section.tsx",
+      "line": 80,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/hero-section.tsx",
+      "line": 96,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/hero-section.tsx",
+      "line": 110,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/hero-section.tsx",
+      "line": 114,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/home/hero-section.tsx",
+      "line": 118,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/layout/avater-style/NewYear.tsx",
+      "line": 98,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/layout/avater-style/NewYear.tsx",
+      "line": 189,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/layout/empty.tsx",
+      "line": 131,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/layout/error.tsx",
+      "line": 51,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/layout/error.tsx",
+      "line": 55,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/layout/error.tsx",
+      "line": 60,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/layout/error.tsx",
+      "line": 88,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/layout/error.tsx",
+      "line": 118,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/layout/error.tsx",
+      "line": 136,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/layout/loading.tsx",
+      "line": 90,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/layout/loading.tsx",
+      "line": 91,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/providers/title-updater.tsx",
+      "line": 21,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/providers/title-updater.tsx",
+      "line": 23,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/providers/title-updater.tsx",
+      "line": 25,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/providers/title-updater.tsx",
+      "line": 27,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/ui/tags-input.tsx",
+      "line": 28,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/components/ui/tags-input.tsx",
+      "line": 131,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/contexts/admin-context.tsx",
+      "line": 81,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/contexts/admin-context.tsx",
+      "line": 99,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/contexts/admin-context.tsx",
+      "line": 132,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/contexts/admin-users-context.tsx",
+      "line": 240,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/contexts/admin-users-context.tsx",
+      "line": 240,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/contexts/admin-users-context.tsx",
+      "line": 240,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/contexts/admin-users-context.tsx",
+      "line": 240,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/contexts/admin-users-context.tsx",
+      "line": 249,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/contexts/admin-users-context.tsx",
+      "line": 264,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/contexts/admin-users-context.tsx",
+      "line": 267,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/contexts/admin-users-context.tsx",
+      "line": 278,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/contexts/admin-users-context.tsx",
+      "line": 280,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/contexts/admin-users-context.tsx",
+      "line": 290,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/contexts/admin-users-context.tsx",
+      "line": 292,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/contexts/user-context.tsx",
+      "line": 71,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/contexts/user-context.tsx",
+      "line": 100,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/cap-solver.ts",
+      "line": 32,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/cap-solver.ts",
+      "line": 127,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/cap-solver.ts",
+      "line": 145,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/cap-solver.ts",
+      "line": 149,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/cap-solver.ts",
+      "line": 150,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/cap-solver.ts",
+      "line": 151,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/cap-solver.ts",
+      "line": 152,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/cap-solver.ts",
+      "line": 165,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/cap-solver.ts",
+      "line": 166,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/cap-solver.ts",
+      "line": 167,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/cap-solver.ts",
+      "line": 168,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/cap-solver.ts",
+      "line": 169,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/cap-solver.ts",
+      "line": 181,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/cap-solver.ts",
+      "line": 184,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/openflare/offline-page-templates/baohaus.ts",
+      "line": 2,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/openflare/offline-page-templates/index.ts",
+      "line": 20,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/openflare/offline-page-templates/index.ts",
+      "line": 25,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/openflare/offline-page-templates/index.ts",
+      "line": 30,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/openflare/offline-page-templates/line-style.ts",
+      "line": 2,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/openflare/offline-page-templates/minimalist.ts",
+      "line": 2,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/openflare/origin-error-page-templates/index.ts",
+      "line": 24,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/openflare/origin-error-page-templates/index.ts",
+      "line": 29,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/openflare/origin-error-page-templates/index.ts",
+      "line": 34,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/openflare/status-code-tags.ts",
+      "line": 17,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/openflare/status-code-tags.ts",
+      "line": 28,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/openflare/status-code-tags.ts",
+      "line": 33,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/openflare/status-code-tags.ts",
+      "line": 39,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/openflare/status-code-tags.ts",
+      "line": 43,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/openflare/status-code-tags.ts",
+      "line": 68,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/openflare/status-code-tags.ts",
+      "line": 75,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/openflare/status-code-tags.ts",
+      "line": 79,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/api-client.ts",
+      "line": 169,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/api-client.ts",
+      "line": 177,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/api-client.ts",
+      "line": 186,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/api-client.ts",
+      "line": 205,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/api-client.ts",
+      "line": 213,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/api-client.ts",
+      "line": 224,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/api-client.ts",
+      "line": 224,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/api-client.ts",
+      "line": 224,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/api-client.ts",
+      "line": 226,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/api-client.ts",
+      "line": 238,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/api-client.ts",
+      "line": 258,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/api-client.ts",
+      "line": 275,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/api-client.ts",
+      "line": 288,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/api-client.ts",
+      "line": 298,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/errors.ts",
+      "line": 25,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/errors.ts",
+      "line": 36,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/errors.ts",
+      "line": 47,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/errors.ts",
+      "line": 58,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/errors.ts",
+      "line": 69,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/errors.ts",
+      "line": 80,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/errors.ts",
+      "line": 91,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/services/core/errors.ts",
+      "line": 110,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/task-param-utils.ts",
+      "line": 49,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/task-param-utils.ts",
+      "line": 64,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/task-param-utils.ts",
+      "line": 99,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/error-handling.ts",
+      "line": 44,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/metrics.ts",
+      "line": 1,
+      "kind": "fixed-formatting-locale"
+    },
+    {
+      "file": "frontend/lib/utils/metrics.ts",
+      "line": 46,
+      "kind": "fixed-formatting-locale"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 60,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 60,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 60,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 70,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 70,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 70,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 82,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 83,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 84,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 85,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 87,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 96,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 96,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 96,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 96,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 104,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 104,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 104,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 112,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 112,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 123,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 124,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 136,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 136,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 136,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 136,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 145,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 146,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 147,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 148,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 153,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 163,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 163,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 163,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 163,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 171,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 171,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 171,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 171,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 180,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 184,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 185,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 194,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 194,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 194,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 202,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 202,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 202,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 202,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 202,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 210,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 210,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 210,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 210,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 222,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 223,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 224,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 225,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 234,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 234,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 234,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 234,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 234,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 234,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 244,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 244,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 252,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 252,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 252,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 252,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 260,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 260,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 270,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 271,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 272,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 284,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 284,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 284,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 292,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 292,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 292,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 302,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 303,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 304,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 316,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 316,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 316,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 324,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 324,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 334,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 335,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 336,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 349,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils/search-data.ts",
+      "line": 349,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/lib/utils.ts",
+      "line": 11,
+      "kind": "fixed-formatting-locale"
+    },
+    {
+      "file": "frontend/lib/utils.ts",
+      "line": 64,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/i18n/config.ts",
+      "line": 10,
+      "kind": "literal-requires-review"
+    },
+    {
+      "file": "frontend/i18n/config.ts",
+      "line": 11,
+      "kind": "literal-requires-review"
+    }
+  ]
+}

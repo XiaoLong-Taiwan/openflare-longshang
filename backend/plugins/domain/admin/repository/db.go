@@ -447,6 +447,15 @@ func OpenSQLiteExportFile() (*os.File, os.FileInfo, error) {
 	return f, fi, nil
 }
 
+// ExportSQLiteSnapshot writes a consistent snapshot to a new destination file.
+func ExportSQLiteSnapshot(ctx context.Context, path string) error {
+	database := GetDB(ctx)
+	if database == nil {
+		return errors.New("database is not initialized")
+	}
+	return database.Exec("VACUUM INTO ?", path).Error
+}
+
 // NewPgDumpCommand builds the streaming pg_dump command for the active database.
 func NewPgDumpCommand(ctx context.Context) (*exec.Cmd, string, error) {
 	dbCfg := GetDBConfig()

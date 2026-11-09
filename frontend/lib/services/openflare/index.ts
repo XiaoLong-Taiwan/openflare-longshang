@@ -43,6 +43,8 @@ export type {
   NodeAgentUpdatePayload,
   NodeBootstrapToken,
   NodeItem,
+  NodeListQuery,
+  NodeListResult,
   NodeMutationPayload,
   NodeHealthEvent,
   NodeObservability,

@@ -37,8 +37,9 @@ type hostConfig struct {
 		Compress   bool   `config:"compress" env:"LOG_COMPRESS" default:"true"`
 	} `config:"log"`
 	OTel struct {
-		SamplingRate float64 `config:"sampling_rate" env:"OTEL_SAMPLING_RATE" default:"1.0"`
-		TracerName   string  `config:"tracer_name" env:"OTEL_TRACER_NAME" default:"github.com/Rain-kl/Wavelet"`
+		ExportProtocol string  `config:"export_protocol" default:"grpc"`
+		SamplingRate   float64 `config:"sampling_rate" env:"OTEL_SAMPLING_RATE" default:"1.0"`
+		TracerName     string  `config:"tracer_name" env:"OTEL_TRACER_NAME" default:"github.com/Rain-kl/Wavelet"`
 	} `config:"otel"`
 }
 
@@ -56,6 +57,9 @@ var rootCmd = &cobra.Command{
 			log.Fatalf("[CMD] resolve host config failed: %v", err)
 		}
 		_ = reg.Bind("", &cfg)
+		if err := reg.Bind("otel", &cfg.OTel); err != nil {
+			log.Fatalf("[CMD] resolve tracing config failed: %v", err)
+		}
 
 		// Initialize idgen snowflake generator
 		if err := idgen.Init(cfg.App.NodeID); err != nil {
@@ -73,9 +77,10 @@ var rootCmd = &cobra.Command{
 			Compress:   cfg.Log.Compress,
 		})
 		trace.Init(trace.Config{
-			AppName:      cfg.App.AppName,
-			SamplingRate: cfg.OTel.SamplingRate,
-			TracerName:   cfg.OTel.TracerName,
+			ExportProtocol: resolveTraceProtocol(src, cfg.OTel.ExportProtocol),
+			AppName:        cfg.App.AppName,
+			SamplingRate:   cfg.OTel.SamplingRate,
+			TracerName:     cfg.OTel.TracerName,
 		})
 	},
 	PersistentPostRun: func(_ *cobra.Command, _ []string) {

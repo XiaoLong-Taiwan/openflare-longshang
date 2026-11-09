@@ -1,0 +1,1417 @@
+{
+  "upstream": "217a71662fd80f169584f42150dfdd7aac8180e8",
+  "translated": 3921,
+  "fallbackCount": 235,
+  "gaps": [
+    {
+      "file": "admin.ru.json",
+      "key": "settings.system.trustedProxyTitle",
+      "reason": "missing-upstream-key",
+      "fallback": "Trusted proxy ranges"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "settings.system.trustedProxyDesc",
+      "reason": "missing-upstream-key",
+      "fallback": "Only accept forwarded client IPs from configured proxy networks; Cloudflare official ranges are included by default."
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "settings.system.trustedProxyEnabled",
+      "reason": "missing-upstream-key",
+      "fallback": "Enable trusted proxy resolution"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "settings.system.trustedProxyEnabledDesc",
+      "reason": "missing-upstream-key",
+      "fallback": "When disabled, Gin will not use X-Forwarded-For or other proxy headers."
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "settings.system.trustedProxyMode",
+      "reason": "missing-upstream-key",
+      "fallback": "Range mode"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "settings.system.trustedProxyAppend",
+      "reason": "missing-upstream-key",
+      "fallback": "Append Cloudflare official ranges"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "settings.system.trustedProxyOverride",
+      "reason": "missing-upstream-key",
+      "fallback": "Override with custom ranges only"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "settings.system.trustedProxyCIDRs",
+      "reason": "missing-upstream-key",
+      "fallback": "Custom CIDR ranges"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "settings.system.trustedProxyCIDRsPlaceholder",
+      "reason": "missing-upstream-key",
+      "fallback": "One per line, for example 10.0.0.0/8"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "settings.system.trustedProxyRestartWarning",
+      "reason": "missing-upstream-key",
+      "fallback": "Restart the HTTP service after saving; append mode uses Cloudflare official ranges even when the list is empty."
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "settings.system.trustedProxySaved",
+      "reason": "missing-upstream-key",
+      "fallback": "Trusted proxy settings saved"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "settings.system.trustedProxyMissing",
+      "reason": "missing-upstream-key",
+      "fallback": "Trusted proxy configuration is missing"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "settings.other.descCloudflare",
+      "reason": "missing-upstream-key",
+      "fallback": "Manage Cloudflare accounts, site sync, and DNS settings"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "settings.other.descResponses",
+      "reason": "missing-upstream-key",
+      "fallback": "Configure origin error pages and offline fallback responses"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "settings.other.descRateLimits",
+      "reason": "missing-upstream-key",
+      "fallback": "Configure default concurrency and bandwidth limits for edge sites"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.tasks.taskTypeLabel",
+      "reason": "missing-upstream-key",
+      "fallback": "Task type"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.tasks.colQueue",
+      "reason": "missing-upstream-key",
+      "fallback": "Queue"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.tasks.colParameters",
+      "reason": "missing-upstream-key",
+      "fallback": "Parameters"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.tasks.parameters",
+      "reason": "missing-upstream-key",
+      "fallback": "parameters"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.tasks.supportsTime",
+      "reason": "missing-upstream-key",
+      "fallback": "Time range supported"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.tasks.noTimeSupport",
+      "reason": "missing-upstream-key",
+      "fallback": "No time range"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.tasks.executionSupport",
+      "reason": "missing-upstream-key",
+      "fallback": "Execution support"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.tasks.ready",
+      "reason": "missing-upstream-key",
+      "fallback": "Ready"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.tasks.taskDetails",
+      "reason": "missing-upstream-key",
+      "fallback": "Task details"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.tasks.activeTasks",
+      "reason": "missing-upstream-key",
+      "fallback": "Active tasks"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.tasks.activeTask",
+      "reason": "missing-upstream-key",
+      "fallback": "Running task"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.tasks.activeTaskDesc",
+      "reason": "missing-upstream-key",
+      "fallback": "View execution status and live logs."
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.tasks.viewLog",
+      "reason": "missing-upstream-key",
+      "fallback": "View log"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.tasks.refreshing",
+      "reason": "missing-upstream-key",
+      "fallback": "Refreshing"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.tasks.collapseTasks",
+      "reason": "missing-upstream-key",
+      "fallback": "Collapse task list"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.tasks.expandTasks",
+      "reason": "missing-upstream-key",
+      "fallback": "Expand task list"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.tasks.dismissTasks",
+      "reason": "missing-upstream-key",
+      "fallback": "Close task panel"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.push.events.templateHelp",
+      "reason": "missing-upstream-key",
+      "fallback": "View template variables and functions"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.push.events.templateHelpTitle",
+      "reason": "missing-upstream-key",
+      "fallback": "Template variables and functions"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.push.events.templateHelpDescription",
+      "reason": "missing-upstream-key",
+      "fallback": "Use these variables and text/template functions in JSON string values."
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.push.events.commonVariables",
+      "reason": "missing-upstream-key",
+      "fallback": "Common variables"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.push.events.eventVariables",
+      "reason": "missing-upstream-key",
+      "fallback": "Event variables"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.push.events.templateFunctions",
+      "reason": "missing-upstream-key",
+      "fallback": "Template functions"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.push.events.templateFunctionsDescription",
+      "reason": "missing-upstream-key",
+      "fallback": "default fallback value, toJson JSON encoding, upper/lower case conversion, trim whitespace, dateFormat time formatting, and if/else/end conditionals."
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.push.settings.loadedDiscordTemplate",
+      "reason": "missing-upstream-key",
+      "fallback": "Discord Webhook Embed template loaded"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.database.maintenance.title",
+      "reason": "missing-upstream-key",
+      "fallback": "Full database maintenance"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.database.maintenance.description",
+      "reason": "missing-upstream-key",
+      "fallback": "Clean expired task records and disk cache, refresh statistics and indexes, and reclaim database space."
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.database.maintenance.loading",
+      "reason": "missing-upstream-key",
+      "fallback": "Loading maintenance preview..."
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.database.maintenance.previewFailed",
+      "reason": "missing-upstream-key",
+      "fallback": "Failed to load maintenance preview"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.database.maintenance.expiredTasks",
+      "reason": "missing-upstream-key",
+      "fallback": "Expired task records: {count}"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.database.maintenance.cacheItems",
+      "reason": "missing-upstream-key",
+      "fallback": "Disk cache: {count} items"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.database.maintenance.databaseType",
+      "reason": "missing-upstream-key",
+      "fallback": "Database: {type}"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.database.maintenance.run",
+      "reason": "missing-upstream-key",
+      "fallback": "Preview and run maintenance"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.database.maintenance.confirmTitle",
+      "reason": "missing-upstream-key",
+      "fallback": "Run database maintenance?"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.database.maintenance.confirmDescription",
+      "reason": "missing-upstream-key",
+      "fallback": "This deletes task records older than seven days, clears the disk cache, and runs database space reclamation and index maintenance. This cannot be undone."
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.database.maintenance.cancel",
+      "reason": "missing-upstream-key",
+      "fallback": "Cancel"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.database.maintenance.running",
+      "reason": "missing-upstream-key",
+      "fallback": "Maintaining..."
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.database.maintenance.confirm",
+      "reason": "missing-upstream-key",
+      "fallback": "Confirm and run"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.database.maintenance.queued",
+      "reason": "missing-upstream-key",
+      "fallback": "Database maintenance queued"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.database.maintenance.queuedDesc",
+      "reason": "missing-upstream-key",
+      "fallback": "Task ID: {taskID}. View progress in Task Management."
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.database.maintenance.failed",
+      "reason": "missing-upstream-key",
+      "fallback": "Failed to queue database maintenance"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.logs.logStorage",
+      "reason": "missing-upstream-key",
+      "fallback": "Log storage"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.logs.storage.loadFailed",
+      "reason": "missing-upstream-key",
+      "fallback": "Failed to load log storage"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.logs.storage.database",
+      "reason": "missing-upstream-key",
+      "fallback": "Active log database: {name}"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.logs.storage.rows",
+      "reason": "missing-upstream-key",
+      "fallback": "rows"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.logs.storage.refresh",
+      "reason": "missing-upstream-key",
+      "fallback": "Refresh"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.logs.storage.daysLabel",
+      "reason": "missing-upstream-key",
+      "fallback": "Clear data older than {days} days (leave empty to clear all)"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.logs.storage.daysPlaceholder",
+      "reason": "missing-upstream-key",
+      "fallback": "Days"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.logs.storage.clearBeforeDays",
+      "reason": "missing-upstream-key",
+      "fallback": "Clear older than {days} days"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.logs.storage.clearAll",
+      "reason": "missing-upstream-key",
+      "fallback": "Clear all"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.logs.storage.clear",
+      "reason": "missing-upstream-key",
+      "fallback": "Clear"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.logs.storage.cancel",
+      "reason": "missing-upstream-key",
+      "fallback": "Cancel"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.logs.storage.categories.node_access",
+      "reason": "missing-upstream-key",
+      "fallback": "Node access/request logs"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.logs.storage.categories.user_access",
+      "reason": "missing-upstream-key",
+      "fallback": "User access logs"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.logs.storage.categories.metric",
+      "reason": "missing-upstream-key",
+      "fallback": "Node performance metrics"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.logs.storage.categories.edge_health",
+      "reason": "missing-upstream-key",
+      "fallback": "Node health logs"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.logs.storage.categories.frps",
+      "reason": "missing-upstream-key",
+      "fallback": "FRPS observability logs"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.logs.storage.categories.frpc",
+      "reason": "missing-upstream-key",
+      "fallback": "FRPC observability logs"
+    },
+    {
+      "file": "admin.ru.json",
+      "key": "admin.logs.storage.categories.system",
+      "reason": "missing-upstream-key",
+      "fallback": "System runtime logs"
+    },
+    {
+      "file": "core.ru.json",
+      "key": "forbidden.label",
+      "reason": "missing-upstream-key",
+      "fallback": "Access denied"
+    },
+    {
+      "file": "core.ru.json",
+      "key": "forbidden.description",
+      "reason": "missing-upstream-key",
+      "fallback": "You do not have permission to access this page."
+    },
+    {
+      "file": "core.ru.json",
+      "key": "forbidden.previousPage",
+      "reason": "missing-upstream-key",
+      "fallback": "Previous page"
+    },
+    {
+      "file": "core.ru.json",
+      "key": "forbidden.home",
+      "reason": "missing-upstream-key",
+      "fallback": "Home"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "dashboard.map.nodeCount",
+      "reason": "missing-upstream-key",
+      "fallback": "{count, plural, one {# node} other {# nodes}}"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "dashboard.map.eventsStatus",
+      "reason": "argument-mismatch",
+      "fallback": "Active events {events}"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "dashboard.distributions.viewMap",
+      "reason": "missing-upstream-key",
+      "fallback": "View map"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "dashboard.distributions.mapTitle",
+      "reason": "missing-upstream-key",
+      "fallback": "Source distribution map"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "dashboard.distributions.mapDesc",
+      "reason": "missing-upstream-key",
+      "fallback": "Countries are shaded by request volume over the last 24 hours. Darker areas represent more requests."
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "dashboard.distributions.requestBreakdown",
+      "reason": "missing-upstream-key",
+      "fallback": "Requests"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.gzipDesc",
+      "reason": "missing-upstream-key",
+      "fallback": "Compress larger text responses to reduce bandwidth at the cost of additional CPU usage."
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.workerProcesses",
+      "reason": "missing-upstream-key",
+      "fallback": "Worker processes"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.workerConnections",
+      "reason": "missing-upstream-key",
+      "fallback": "Connections per worker"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.workerRlimitNofile",
+      "reason": "missing-upstream-key",
+      "fallback": "File descriptor limit"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.eventsUse",
+      "reason": "missing-upstream-key",
+      "fallback": "Event model"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.multiAccept",
+      "reason": "missing-upstream-key",
+      "fallback": "Accept multiple connections"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.keepaliveTimeout",
+      "reason": "missing-upstream-key",
+      "fallback": "Keep-Alive timeout (seconds)"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.keepaliveRequests",
+      "reason": "missing-upstream-key",
+      "fallback": "Keep-Alive request limit"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.clientHeaderTimeout",
+      "reason": "missing-upstream-key",
+      "fallback": "Client header timeout (seconds)"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.clientBodyTimeout",
+      "reason": "missing-upstream-key",
+      "fallback": "Client body timeout (seconds)"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.clientMaxBodySize",
+      "reason": "missing-upstream-key",
+      "fallback": "Maximum request body size"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.largeClientHeaderBuffers",
+      "reason": "missing-upstream-key",
+      "fallback": "Large client header buffers"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.sendTimeout",
+      "reason": "missing-upstream-key",
+      "fallback": "Response send timeout (seconds)"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.resolvers",
+      "reason": "missing-upstream-key",
+      "fallback": "DNS resolvers"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.defaultServerReturnStatus",
+      "reason": "missing-upstream-key",
+      "fallback": "Default server response status"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.proxyConnectTimeout",
+      "reason": "missing-upstream-key",
+      "fallback": "Proxy connect timeout (seconds)"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.proxySendTimeout",
+      "reason": "missing-upstream-key",
+      "fallback": "Proxy send timeout (seconds)"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.proxyReadTimeout",
+      "reason": "missing-upstream-key",
+      "fallback": "Proxy read timeout (seconds)"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.proxyRequestBuffering",
+      "reason": "missing-upstream-key",
+      "fallback": "Enable proxy request buffering"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.proxyBufferSize",
+      "reason": "missing-upstream-key",
+      "fallback": "Proxy buffer size"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.proxyBusyBuffersSize",
+      "reason": "missing-upstream-key",
+      "fallback": "Proxy busy buffer size"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.websocket",
+      "reason": "missing-upstream-key",
+      "fallback": "Enable WebSocket"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.http3",
+      "reason": "missing-upstream-key",
+      "fallback": "Enable HTTP/3"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.proxyBuffering",
+      "reason": "missing-upstream-key",
+      "fallback": "Enable proxy response buffering"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.proxyBuffers",
+      "reason": "missing-upstream-key",
+      "fallback": "Proxy buffers"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.gzip",
+      "reason": "missing-upstream-key",
+      "fallback": "Enable Gzip"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.gzipMinLength",
+      "reason": "missing-upstream-key",
+      "fallback": "Minimum compressed content size"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.gzipCompLevel",
+      "reason": "missing-upstream-key",
+      "fallback": "Compression level"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.cacheEnabled",
+      "reason": "missing-upstream-key",
+      "fallback": "Enable cache"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.proxyCachePath",
+      "reason": "missing-upstream-key",
+      "fallback": "Cache directory"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.cacheLevels",
+      "reason": "missing-upstream-key",
+      "fallback": "Cache directory levels"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.cacheInactive",
+      "reason": "missing-upstream-key",
+      "fallback": "Cache inactive duration"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.cacheMaxSize",
+      "reason": "missing-upstream-key",
+      "fallback": "Maximum cache size"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.cacheKeyTemplate",
+      "reason": "missing-upstream-key",
+      "fallback": "Cache key template"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.cacheLock",
+      "reason": "missing-upstream-key",
+      "fallback": "Enable cache lock"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.cacheLockTimeout",
+      "reason": "missing-upstream-key",
+      "fallback": "Cache lock timeout"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "performance.fields.cacheUseStale",
+      "reason": "missing-upstream-key",
+      "fallback": "Allow stale cache"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "configVersions.supportFilesChanged",
+      "reason": "missing-upstream-key",
+      "fallback": "Certificates or support files changed"
+    },
+    {
+      "file": "ops.ru.json",
+      "key": "configVersions.supportFilesUnchanged",
+      "reason": "missing-upstream-key",
+      "fallback": "Certificates or support files unchanged"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "ipGroups.searchPlaceholder",
+      "reason": "missing-upstream-key",
+      "fallback": "Search by name"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "ipGroups.searchLabel",
+      "reason": "missing-upstream-key",
+      "fallback": "Search IP groups"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "ipGroups.noSearchResults",
+      "reason": "missing-upstream-key",
+      "fallback": "No IP groups match the search."
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.nodeSummary",
+      "reason": "missing-upstream-key",
+      "fallback": "{count} nodes · active priority {priority}"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.membersMoved",
+      "reason": "missing-upstream-key",
+      "fallback": "Selected members moved and queued for sync"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.membersRemoved",
+      "reason": "missing-upstream-key",
+      "fallback": "Selected members and remote records deleted"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.targetGroup",
+      "reason": "missing-upstream-key",
+      "fallback": "Target group"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.moveSelected",
+      "reason": "missing-upstream-key",
+      "fallback": "Move selected"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.removeSelected",
+      "reason": "missing-upstream-key",
+      "fallback": "Remove selected"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.selectAll",
+      "reason": "missing-upstream-key",
+      "fallback": "Select all members"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.activePriority",
+      "reason": "missing-upstream-key",
+      "fallback": "All online nodes at the lowest available priority {priority} are active."
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.nodeWithPriority",
+      "reason": "missing-upstream-key",
+      "fallback": "Priority {priority} · {name} · {ip}"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.columns.name",
+      "reason": "missing-upstream-key",
+      "fallback": "Name"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.columns.nodes",
+      "reason": "missing-upstream-key",
+      "fallback": "Nodes"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.columns.members",
+      "reason": "missing-upstream-key",
+      "fallback": "Members"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.columns.updatedAt",
+      "reason": "missing-upstream-key",
+      "fallback": "Updated"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.columns.memberActions",
+      "reason": "missing-upstream-key",
+      "fallback": "Actions"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.groupDialog.nodes",
+      "reason": "missing-upstream-key",
+      "fallback": "Nodes and priorities"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.groupDialog.selectNode",
+      "reason": "missing-upstream-key",
+      "fallback": "Select node {name}"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.groupDialog.priorityFor",
+      "reason": "missing-upstream-key",
+      "fallback": "Priority for node {name}"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.groupDialog.ttl",
+      "reason": "missing-upstream-key",
+      "fallback": "Group TTL"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.groupDialog.ttlAuto",
+      "reason": "missing-upstream-key",
+      "fallback": "Auto"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.groupDialog.ttlManual",
+      "reason": "missing-upstream-key",
+      "fallback": "Manual"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.groupDialog.ttlSeconds",
+      "reason": "missing-upstream-key",
+      "fallback": "TTL (seconds)"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.groupDialog.ttlHint",
+      "reason": "missing-upstream-key",
+      "fallback": "Changes apply to all DNS-only (gray-cloud) members in this group; proxied (orange-cloud) members always use Auto. Auto is currently about 300 seconds."
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.groupDialog.ttlError",
+      "reason": "missing-upstream-key",
+      "fallback": "Enter a whole number of seconds between 60 and 86400."
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.ttlAutoSummary",
+      "reason": "missing-upstream-key",
+      "fallback": "DNS-only TTL: Auto (about 300 seconds)"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "cloudflare.ttlSecondsSummary",
+      "reason": "missing-upstream-key",
+      "fallback": "DNS-only TTL: {seconds} seconds"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "openflareOps.health.title",
+      "reason": "missing-upstream-key",
+      "fallback": "Origin health check"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "openflareOps.health.description",
+      "reason": "missing-upstream-key",
+      "fallback": "Control whether 4xx responses are treated as healthy. 5xx responses and network failures remain unhealthy."
+    },
+    {
+      "file": "security.ru.json",
+      "key": "openflareOps.health.accept4xx",
+      "reason": "missing-upstream-key",
+      "fallback": "Treat 4xx responses as healthy"
+    },
+    {
+      "file": "security.ru.json",
+      "key": "openflareOps.health.accept4xxDesc",
+      "reason": "missing-upstream-key",
+      "fallback": "Enable this for APIs or AI gateways that intentionally return 400–499 responses."
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.editDomain",
+      "reason": "missing-upstream-key",
+      "fallback": "Edit domain"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.editDomainTitle",
+      "reason": "missing-upstream-key",
+      "fallback": "Edit domain"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.editDomainDesc",
+      "reason": "missing-upstream-key",
+      "fallback": "Change the certificate and Nginx rules for this domain. Publish a version after saving to apply it on nodes."
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.domainUpdated",
+      "reason": "missing-upstream-key",
+      "fallback": "Domain updated"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.domainNginxRules",
+      "reason": "missing-upstream-key",
+      "fallback": "Domain Nginx rules"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.domainNginxRulesDesc",
+      "reason": "missing-upstream-key",
+      "fallback": "Override global proxy behavior for this domain. Empty timeout and size fields inherit global settings."
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.proxyConnectTimeout",
+      "reason": "missing-upstream-key",
+      "fallback": "Connect timeout"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.proxySendTimeout",
+      "reason": "missing-upstream-key",
+      "fallback": "Send timeout"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.proxyReadTimeout",
+      "reason": "missing-upstream-key",
+      "fallback": "Read timeout"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.timeoutPlaceholder",
+      "reason": "missing-upstream-key",
+      "fallback": "Inherit, e.g. 30s or 2m"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.clientMaxBodySize",
+      "reason": "missing-upstream-key",
+      "fallback": "Maximum request body"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.bodySizePlaceholder",
+      "reason": "missing-upstream-key",
+      "fallback": "Global default, such as 50m"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.inheritGlobal",
+      "reason": "missing-upstream-key",
+      "fallback": "Global default"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.enabled",
+      "reason": "missing-upstream-key",
+      "fallback": "Enabled"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.disabled",
+      "reason": "missing-upstream-key",
+      "fallback": "Disabled"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.timeoutInvalid",
+      "reason": "missing-upstream-key",
+      "fallback": "Enter a positive Nginx duration such as 30s, 90s, or 2m, or leave empty."
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.bodySizeInvalid",
+      "reason": "missing-upstream-key",
+      "fallback": "Enter a positive size such as 10m or leave empty."
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.websocketEnabled",
+      "reason": "missing-upstream-key",
+      "fallback": "Enable WebSocket forwarding"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.proxyRequestBuffering",
+      "reason": "missing-upstream-key",
+      "fallback": "Buffer request bodies"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.proxyBufferingEnabled",
+      "reason": "missing-upstream-key",
+      "fallback": "Buffer upstream responses"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.domainCustomHeaders",
+      "reason": "missing-upstream-key",
+      "fallback": "Request headers"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.domainCustomHeadersDesc",
+      "reason": "missing-upstream-key",
+      "fallback": "One header per line in Name: value format. Domain headers override route headers with the same name."
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "websites.domainHeadersInvalid",
+      "reason": "missing-upstream-key",
+      "fallback": "Request headers must use one Name: value pair per line."
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "certificates.columns.name",
+      "reason": "missing-upstream-key",
+      "fallback": "Name"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "certificates.columns.validity",
+      "reason": "missing-upstream-key",
+      "fallback": "Validity"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "certificates.columns.source",
+      "reason": "missing-upstream-key",
+      "fallback": "Source"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "certificates.columns.status",
+      "reason": "missing-upstream-key",
+      "fallback": "Status"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "certificates.columns.remark",
+      "reason": "missing-upstream-key",
+      "fallback": "Remark"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "certificates.columns.actions",
+      "reason": "missing-upstream-key",
+      "fallback": "Actions"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "origins.listTitle",
+      "reason": "missing-upstream-key",
+      "fallback": "Origin list"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "origins.listDesc",
+      "reason": "missing-upstream-key",
+      "fallback": "Review origin addresses, related routes, and recent updates in one place."
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "origins.columns.name",
+      "reason": "missing-upstream-key",
+      "fallback": "Name"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "origins.columns.address",
+      "reason": "missing-upstream-key",
+      "fallback": "Address"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "origins.columns.routes",
+      "reason": "missing-upstream-key",
+      "fallback": "Routes"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "origins.columns.updatedAt",
+      "reason": "missing-upstream-key",
+      "fallback": "Updated"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "origins.columns.actions",
+      "reason": "missing-upstream-key",
+      "fallback": "Actions"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "origins.health",
+      "reason": "missing-upstream-key",
+      "fallback": "Health"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "origins.checkHealth",
+      "reason": "missing-upstream-key",
+      "fallback": "Check origin"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "origins.checking",
+      "reason": "missing-upstream-key",
+      "fallback": "Checking"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "origins.online",
+      "reason": "missing-upstream-key",
+      "fallback": "Online"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "origins.offline",
+      "reason": "missing-upstream-key",
+      "fallback": "Offline"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "origins.notChecked",
+      "reason": "missing-upstream-key",
+      "fallback": "Not checked"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.upstreamAddress",
+      "reason": "missing-upstream-key",
+      "fallback": "Address"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.upstreamPriority",
+      "reason": "missing-upstream-key",
+      "fallback": "Priority"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.loadBalancing",
+      "reason": "missing-upstream-key",
+      "fallback": "Load balancing"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.roundRobin",
+      "reason": "missing-upstream-key",
+      "fallback": "Round robin"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.leastConn",
+      "reason": "missing-upstream-key",
+      "fallback": "Least connections"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.addUpstream",
+      "reason": "missing-upstream-key",
+      "fallback": "Add upstream"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.removeUpstream",
+      "reason": "missing-upstream-key",
+      "fallback": "Remove upstream"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.upstreamStructuredHint",
+      "reason": "missing-upstream-key",
+      "fallback": "Upstreams with the same priority participate in load balancing. Higher numeric priorities are backups used only when primary upstreams are unavailable. Multiple upstreams must use the same protocol and cannot include a path or query."
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.proxyConfig",
+      "reason": "missing-upstream-key",
+      "fallback": "Proxy behavior"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.proxyConfigHint",
+      "reason": "missing-upstream-key",
+      "fallback": "Empty values inherit the global defaults. Use Nginx durations such as 30s, 90s, or 2m. Boolean options support inherit, on, and off."
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.proxyConnectTimeout",
+      "reason": "missing-upstream-key",
+      "fallback": "Connect timeout"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.proxySendTimeout",
+      "reason": "missing-upstream-key",
+      "fallback": "Send timeout"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.proxyReadTimeout",
+      "reason": "missing-upstream-key",
+      "fallback": "Read timeout"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.clientHeaderTimeout",
+      "reason": "missing-upstream-key",
+      "fallback": "Client header timeout"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.clientBodyTimeout",
+      "reason": "missing-upstream-key",
+      "fallback": "Client body timeout"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.sendTimeout",
+      "reason": "missing-upstream-key",
+      "fallback": "Response send timeout"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.timeoutPlaceholder",
+      "reason": "missing-upstream-key",
+      "fallback": "Inherit, e.g. 30s or 2m"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.clientMaxBodySize",
+      "reason": "missing-upstream-key",
+      "fallback": "Maximum request body"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.bodySizePlaceholder",
+      "reason": "missing-upstream-key",
+      "fallback": "Global default, such as 50m"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.inheritGlobal",
+      "reason": "missing-upstream-key",
+      "fallback": "Global default"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.websocketEnabled",
+      "reason": "missing-upstream-key",
+      "fallback": "Enable WebSocket forwarding"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.proxyRequestBuffering",
+      "reason": "missing-upstream-key",
+      "fallback": "Buffer request bodies"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.proxyBufferingEnabled",
+      "reason": "missing-upstream-key",
+      "fallback": "Buffer upstream responses"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.advancedCache",
+      "reason": "missing-upstream-key",
+      "fallback": "Advanced Nginx cache parameters"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.cacheSuccessTTL",
+      "reason": "missing-upstream-key",
+      "fallback": "Success response TTL"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.cacheRedirectTTL",
+      "reason": "missing-upstream-key",
+      "fallback": "Redirect response TTL"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.cacheNotFoundTTL",
+      "reason": "missing-upstream-key",
+      "fallback": "Not found response TTL"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.cacheTTLDesc",
+      "reason": "missing-upstream-key",
+      "fallback": "Leave empty to use the default. Enter unlimited for a long-lived cache, or use durations such as 30s, 90s, 2m, 2h, or 7d."
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.cacheTTLInvalid",
+      "reason": "missing-upstream-key",
+      "fallback": "Enter unlimited or a positive duration such as 30s, 90s, 2m, 2h, or 7d."
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.cacheBypassAuthorization",
+      "reason": "missing-upstream-key",
+      "fallback": "Bypass cache with Authorization"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.cacheBypassCookies",
+      "reason": "missing-upstream-key",
+      "fallback": "Cookie bypass list"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.cacheBypassCookiesDesc",
+      "reason": "missing-upstream-key",
+      "fallback": "One cookie name per line. Requests containing any listed cookie bypass reads and writes. Only letters, numbers, and underscores are supported."
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.cacheCookieInvalid",
+      "reason": "missing-upstream-key",
+      "fallback": "Cookie names support only letters, numbers, and underscores, up to 64 characters."
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.validation.timeoutInvalid",
+      "reason": "missing-upstream-key",
+      "fallback": "Enter a positive Nginx duration such as 30s, 90s, or 2m, or leave empty."
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "proxyRoutes.validation.bodySizeInvalid",
+      "reason": "missing-upstream-key",
+      "fallback": "Enter a positive size such as 10m or leave empty."
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "responses.previewDomain",
+      "reason": "missing-upstream-key",
+      "fallback": "Preview domain"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "responses.previewDomainPlaceholder",
+      "reason": "missing-upstream-key",
+      "fallback": "For example example.com:8443"
+    },
+    {
+      "file": "websites.ru.json",
+      "key": "responses.selectedDomainsSummary",
+      "reason": "missing-upstream-key",
+      "fallback": "{count} domains selected. Remove them directly or reopen the selector to adjust the scope."
+    }
+  ]
+}

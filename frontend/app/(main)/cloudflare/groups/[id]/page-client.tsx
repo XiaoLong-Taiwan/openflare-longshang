@@ -12,8 +12,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
@@ -56,8 +56,17 @@ import { MemberAddDialog } from '../../components/member-add-dialog';
 
 export function CloudflareGroupDetailPageClient() {
   const t = useTranslations('cloudflare');
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const groupID = Number(searchParams.get('id'));
+  const pathID = pathname?.match(/^\/cloudflare\/groups\/([1-9]\d*)\/?$/)?.[1];
+  const groupID = Number(
+    pathID ??
+      (pathname === '/cloudflare/group' ? searchParams.get('id') : undefined),
+  );
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
@@ -66,7 +75,7 @@ export function CloudflareGroupDetailPageClient() {
   const detailQuery = useQuery({
     queryKey: [...cloudflareQueryKey, 'groups', groupID],
     queryFn: () => CloudflareService.getGroup(groupID),
-    enabled: Number.isInteger(groupID) && groupID > 0,
+    enabled: mounted && Number.isSafeInteger(groupID) && groupID > 0,
     refetchInterval: 5000,
   });
   const domainsQuery = useQuery({
@@ -185,7 +194,7 @@ export function CloudflareGroupDetailPageClient() {
     onError: (error) => toast.error(getErrorMessage(error)),
   });
 
-  if (detailQuery.isLoading)
+  if (!mounted || detailQuery.isLoading)
     return (
       <div className='w-full py-6 px-1'>
         <LoadingStateWithBorder icon={Cloud} description={t('loadingDetail')} />
@@ -204,6 +213,8 @@ export function CloudflareGroupDetailPageClient() {
   const memberIDs = members.map((member) => member.id);
   const allSelected =
     members.length > 0 && selectedMemberIDs.length === members.length;
+  const batchPending =
+    batchMoveMutation.isPending || batchRemoveMutation.isPending;
 
   return (
     <div className='flex w-full flex-col gap-6 py-6 px-1'>
@@ -255,33 +266,47 @@ export function CloudflareGroupDetailPageClient() {
         <CardHeader>
           <CardTitle className='text-base'>{t('currentPoint')}</CardTitle>
           <CardDescription>
-            {t('activePriority', {
-              priority:
-                group.nodes?.find((node) => node.id === group.active_node.id)
-                  ?.priority ?? 0,
-            })}
+            {group.target_mode === 'custom'
+              ? `${group.record_type} ${group.record_content}`
+              : t('activePriority', {
+                  priority:
+                    group.nodes?.find(
+                      (node) => node.id === group.active_node.id,
+                    )?.priority ?? 0,
+                })}
           </CardDescription>
         </CardHeader>
         <CardContent className='flex flex-wrap gap-2'>
           <Badge variant={group.enabled ? 'default' : 'secondary'}>
             {group.enabled ? t('syncEnabled') : t('syncDisabled')}
           </Badge>
-          {(
-            group.nodes ?? [
-              { ...group.primary_node, priority: 0 },
-              ...(group.backup_node
-                ? [{ ...group.backup_node, priority: 1 }]
-                : []),
-            ]
-          ).map((node) => (
-            <Badge key={node.id} variant='outline'>
-              {t('nodeWithPriority', {
-                name: node.name,
-                ip: node.ip,
-                priority: node.priority,
-              })}
+          {group.target_mode === 'custom' ? (
+            <Badge variant='outline'>
+              {group.record_type} {group.record_content}
             </Badge>
-          ))}
+          ) : (
+            (
+              group.nodes ?? [
+                { ...group.primary_node, priority: 0 },
+                ...(group.backup_node
+                  ? [{ ...group.backup_node, priority: 1 }]
+                  : []),
+              ]
+            ).map((node) => (
+              <Badge key={node.id} variant='outline'>
+                {t('nodeWithPriority', {
+                  name: node.name || `#${node.id}`,
+                  ip: node.ip,
+                  priority: node.priority,
+                })}
+              </Badge>
+            ))
+          )}
+          <Badge variant='outline'>
+            {group.ttl === 1
+              ? t('ttlAutoSummary')
+              : t('ttlSecondsSummary', { seconds: group.ttl ?? 300 })}
+          </Badge>
         </CardContent>
       </Card>
 
@@ -291,7 +316,11 @@ export function CloudflareGroupDetailPageClient() {
           <CardDescription>{t('membersDesc')}</CardDescription>
           {selectedMemberIDs.length > 0 ? (
             <div className='flex flex-wrap items-center gap-2 pt-2'>
-              <Select value={targetGroupID} onValueChange={setTargetGroupID}>
+              <Select
+                value={targetGroupID}
+                onValueChange={setTargetGroupID}
+                disabled={batchPending}
+              >
                 <SelectTrigger className='w-52'>
                   <SelectValue placeholder={t('targetGroup')} />
                 </SelectTrigger>
@@ -308,7 +337,7 @@ export function CloudflareGroupDetailPageClient() {
               <Button
                 size='sm'
                 onClick={() => batchMoveMutation.mutate()}
-                disabled={!targetGroupID || batchMoveMutation.isPending}
+                disabled={!targetGroupID || batchPending}
               >
                 {t('moveSelected')}
               </Button>
@@ -316,7 +345,7 @@ export function CloudflareGroupDetailPageClient() {
                 size='sm'
                 variant='destructive'
                 onClick={() => batchRemoveMutation.mutate()}
-                disabled={batchRemoveMutation.isPending}
+                disabled={batchPending}
               >
                 {t('removeSelected')}
               </Button>
@@ -335,6 +364,7 @@ export function CloudflareGroupDetailPageClient() {
                   <TableHead className='w-10'>
                     <Checkbox
                       checked={allSelected}
+                      disabled={batchPending}
                       onCheckedChange={(checked) =>
                         setSelectedMemberIDs(checked ? memberIDs : [])
                       }
@@ -356,10 +386,11 @@ export function CloudflareGroupDetailPageClient() {
                     <TableCell>
                       <Checkbox
                         checked={selectedMemberIDs.includes(member.id)}
+                        disabled={batchPending}
                         onCheckedChange={(checked) =>
                           setSelectedMemberIDs((current) =>
                             checked
-                              ? [...current, member.id]
+                              ? Array.from(new Set([...current, member.id]))
                               : current.filter((id) => id !== member.id),
                           )
                         }

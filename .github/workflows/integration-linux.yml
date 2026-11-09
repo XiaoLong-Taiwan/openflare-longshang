@@ -1,0 +1,82 @@
+name: Linux Integration Validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "integrate/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: integration-linux-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Verify modules
+        run: go mod download && go mod verify
+      - name: Test related integration packages
+        run: |
+          go test -count=1 -timeout=10m \
+            ./openflare/plugins/agent/agent \
+            ./openflare/plugins/agent/localfile \
+            ./openflare/plugins/agent/nginx \
+            ./openflare/plugins/agent/state \
+            ./openflare/plugins/agent/sync \
+            ./openflare/plugins/server/domain/cloudflare \
+            ./openflare/plugins/server/domain/fleet/... \
+            ./openflare/plugins/server/domain/site/... \
+            ./openflare/plugins/server/domain/option/uptimekuma \
+            ./openflare/plugins/server/kernel/repository/... \
+            ./openflare/plugins/server/migrate \
+            ./openflare/plugins/server/httpapi \
+            ./openflare/share/protocol \
+            ./openflare/share/render/openresty \
+            ./openflare/share/edge/updater \
+            ./openflare/share/edge/heartbeat \
+            ./pkg/trace \
+            ./plugins/drivers/driver_http \
+            ./plugins/domain/admin/repository \
+            ./plugins/domain/auth/service
+      - name: Test trace configuration
+        run: go test -count=1 ./cmd -run '^TestOTLP(ProtocolPrecedence|HostConfigBinding)$'
+
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.10.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck and lint
+        run: pnpm exec tsc --noEmit --jsx preserve && pnpm exec eslint . --max-warnings 0
+      - name: Validate translations
+        run: pnpm check:i18n
+      - name: Run frontend tests
+        run: pnpm exec vitest run
+      - name: Build static frontend
+        run: pnpm build:embed

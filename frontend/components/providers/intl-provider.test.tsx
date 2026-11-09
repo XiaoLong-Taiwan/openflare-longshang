@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import enMessages from '@/messages/en.json';
 import zhCNMessages from '@/messages/zh-CN.json';
+import zhTWMessages from '@/messages/zh-TW.json';
+import ruMessages from '@/messages/ru.json';
 
 import { AppIntlProvider } from './intl-provider';
 
@@ -31,6 +33,18 @@ describe('AppIntlProvider (static export locale resolution)', () => {
 
   afterEach(() => {
     document.cookie = 'NEXT_LOCALE=; Max-Age=0; Path=/';
+  });
+
+  it('loads Russian from a cookie after a Traditional Chinese static render', async () => {
+    document.cookie = 'NEXT_LOCALE=ru; Path=/';
+    document.documentElement.lang = 'zh-TW';
+    render(
+      <AppIntlProvider locale='zh-TW' messages={zhTWMessages}>
+        <Probe />
+      </AppIntlProvider>,
+    );
+    expect(await screen.findByText(ruMessages.common.save)).toBeInTheDocument();
+    expect(document.documentElement.lang).toBe('ru');
   });
 
   it('flips to the NEXT_LOCALE cookie locale after mount when SSR locale is stale', async () => {

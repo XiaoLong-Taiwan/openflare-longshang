@@ -2,7 +2,7 @@
 
 import { Loader2, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import {
   AlertDialog,
@@ -24,6 +24,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { EmptyStateWithBorder } from '@/components/layout/empty';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -59,6 +60,12 @@ export function IPGroupViewDialog({
   const [deleteTarget, setDeleteTarget] = useState<IPGroupViewEntry | null>(
     null,
   );
+  const [searchKeyword, setSearchKeyword] = useState('');
+
+  useEffect(() => {
+    setSearchKeyword('');
+    setDeleteTarget(null);
+  }, [open, group?.id]);
 
   const entries = useMemo(
     () =>
@@ -68,6 +75,14 @@ export function IPGroupViewDialog({
     [group, t],
   );
 
+  const trimmedKeyword = searchKeyword.trim().toLowerCase();
+  const filteredEntries = useMemo(
+    () =>
+      entries.filter((entry) =>
+        entry.ip.toLowerCase().includes(trimmedKeyword),
+      ),
+    [entries, trimmedKeyword],
+  );
   const showAutomaticMeta = group?.type === 'automatic';
 
   return (
@@ -78,6 +93,7 @@ export function IPGroupViewDialog({
           onOpenChange(nextOpen);
           if (!nextOpen) {
             setDeleteTarget(null);
+            setSearchKeyword('');
           }
         }}
       >
@@ -90,13 +106,40 @@ export function IPGroupViewDialog({
             </DialogTitle>
             <DialogDescription>
               {group
-                ? t('viewDialog.summary', {
-                    type: t(`types.${group.type}`),
-                    count: entries.length,
-                  })
+                ? t(
+                    trimmedKeyword
+                      ? 'viewDialog.summaryFiltered'
+                      : 'viewDialog.summary',
+                    {
+                      type: t(`types.${group.type}`),
+                      count: entries.length,
+                      matched: filteredEntries.length,
+                    },
+                  )
                 : t('viewDialog.fallbackDesc')}
             </DialogDescription>
           </DialogHeader>
+
+          {group && !loading && (entries.length > 0 || searchKeyword) ? (
+            <div className='flex items-center gap-2'>
+              <Input
+                type='search'
+                aria-label={t('viewDialog.searchPlaceholder')}
+                placeholder={t('viewDialog.searchPlaceholder')}
+                value={searchKeyword}
+                onChange={(event) => setSearchKeyword(event.target.value)}
+              />
+              {searchKeyword ? (
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={() => setSearchKeyword('')}
+                >
+                  {t('viewDialog.clearSearch')}
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
 
           {loading ? (
             <div className='flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground'>
@@ -107,6 +150,10 @@ export function IPGroupViewDialog({
             <p className='py-8 text-center text-sm text-muted-foreground'>
               {t('viewDialog.noGroup')}
             </p>
+          ) : trimmedKeyword && filteredEntries.length === 0 ? (
+            <EmptyStateWithBorder
+              description={t('viewDialog.noSearchResult')}
+            />
           ) : entries.length === 0 ? (
             <EmptyStateWithBorder
               description={
@@ -139,7 +186,7 @@ export function IPGroupViewDialog({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {entries.map((entry) => (
+                    {filteredEntries.map((entry) => (
                       <TableRow key={entry.ip}>
                         <TableCell className='font-mono text-sm'>
                           {entry.ip}

@@ -131,7 +131,7 @@ func TestRenderServiceWorkerChallengerHTTPExclusion(t *testing.T) {
 		"proxy":  renderHTTPProxyServer("example.com", "example.com", "http://127.0.0.1:8080", "", nil, routeCacheConfig{}, routeLimitConfig{}, routeUpstreamConfig{}, false, false, "", "", false, cfg),
 		"pages":  renderHTTPPagesServer("example.com", "example.com", nil, routeLimitConfig{}, false, false, "", "", false, cfg),
 		"https":  renderHTTPSServer("example.com", "example.com", "http://127.0.0.1:8080", "", 1, nil, routeCacheConfig{}, routeLimitConfig{}, routeUpstreamConfig{}, false, false, "", "", true, cfg),
-		"hpages": renderHTTPSPagesServer("example.com", "example.com", 1, nil, routeLimitConfig{}, false, false, "", "", true, cfg),
+		"hpages": renderHTTPSPagesServerHTTP2("example.com", "example.com", 1, nil, routeLimitConfig{}, false, false, "", "", true, cfg, true),
 	} {
 		if strings.Contains(rendered, "access_by_lua_block") && strings.Count(rendered, "access_by_lua_block") != 1 {
 			t.Fatalf("%s: expected at most one access block, got:\n%s", name, rendered)
@@ -151,7 +151,7 @@ func TestRenderServiceWorkerChallengerHTTPExclusion(t *testing.T) {
 			t.Fatalf("HTTPS proxy server missing %q, got:\n%s", want, httpsProxy)
 		}
 	}
-	httpsPages := renderHTTPSPagesServer("example.com", "example.com", 1, nil, routeLimitConfig{}, false, false, "", "", true, cfg)
+	httpsPages := renderHTTPSPagesServerHTTP2("example.com", "example.com", 1, nil, routeLimitConfig{}, false, false, "", "", true, cfg, true)
 	for _, want := range []string{"sw.runtime", "location = /sw.js", "location = /offline.html", "__openflare_sw_challenge"} {
 		if !strings.Contains(httpsPages, want) {
 			t.Fatalf("HTTPS pages server missing %q, got:\n%s", want, httpsPages)

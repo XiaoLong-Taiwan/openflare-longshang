@@ -12,6 +12,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -192,7 +194,7 @@ func GetDatabaseInfo(c *gin.Context) {
 
 // ExportDatabase 导出数据库
 // @Summary 导出数据库
-// @Description SQLite 时直接下载 .db 文件；PostgreSQL 时执行 pg_dump 并流式下载 .sql 文件，需要管理员权限
+// @Description SQLite 时下载一致性快照 .db 文件；PostgreSQL 时执行 pg_dump 并流式下载 .sql 文件，需要管理员权限
 // @Tags admin
 // @Produce application/octet-stream
 // @Security SessionCookie
@@ -210,14 +212,45 @@ func ExportDatabase(c *gin.Context) {
 }
 
 func exportSQLite(c *gin.Context) {
-	f, fi, err := service.OpenSQLiteExportFile()
+	dir, err := os.MkdirTemp("", "wavelet-db-export-*")
 	if err != nil {
-		response.AbortInternal(c, err.Error())
+		logger.ErrorF(c.Request.Context(), "[db-export] create temporary directory failed: %v", err)
+		response.AbortInternal(c, "无法创建数据库导出文件")
+		return
+	}
+	defer func() {
+		if err := os.RemoveAll(dir); err != nil {
+			logger.ErrorF(c.Request.Context(), "[db-export] remove temporary directory failed: %v", err)
+		}
+	}()
+	path := filepath.Join(dir, "wavelet.db")
+	if err = service.ExportSQLiteSnapshot(c.Request.Context(), path); err != nil {
+		logger.ErrorF(c.Request.Context(), "[db-export] create SQLite snapshot failed: %v", err)
+		response.AbortInternal(c, "无法导出数据库")
+		return
+	}
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		logger.ErrorF(c.Request.Context(), "[db-export] open snapshot directory failed: %v", err)
+		response.AbortInternal(c, "无法打开数据库导出文件")
+		return
+	}
+	defer func() { _ = root.Close() }()
+	f, err := root.Open("wavelet.db")
+	if err != nil {
+		logger.ErrorF(c.Request.Context(), "[db-export] open SQLite snapshot failed: %v", err)
+		response.AbortInternal(c, "无法打开数据库导出文件")
 		return
 	}
 	defer func() {
 		_ = f.Close()
 	}()
+	fi, err := f.Stat()
+	if err != nil {
+		logger.ErrorF(c.Request.Context(), "[db-export] stat SQLite snapshot failed: %v", err)
+		response.AbortInternal(c, "无法读取数据库导出文件")
+		return
+	}
 
 	c.Header("Content-Disposition", `attachment; filename="wavelet.db"`)
 	c.Header("Content-Type", "application/octet-stream")

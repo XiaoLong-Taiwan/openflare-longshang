@@ -11,12 +11,15 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"Wavelet/openflare/plugins/agent/localfile"
 )
 
 const (
-	stateDirPerm      = 0o750
-	stateFilePerm     = 0o600
-	nodeIDRandomBytes = 8
+	stateDirPerm         = 0o750
+	stateFilePerm        = 0o600
+	nodeIDRandomBytes    = 8
+	registrationKeyBytes = 32
 )
 
 // PagesDeployment records a Pages project tracked by the agent and the last
@@ -32,6 +35,7 @@ type PagesDeployment struct {
 // Snapshot represents the state of the agent at a given point in time.
 type Snapshot struct {
 	NodeID                 string            `json:"node_id"`
+	RegistrationKey        string            `json:"registration_key,omitempty"`
 	CurrentVersion         string            `json:"current_version"`
 	CurrentChecksum        string            `json:"current_checksum"`
 	PagesDeployments       []PagesDeployment `json:"pages_deployments"`
@@ -53,13 +57,39 @@ type Snapshot struct {
 
 // Store manages the storage and retrieval of the agent state snapshot.
 type Store struct {
-	path string
-	mu   sync.Mutex
+	path          string
+	mu            sync.Mutex
+	syncDirectory func(string) error
 }
 
 // NewStore creates a new Store instance at the given path.
 func NewStore(path string) *Store {
-	return &Store{path: filepath.Clean(path)}
+	return &Store{path: filepath.Clean(path), syncDirectory: localfile.SyncDirectory}
+}
+
+// EnsureRegistrationKey returns the durable key, creating it once if absent.
+func (s *Store) EnsureRegistrationKey() (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	snapshot, err := s.loadUnlocked()
+	if err != nil {
+		return "", err
+	}
+	if snapshot.RegistrationKey != "" {
+		if err = s.syncDirectory(filepath.Dir(s.path)); err != nil {
+			return "", err
+		}
+		return snapshot.RegistrationKey, nil
+	}
+	key := make([]byte, registrationKeyBytes)
+	if _, err = rand.Read(key); err != nil {
+		return "", err
+	}
+	snapshot.RegistrationKey = hex.EncodeToString(key)
+	if err = s.saveUnlocked(snapshot); err != nil {
+		return "", err
+	}
+	return snapshot.RegistrationKey, nil
 }
 
 // Load loads the snapshot from the store.
@@ -95,6 +125,27 @@ func (s *Store) EnsureNodeID() (string, error) {
 func (s *Store) Save(snapshot *Snapshot) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	current, err := s.loadUnlocked()
+	if err != nil {
+		return err
+	}
+	updated := *snapshot
+	if current.RegistrationKey != "" {
+		updated.RegistrationKey = current.RegistrationKey
+		updated.NodeID = current.NodeID
+	}
+	return s.saveUnlocked(&updated)
+}
+
+// SetRegisteredNodeID persists the node identity assigned during registration.
+func (s *Store) SetRegisteredNodeID(nodeID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	snapshot, err := s.loadUnlocked()
+	if err != nil {
+		return err
+	}
+	snapshot.NodeID = nodeID
 	return s.saveUnlocked(snapshot)
 }
 
@@ -124,7 +175,7 @@ func (s *Store) saveUnlocked(snapshot *Snapshot) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(s.path, data, stateFilePerm)
+	return localfile.WriteAtomic(s.path, data, stateFilePerm)
 }
 
 func newNodeID() (string, error) {

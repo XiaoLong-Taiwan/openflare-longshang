@@ -17,7 +17,7 @@ function flatten(obj, prefix = '') {
   return keys;
 }
 
-const locales = ['zh-CN', 'zh-TW', 'en'];
+const locales = ['zh-CN', 'zh-TW', 'en', 'ru'];
 const localeKeys = new Map(
   locales.map((locale) => {
     const messages = JSON.parse(

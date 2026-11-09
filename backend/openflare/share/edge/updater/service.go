@@ -29,37 +29,102 @@ const (
 	goosWindows          = "windows"
 	updateTmpFilePerm    = 0o600
 	updateBinaryFilePerm = 0o755
+	// DefaultCheckInterval is the minimum interval after a successful check.
+	DefaultCheckInterval = 6 * time.Hour
+	// DefaultInitialBackoff is the delay after the first failed check.
+	DefaultInitialBackoff = time.Minute
+	// DefaultMaxBackoff caps the delay between failed checks.
+	DefaultMaxBackoff = 3 * time.Hour
 )
 
 var replaceAndRestartFunc = replaceAndRestart
 
 // Config defines the configuration for the update service.
 type Config struct {
-	LocalVersion string
-	AssetPrefix  string
-	LogLabel     string
+	LocalVersion   string
+	AssetPrefix    string
+	LogLabel       string
+	CheckInterval  time.Duration
+	InitialBackoff time.Duration
+	MaxBackoff     time.Duration
+	NowFunc        func() time.Time
+	HTTPClient     *http.Client
 }
 
 // Service handles checking and applying application binary updates.
 type Service struct {
-	updateMu     sync.Mutex
-	requestMu    sync.Mutex
-	retryAfter   map[string]time.Time
-	httpClient   *http.Client
-	lastCheckKey string
-	localVersion string
-	assetPrefix  string
-	logLabel     string
+	updateMu            sync.Mutex
+	requestMu           sync.Mutex
+	retryAfter          map[string]time.Time
+	httpClient          *http.Client
+	lastCheckKey        string
+	localVersion        string
+	assetPrefix         string
+	logLabel            string
+	checkInterval       time.Duration
+	initialBackoff      time.Duration
+	maxBackoff          time.Duration
+	nowFunc             func() time.Time
+	mu                  sync.Mutex
+	nextCheckTime       time.Time
+	consecutiveFailures int
 }
 
 // New creates a new updater Service with the provided configuration.
 func New(cfg Config) *Service {
-	return &Service{
-		httpClient:   &http.Client{Timeout: 30 * time.Second},
-		localVersion: cfg.LocalVersion,
-		assetPrefix:  cfg.AssetPrefix,
-		logLabel:     cfg.LogLabel,
+	if cfg.CheckInterval <= 0 {
+		cfg.CheckInterval = DefaultCheckInterval
 	}
+	if cfg.InitialBackoff <= 0 {
+		cfg.InitialBackoff = DefaultInitialBackoff
+	}
+	if cfg.MaxBackoff <= 0 {
+		cfg.MaxBackoff = DefaultMaxBackoff
+	}
+	if cfg.NowFunc == nil {
+		cfg.NowFunc = time.Now
+	}
+	if cfg.HTTPClient == nil {
+		cfg.HTTPClient = &http.Client{Timeout: 30 * time.Second}
+	}
+	return &Service{
+		httpClient:     cfg.HTTPClient,
+		localVersion:   cfg.LocalVersion,
+		assetPrefix:    cfg.AssetPrefix,
+		logLabel:       cfg.LogLabel,
+		checkInterval:  cfg.CheckInterval,
+		initialBackoff: cfg.InitialBackoff,
+		maxBackoff:     cfg.MaxBackoff,
+		nowFunc:        cfg.NowFunc,
+	}
+}
+
+// CanCheck reports whether a forced check or the current retry deadline permits a check.
+func (s *Service) CanCheck(options UpdateOptions) bool {
+	if options.Force {
+		return true
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return !s.nowFunc().Before(s.nextCheckTime)
+}
+
+func (s *Service) recordFailure() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	backoff := s.initialBackoff
+	for i := 0; i < s.consecutiveFailures && backoff < s.maxBackoff; i++ {
+		backoff *= 2
+	}
+	s.consecutiveFailures++
+	s.nextCheckTime = s.nowFunc().Add(min(backoff, s.maxBackoff))
+}
+
+func (s *Service) recordSuccess() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.consecutiveFailures = 0
+	s.nextCheckTime = s.nowFunc().Add(s.checkInterval)
 }
 
 // UpdateOptions specifies parameters for checking and applying updates.
@@ -89,12 +154,25 @@ func (s *Service) CheckAndUpdate(ctx context.Context, repo string, options Updat
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+	if !s.CanCheck(options) {
+		return nil
+	}
+	retry, err := s.checkAndUpdate(ctx, repo, options)
+	if retry {
+		s.recordFailure()
+	} else {
+		s.recordSuccess()
+	}
+	return err
+}
+
+func (s *Service) checkAndUpdate(ctx context.Context, repo string, options UpdateOptions) (retry bool, err error) {
 	release, err := s.getRelease(ctx, repo, options)
 	if err != nil {
-		return fmt.Errorf("check latest release: %w", err)
+		return true, fmt.Errorf("check latest release: %w", err)
 	}
 	if release == nil || release.TagName == "" {
-		return nil
+		return false, nil
 	}
 
 	remoteVersion := normalizeVersion(release.TagName)
@@ -102,14 +180,14 @@ func (s *Service) CheckAndUpdate(ctx context.Context, repo string, options Updat
 	checkKey := buildReleaseCheckKey(options, remoteVersion)
 
 	if remoteVersion == localVersion {
-		return nil
+		return false, nil
 	}
 	if !options.Force && checkKey != "" && checkKey == s.lastCheckKey {
-		return nil
+		return false, nil
 	}
 	if !isNewer(localVersion, remoteVersion) {
 		s.lastCheckKey = checkKey
-		return nil
+		return false, nil
 	}
 
 	slog.Info(s.logLabel+" update available", "from", localVersion, "to", remoteVersion)
@@ -117,18 +195,22 @@ func (s *Service) CheckAndUpdate(ctx context.Context, repo string, options Updat
 
 	downloadURL, expectedChecksum, err := s.resolveReleaseAsset(ctx, release, assetName)
 	if err != nil {
-		return err
+		if downloadURL == "" {
+			s.lastCheckKey = checkKey
+			return false, err
+		}
+		return true, err
 	}
 
 	execPath, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("get executable path: %w", err)
+		return false, fmt.Errorf("get executable path: %w", err)
 	}
 	if err = s.downloadAndRestart(ctx, downloadURL, expectedChecksum, execPath); err != nil {
-		return fmt.Errorf("download and restart: %w", err)
+		return true, fmt.Errorf("download and restart: %w", err)
 	}
 	s.lastCheckKey = checkKey
-	return nil
+	return false, nil
 }
 
 func (s *Service) getRelease(ctx context.Context, repo string, options UpdateOptions) (*githubRelease, error) {

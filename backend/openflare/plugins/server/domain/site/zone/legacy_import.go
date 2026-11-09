@@ -13,6 +13,8 @@ import (
 	"strings"
 
 	"Wavelet/openflare/plugins/server/domain/site/routeidentity"
+
+	"golang.org/x/net/idna"
 )
 
 // ImportReport describes the idempotent legacy migration result.
@@ -82,7 +84,7 @@ func ImportLegacyTx(ctx context.Context, tx *sql.Tx, postgres bool) (report Impo
 	}
 
 	for _, item := range items {
-		domain, normErr := normalizeDomain(item.Domain)
+		domain, normErr := normalizeLegacyDomain(item.Domain)
 		if normErr != nil {
 			report.Conflicts = append(report.Conflicts, fmt.Sprintf("%s: %v", item.Domain, normErr))
 			continue
@@ -95,24 +97,33 @@ func ImportLegacyTx(ctx context.Context, tx *sql.Tx, postgres bool) (report Impo
 
 		var existingID uint
 		var existingZoneDomain string
+		var existingRouteID, existingCertID sql.Null[uint]
 		scanErr := tx.QueryRowContext(ctx, q(`
-			SELECT zd.id, z.domain
+			SELECT zd.id, z.domain, zd.proxy_route_id, zd.cert_id
 			FROM of_zone_domains zd
 			JOIN of_zones z ON z.id = zd.zone_id
 			WHERE zd.domain = ?
-		`), domain).Scan(&existingID, &existingZoneDomain)
+		`), domain).Scan(&existingID, &existingZoneDomain, &existingRouteID, &existingCertID)
 		if scanErr == nil {
+			if (item.ProxyRouteID != nil && existingRouteID.Valid && existingRouteID.V != *item.ProxyRouteID) ||
+				(item.CertID != nil && existingCertID.Valid && existingCertID.V != *item.CertID) {
+				report.Conflicts = append(report.Conflicts, domain+": canonical domain binding conflict")
+				continue
+			}
 			if existingZoneDomain != root {
 				report.Conflicts = append(report.Conflicts, domain+": global domain conflict")
-			} else if item.ProxyRouteID != nil {
-				if _, bindErr := tx.ExecContext(ctx, q(`
-					UPDATE of_zone_domains
-					SET proxy_route_id = COALESCE(proxy_route_id, ?),
-					    cert_id = COALESCE(cert_id, ?)
-					WHERE id = ?
-				`), *item.ProxyRouteID, nullableUint(item.CertID), existingID); bindErr != nil {
-					return report, bindErr
-				}
+				continue
+			}
+			if item.ProxyRouteID == nil && item.CertID == nil {
+				continue
+			}
+			if _, bindErr := tx.ExecContext(ctx, q(`
+				UPDATE of_zone_domains
+				SET proxy_route_id = COALESCE(proxy_route_id, ?),
+				    cert_id = COALESCE(cert_id, ?)
+				WHERE id = ?
+			`), nullableUint(item.ProxyRouteID), nullableUint(item.CertID), existingID); bindErr != nil {
+				return report, bindErr
 			}
 			continue
 		}
@@ -150,6 +161,21 @@ func ImportLegacyTx(ctx context.Context, tx *sql.Tx, postgres bool) (report Impo
 		return report, errors.New("legacy data has conflicts")
 	}
 	return report, nil
+}
+
+// normalizeLegacyDomain canonicalizes historical IDNs for DNS identity and rendering.
+// Certificate associations and route bindings remain attached to the imported row.
+func normalizeLegacyDomain(raw string) (string, error) {
+	domain := strings.ToLower(strings.TrimSpace(raw))
+	host := strings.TrimPrefix(domain, "*.")
+	ascii, err := idna.Lookup.ToASCII(host)
+	if err != nil {
+		return "", errors.New(errDomainInvalid)
+	}
+	if host != domain {
+		ascii = "*." + ascii
+	}
+	return normalizeDomain(ascii)
 }
 
 func ensureZone(

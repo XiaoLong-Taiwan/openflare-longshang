@@ -200,7 +200,11 @@ export default function CloudflarePage() {
                         {group.enabled ? t('enabled') : t('disabled')}
                       </Badge>
                     </TableCell>
-                    <TableCell>{group.nodes?.length ?? 1}</TableCell>
+                    <TableCell>
+                      {group.target_mode === 'custom'
+                        ? `${group.record_type} ${group.record_content}`
+                        : (group.nodes?.length ?? 1)}
+                    </TableCell>
                     <TableCell>{group.member_count}</TableCell>
                     <TableCell className='text-sm text-muted-foreground'>
                       {formatDateTime(group.updated_at)}

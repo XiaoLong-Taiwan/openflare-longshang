@@ -87,6 +87,8 @@ Server 的所有核心基础配置定义在 `config.yaml` 中，且均支持环�
 | `database.max_idle_conn` | `DB_MAX_IDLE_CONN` | 数据库连接池最大空闲连接数 | `16` |
 | `database.max_open_conn` | `DB_MAX_OPEN_CONN` | 数据库连接池最大打开连接数 | `128` |
 
+SQLite 文件数据库启动时自动启用 WAL；内存数据库保留 `memory` 日志模式。数据库目录必须允许创建 `-wal` 与 `-shm` 文件。在线备份请使用管理端数据库导出生成包含已提交 WAL 数据的一致性快照，不要仅复制运行中的 `.db` 文件。
+
 ### 3. Redis 配置 (`redis:`)
 | 配置文件 YAML 路径 | 对应覆盖环境变量 | 作用说明 | 默认值 |
 | --- | --- | --- | --- |
@@ -135,8 +137,13 @@ Server 的所有核心基础配置定义在 `config.yaml` 中，且均支持环�
 ### 7. 链路追踪 OpenTelemetry 配置 (`otel:`)
 | 配置文件 YAML 路径 | 对应覆盖环境变量 | 作用说明 | 默认值 |
 | --- | --- | --- | --- |
+| `otel.export_protocol` | `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL` / `OTEL_EXPORTER_OTLP_PROTOCOL` | 导出协议，支持 `grpc` 与 `http/protobuf`；非空的链路专用环境变量优先，其次为通用环境变量与 YAML | `grpc` |
 | `otel.sampling_rate` | `OTEL_SAMPLING_RATE` | OTel 链路追踪全局采样率。默认 `0.0` 不采样，`1.0` 为全量追踪 | `0.0` |
 | `otel.tracer_name` | `OTEL_TRACER_NAME` | 全局 OTel 埋点 Tracer 的实例化名称 | `github.com/XiaoLong-Taiwan/openflare-longshang` |
+
+使用 OTLP/HTTP 时，可设置 `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf` 与 `OTEL_EXPORTER_OTLP_ENDPOINT=https://collector.example.com`；标准 SDK 会追加 `/v1/traces`，保留通用地址原有的路径前缀。若接收端使用自定义路径，设置完整的 `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`，SDK 将直接使用该 URL。
+
+请求头通过 `OTEL_EXPORTER_OTLP_HEADERS` 设置，格式为 `key=value,key2=value2`，值使用百分号编码；`OTEL_EXPORTER_OTLP_TRACES_HEADERS` 优先于通用请求头。实际凭据由部署环境提供，不应写入仓库。协议在启动配置层通过既有配置源解析，地址、请求头与资源属性由 OpenTelemetry SDK 读取标准环境变量；这些参数不属于数据库运行时设置。
 
 ---
 

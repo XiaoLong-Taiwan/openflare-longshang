@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"Wavelet/openflare/plugins/server/kernel/model"
+	"Wavelet/openflare/share/protocol"
 )
 
 const (
@@ -17,9 +18,12 @@ const (
 )
 
 // RegistrationResponse is returned after agent registration.
-// Server uses access_token; the agent client expects agent_token via RegisterNodeResponse.
-type RegistrationResponse struct {
+type RegistrationResponse = protocol.RegisterNodeResponse
+
+// RegistrationResponseDocs describes canonical and legacy registration tokens.
+type RegistrationResponseDocs struct {
 	NodeID      string `json:"node_id"`
+	AgentToken  string `json:"agent_token"`
 	AccessToken string `json:"access_token"`
 	Name        string `json:"name"`
 }

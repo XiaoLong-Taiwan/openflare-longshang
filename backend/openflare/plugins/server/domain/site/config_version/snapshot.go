@@ -55,6 +55,7 @@ type snapshotRoute struct {
 	LoadBalancing      string                           `json:"load_balancing,omitempty"`
 	Enabled            bool                             `json:"enabled"`
 	EnableHTTPS        bool                             `json:"enable_https"`
+	EnableHTTP2        bool                             `json:"enable_http2"`
 	DomainCertIDs      []uint                           `json:"domain_cert_ids,omitempty"`
 	RedirectHTTP       bool                             `json:"redirect_http"`
 	LimitConnPerServer int                              `json:"limit_conn_per_server,omitempty"`
@@ -75,6 +76,16 @@ type snapshotRoute struct {
 	TunnelTargetProto  string                           `json:"tunnel_target_protocol,omitempty"`
 	PagesProjectID     *uint                            `json:"pages_project_id,omitempty"`
 	PagesDeployment    *openrestyrender.PagesDeployment `json:"pages_deployment,omitempty"`
+}
+
+func (route *snapshotRoute) UnmarshalJSON(data []byte) error {
+	type plainRoute snapshotRoute
+	decoded := plainRoute{EnableHTTP2: true}
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	*route = snapshotRoute(decoded)
+	return nil
 }
 
 type snapshotWAFRuleGroup struct {
@@ -340,6 +351,7 @@ func buildSnapshotRoutes(ctx context.Context, routes []*model.ProxyRoute) ([]sna
 			LoadBalancing:      proxy_route.DisplayLoadBalancing(route.LoadBalancing),
 			Enabled:            route.Enabled,
 			EnableHTTPS:        route.EnableHTTPS,
+			EnableHTTP2:        route.EnableHTTP2,
 			DomainCertIDs:      domainCertIDs,
 			RedirectHTTP:       route.RedirectHTTP,
 			LimitConnPerServer: route.LimitConnPerServer,

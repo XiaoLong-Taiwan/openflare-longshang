@@ -112,9 +112,11 @@ func (r *OSCommandRunner) Run(ctx context.Context, name string, args ...string) 
 
 // PathExecutor runs OpenResty using a configured binary and config path.
 type PathExecutor struct {
-	Path       string
-	ConfigPath string
-	Runner     CommandRunner
+	Path             string
+	ConfigPath       string
+	Runner           CommandRunner
+	inspectProcesses func() ([]runtimeProcess, error)
+	signalProcess    func(runtimeProcess, bool) error
 }
 
 // Test validates the current OpenResty configuration.
@@ -130,21 +132,7 @@ func (e *PathExecutor) Test(ctx context.Context) error {
 
 // Reload reloads OpenResty or starts it when no runtime process is running.
 func (e *PathExecutor) Reload(ctx context.Context) error {
-	slog.Debug("running openresty reload with binary", "path", e.Path, "config", e.ConfigPath)
-	output, err := e.Runner.Run(ctx, e.Path, "-s", "reload", "-c", e.ConfigPath)
-	if err != nil {
-		if isOpenrestyNotRunningError(string(output)) {
-			slog.Warn("openresty reload reported runtime is not running, starting binary", "path", e.Path)
-			startOutput, startErr := e.Runner.Run(ctx, e.Path, "-c", e.ConfigPath)
-			if startErr != nil {
-				return fmt.Errorf("openresty reload failed: %w: %s; start failed: %w: %s", err, string(output), startErr, string(startOutput))
-			}
-			return nil
-		}
-		return fmt.Errorf("openresty reload failed: %w: %s", err, string(output))
-	}
-	slog.Debug("openresty reload succeeded with binary", "path", e.Path)
-	return nil
+	return e.recoverRuntime(ctx)
 }
 
 // EnsureRuntime validates configuration and reloads the OpenResty runtime.
@@ -162,20 +150,7 @@ func (e *PathExecutor) CheckHealth(ctx context.Context) error {
 
 // Restart stops and starts the OpenResty runtime process.
 func (e *PathExecutor) Restart(ctx context.Context) error {
-	slog.Info("restarting openresty with binary", "path", e.Path, "config", e.ConfigPath)
-	output, err := e.Runner.Run(ctx, e.Path, "-s", "quit", "-c", e.ConfigPath)
-	if err != nil {
-		text := string(output)
-		if !isIgnorableOpenrestyStopError(text) {
-			return fmt.Errorf("openresty stop failed: %w: %s", err, text)
-		}
-	}
-	output, err = e.Runner.Run(ctx, e.Path, "-c", e.ConfigPath)
-	if err != nil {
-		return fmt.Errorf("openresty start failed: %w: %s", err, string(output))
-	}
-	slog.Info("openresty restart succeeded with binary", "path", e.Path)
-	return nil
+	return e.restartRuntime(ctx)
 }
 
 // Manager applies OpenResty configuration and manages runtime assets.
@@ -833,24 +808,6 @@ func parseExtVersion(output string) string {
 }
 
 var nginxVersionPattern = regexp.MustCompile(`(?im)(?:nginx|openresty) version:\s*(?:nginx|openresty)/(\S+)`)
-
-func isIgnorableOpenrestyStopError(output string) bool {
-	text := strings.ToLower(strings.TrimSpace(output))
-	if text == "" {
-		return false
-	}
-	return strings.Contains(text, "invalid pid") || strings.Contains(text, "no such process")
-}
-
-func isOpenrestyNotRunningError(output string) bool {
-	text := strings.ToLower(strings.TrimSpace(output))
-	if text == "" {
-		return false
-	}
-	return strings.Contains(text, "invalid pid") ||
-		strings.Contains(text, "no such process") ||
-		strings.Contains(text, "open()") && strings.Contains(text, "nginx.pid") && strings.Contains(text, "failed")
-}
 
 type backupState struct {
 	MainExisted  bool

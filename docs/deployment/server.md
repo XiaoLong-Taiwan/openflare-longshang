@@ -272,6 +272,23 @@ docker compose up -d
 ```
 启动后可以通过访问 `http://localhost:16686` 打开 Jaeger 监控端查看系统 Span 链路。
 
+### 使用 OTLP/HTTP 接收端
+
+默认使用 OTLP/gRPC，可继续连接 Jaeger 的 `4317` 端口。接收端使用 OTLP/HTTP protobuf 时，在 OpenFlare 服务的 `environment` 中设置：
+
+```yaml
+OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+OTEL_EXPORTER_OTLP_ENDPOINT: "https://collector.example.com"
+OTEL_SAMPLING_RATE: "1.0"
+OTEL_RESOURCE_ATTRIBUTES: "service.namespace=openflare,deployment.environment.name=production"
+```
+
+本地 Jaeger 的 HTTP 接收地址可使用 `http://jaeger:4318`。通用 endpoint 会自动追加 `/v1/traces`；自定义完整路径使用 `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`，例如 `https://collector.example.com/custom/ingest`。
+
+协议优先级为非空的 `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL`、`OTEL_EXPORTER_OTLP_PROTOCOL`、配置文件的 `otel.export_protocol`，最后默认为 `grpc`。环境变量中的空白值会跳过，协议忽略大小写与首尾空白；仅支持 `grpc` 和 `http/protobuf`，其他值会导致追踪初始化失败。
+
+需要认证时，由部署环境注入 `OTEL_EXPORTER_OTLP_HEADERS`，格式为 `key=value,key2=value2`，值使用百分号编码。`OTEL_EXPORTER_OTLP_TRACES_HEADERS` 优先于通用请求头。变更启动配置后需重新启动对应进程；采样率为 `0.0` 时不会采样新的根 Span，验证导出时可临时设置为 `1.0`。更多参数见[配置参考](../reference/configuration.md#7-链路追踪-opentelemetry-配置-otel)。
+
 ---
 
 ## 首次登录

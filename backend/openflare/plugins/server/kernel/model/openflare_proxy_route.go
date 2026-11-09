@@ -41,6 +41,7 @@ type ProxyRoute struct {
 	LoadBalancing        string       `json:"load_balancing" gorm:"size:32;not null;default:'round_robin'"`
 	Enabled              bool         `json:"enabled" gorm:"not null;default:true"`
 	EnableHTTPS          bool         `json:"enable_https" gorm:"column:enable_https;not null;default:false"`
+	EnableHTTP2          bool         `json:"enable_http2" gorm:"not null"`
 	RedirectHTTP         bool         `json:"redirect_http" gorm:"not null;default:false"`
 	LimitConnPerServer   int          `json:"limit_conn_per_server" gorm:"not null;default:0"`
 	LimitConnPerIP       int          `json:"limit_conn_per_ip" gorm:"not null;default:0"`

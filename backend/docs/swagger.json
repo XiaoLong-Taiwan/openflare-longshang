@@ -483,7 +483,7 @@
                         "SessionCookie": []
                     }
                 ],
-                "description": "SQLite 时直接下载 .db 文件；PostgreSQL 时执行 pg_dump 并流式下载 .sql 文件，需要管理员权限",
+                "description": "SQLite 时下载一致性快照 .db 文件；PostgreSQL 时执行 pg_dump 并流式下载 .sql 文件，需要管理员权限",
                 "produces": [
                     "application/octet-stream"
                 ],
@@ -4794,12 +4794,12 @@
                 "summary": "注册或发现 Agent 节点",
                 "parameters": [
                     {
-                        "description": "节点上报数据",
+                        "description": "节点上报数据；registration_key 为首次注册重试凭证",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/agent.NodePayload"
+                            "$ref": "#/definitions/Wavelet_openflare_share_protocol.RegisterNodeRequest"
                         }
                     }
                 ],
@@ -4815,7 +4815,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/agent.RegistrationResponse"
+                                            "$ref": "#/definitions/agent.RegistrationResponseDocs"
                                         }
                                     }
                                 }
@@ -8334,6 +8334,169 @@
                     },
                     "404": {
                         "description": "无权限或不存在",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/d/nodes/page": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "返回分页节点和筛选后的总数；旧版 /nodes 列表接口保持兼容，需要管理员权限",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openflare-node"
+                ],
+                "summary": "获取分页节点列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "页码（默认 1）",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页数量（默认 20，最大 100）",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "名称、节点标识或 IP 的字面子串（最多 256 字节）",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "pending、online 或 offline",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "edge_node、tunnel_relay 或 tunnel_client",
+                        "name": "node_type",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "节点分页",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Any"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/node.ListResult"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "404": {
+                        "description": "无权限",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "500": {
+                        "description": "查询失败",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/d/nodes/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "返回指定节点及最新配置下发记录，需要管理员权限",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openflare-node"
+                ],
+                "summary": "获取节点详情",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "节点 ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "节点详情",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Any"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/node.View"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "404": {
+                        "description": "无权限或不存在",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "500": {
+                        "description": "查询失败",
                         "schema": {
                             "$ref": "#/definitions/response.Any"
                         }
@@ -13247,6 +13410,7 @@
                         "SessionCookie": []
                     }
                 ],
+                "description": "支持具体域名或最左侧完整标签为 * 的通配符域名，例如 *.s3.example.com；域名必须属于当前 Zone。",
                 "consumes": [
                     "application/json"
                 ],
@@ -13374,6 +13538,7 @@
                         "SessionCookie": []
                     }
                 ],
+                "description": "支持具体域名与通配符域名互相修改；通配符仅允许出现在最左侧完整标签，且域名必须属于当前 Zone。",
                 "consumes": [
                     "application/json"
                 ],
@@ -15660,6 +15825,77 @@
                 }
             }
         },
+        "Wavelet_openflare_share_protocol.RegisterNodeRequest": {
+            "type": "object",
+            "properties": {
+                "access_logs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Wavelet_openflare_share_protocol.NodeAccessLog"
+                    }
+                },
+                "buffered": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Wavelet_openflare_share_protocol.BufferedObservabilityRecord"
+                    }
+                },
+                "current_version": {
+                    "type": "string"
+                },
+                "edge_health": {
+                    "$ref": "#/definitions/Wavelet_openflare_share_protocol.NodeEdgeHealth"
+                },
+                "ext_version": {
+                    "type": "string"
+                },
+                "health_events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Wavelet_openflare_share_protocol.NodeHealthEvent"
+                    }
+                },
+                "host_metrics": {
+                    "$ref": "#/definitions/Wavelet_openflare_share_protocol.NodeMetricSnapshot"
+                },
+                "ip": {
+                    "type": "string"
+                },
+                "last_error": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "node_id": {
+                    "type": "string"
+                },
+                "openresty_message": {
+                    "type": "string"
+                },
+                "openresty_status": {
+                    "type": "string"
+                },
+                "profile": {
+                    "$ref": "#/definitions/Wavelet_openflare_share_protocol.NodeSystemProfile"
+                },
+                "registration_key": {
+                    "type": "string"
+                },
+                "schema_version": {
+                    "type": "integer"
+                },
+                "version": {
+                    "type": "string"
+                },
+                "waf_ip_group_checksums": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "Wavelet_openflare_share_protocol.WAFIPGroup": {
             "type": "object",
             "properties": {
@@ -15923,10 +16159,13 @@
                 }
             }
         },
-        "agent.RegistrationResponse": {
+        "agent.RegistrationResponseDocs": {
             "type": "object",
             "properties": {
                 "access_token": {
+                    "type": "string"
+                },
+                "agent_token": {
                     "type": "string"
                 },
                 "name": {
@@ -16170,6 +16409,20 @@
                 },
                 "primary_node_id": {
                     "type": "integer"
+                },
+                "record_content": {
+                    "type": "string"
+                },
+                "record_type": {
+                    "type": "string"
+                },
+                "target_mode": {
+                    "type": "string"
+                },
+                "ttl": {
+                    "description": "TTL 为 1 时自动，否则为 60～86400 秒的整数；省略时创建默认自动，更新保留原值。",
+                    "type": "integer",
+                    "example": 1
                 }
             }
         },
@@ -16208,6 +16461,20 @@
                 },
                 "primary_node": {
                     "$ref": "#/definitions/cloudflare.NodeOption"
+                },
+                "record_content": {
+                    "type": "string"
+                },
+                "record_type": {
+                    "type": "string"
+                },
+                "target_mode": {
+                    "type": "string"
+                },
+                "ttl": {
+                    "description": "TTL 为 1 时自动，否则为 DNS-only 成员使用的秒数。",
+                    "type": "integer",
+                    "example": 1
                 },
                 "updated_at": {
                     "type": "string"
@@ -19163,6 +19430,26 @@
                 }
             }
         },
+        "node.ListResult": {
+            "type": "object",
+            "properties": {
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/node.View"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "node.ObservabilityView": {
             "type": "object",
             "properties": {
@@ -20939,6 +21226,9 @@
                         "$ref": "#/definitions/proxy_route.CustomHeaderInput"
                     }
                 },
+                "enable_http2": {
+                    "type": "boolean"
+                },
                 "enable_https": {
                     "type": "boolean"
                 },
@@ -21121,6 +21411,9 @@
                 },
                 "custom_headers": {
                     "type": "string"
+                },
+                "enable_http2": {
+                    "type": "boolean"
                 },
                 "enable_https": {
                     "type": "boolean"

@@ -203,7 +203,7 @@ function SystemConfigDetailPanel({
  * ```
  * @returns {React.ReactNode} 系统配置管理组件
  */
-export function SystemConfigs() {
+function SystemConfigs() {
   const t = useTranslations('admin.system');
   const {
     systemConfigs: configs,

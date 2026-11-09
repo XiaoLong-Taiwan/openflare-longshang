@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import type {
   ProxyRouteItem,
   ProxyRouteLoadBalancing,
@@ -50,6 +51,7 @@ import { SectionShell } from './section-shell';
 type ProxyBooleanValue = 'inherit' | 'on' | 'off';
 
 type ReverseProxyValues = {
+  enable_http2: boolean;
   upstream_type: 'direct' | 'tunnel' | 'pages';
   upstream_targets: ProxyRouteUpstreamTarget[];
   load_balancing: ProxyRouteLoadBalancing;
@@ -86,6 +88,7 @@ export function ProxySection({
   const proxyTimeoutPattern = /^[1-9]\d*(?:ms|s|m|h|d|w)$/;
   const reverseProxySchema = z
     .object({
+      enable_http2: z.boolean(),
       upstream_type: z.enum(['direct', 'tunnel', 'pages']),
       upstream_targets: z.array(
         z.object({ url: z.string(), priority: z.number().int().min(0) }),
@@ -227,6 +230,7 @@ export function ProxySection({
   const form = useForm<ReverseProxyValues>({
     resolver: zodResolver(reverseProxySchema),
     defaultValues: {
+      enable_http2: route.enable_http2 ?? true,
       upstream_type: route.upstream_type || 'direct',
       upstream_targets:
         route.upstream_targets?.length > 0
@@ -278,6 +282,7 @@ export function ProxySection({
 
   useEffect(() => {
     form.reset({
+      enable_http2: route.enable_http2 ?? true,
       upstream_type: route.upstream_type || 'direct',
       upstream_targets:
         route.upstream_targets?.length > 0
@@ -404,6 +409,7 @@ export function ProxySection({
             await save(
               {
                 origin_id: null,
+                enable_http2: values.enable_http2,
                 origin_url: originUrl,
                 origin_scheme: originScheme,
                 origin_address: originAddress,
@@ -467,6 +473,25 @@ export function ProxySection({
                   ))}
                 </div>
                 <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name='enable_http2'
+            render={({ field }) => (
+              <FormItem className='flex items-center justify-between rounded-lg border p-3'>
+                <div className='flex flex-col gap-1'>
+                  <FormLabel>{t('enableHttp2')}</FormLabel>
+                  <FormDescription>{t('enableHttp2Desc')}</FormDescription>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
               </FormItem>
             )}
           />

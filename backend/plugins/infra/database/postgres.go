@@ -5,6 +5,7 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -66,6 +67,13 @@ func initSQLiteWithConfig(cfg Config, isProd bool) (*gorm.DB, error) {
 		return nil, err
 	}
 
+	if err = enableSQLiteWAL(targetDB); err != nil {
+		if sqlDB, dbErr := targetDB.DB(); dbErr == nil {
+			err = errors.Join(err, sqlDB.Close())
+		}
+		return nil, fmt.Errorf("enable SQLite WAL: %w", err)
+	}
+
 	// Trace 注入
 	if err = targetDB.Use(
 		tracing.NewPlugin(
@@ -82,6 +90,17 @@ func initSQLiteWithConfig(cfg Config, isProd bool) (*gorm.DB, error) {
 	db = targetDB
 	log.Printf("[SQLite] initialized (path: %s)\n", sqlitePath)
 	return targetDB, nil
+}
+
+func enableSQLiteWAL(database *gorm.DB) error {
+	var mode string
+	if err := database.Raw("PRAGMA journal_mode = WAL").Scan(&mode).Error; err != nil {
+		return err
+	}
+	if mode != "wal" && mode != "memory" {
+		return fmt.Errorf("unexpected SQLite journal mode: %s", mode)
+	}
+	return nil
 }
 
 func initPostgresWithConfig(cfg Config, isProd bool) (*gorm.DB, error) {

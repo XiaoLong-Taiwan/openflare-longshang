@@ -14,6 +14,8 @@ func registerNodeRoutes(apiGroup core.RouterExtension, auth contracts.AuthServic
 	nodeRoute := apiGroup.Group("/nodes")
 	nodeRoute.Use(apiutil.AdminMiddlewares(auth)...)
 	{
+		nodeRoute.GET("/page", node.ListNodePageHandler)
+		nodeRoute.GET("/:id", node.GetNodeHandler)
 		nodeRoute.GET("/bootstrap-token", node.GetBootstrapTokenHandler)
 		nodeRoute.POST("/bootstrap-token/rotate", node.RotateBootstrapTokenHandler)
 		apiutil.RegisterCollection(nodeRoute, "GET", node.ListNodesHandler)

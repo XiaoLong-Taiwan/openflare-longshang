@@ -150,6 +150,18 @@ docker run -d --name openflare-agent --restart unless-stopped \
 > **Pages 持久化**
 > 默认将 Pages 部署目录挂载到 Docker 命名卷 `openflare-agent-pages`（容器内路径 `/data/var/lib/openflare/pages`）。重建或升级 Agent 容器时无需重新拉取静态站点包。
 
+### 映像构建与运行权限
+
+Agent Dockerfile 使用 `openresty/openresty:alpine-slim`。安装 Lua GeoIP 模块时临时加入 Perl 与 curl，完成后移除构建依赖及 OPM 缓存；运行层保留 `libmaxminddb`、CA、时区、`su-exec` 与 capabilities 支持。MMDB 文件归 `openflare` 用户所有且权限为 0644，入口脚本权限为 0755，继续通过既有低权限用户与 `CAP_NET_BIND_SERVICE` 监听 80／443。
+
+此变更需重新构建镜像才生效。发布前应在 Linux Docker 环境验证 OpenResty 配置检查、Lua MMDB 加载、普通用户启动及 TCP／UDP 443；本轮整合环境没有可连接的 Docker daemon，尚未执行镜像构建及容器启动验收。
+
+### PID 文件损坏时的恢复
+
+Reload 会先识别使用当前配置的 OpenResty master；Linux 检查 `/proc` 中的执行文件、有效 UID、配置路径与启动时间，其他 Unix 使用 `ps` 信息。若 master 仍存活而 PID 文件为空、失效或过期，Agent 原子修复主配置中明确声明的绝对 PID 路径，再向已核实的 master 发送 HUP。找不到受管 master 时才尝试启动；启动失败会返回错误，不终止占用端口的其他服务。
+
+Restart 只对匹配的 master 发送 QUIT，等待其受管 worker 退出后才启动，最长等待 10 秒。无法识别、出现多个匹配 master、核身失败或等待超时会报错，不继续启动重复实例。其他配置或用户的实例不会作为复原目标；非 Unix 平台目前拒绝未经验证的运行时恢复。配置检查仍只代表语法检查，不能代替真实监听与请求验证。
+
 ## 卸载
 
 ### 交互式卸载（推荐）

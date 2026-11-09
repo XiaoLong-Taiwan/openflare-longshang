@@ -102,6 +102,8 @@ http {
     gzip {{OpenRestyGzip}};
     gzip_min_length {{OpenRestyGzipMinLength}};
     gzip_comp_level {{OpenRestyGzipCompLevel}};
+    gzip_vary on;
+    gzip_types text/plain text/css text/xml application/javascript application/json application/xml application/rss+xml application/atom+xml image/svg+xml;
 {{OpenRestyResolverDirective}}{{OpenRestyCacheBlock}}    include {{OpenRestyRouteConfigInclude}};
 }
 `
@@ -173,6 +175,7 @@ type Route struct {
 	LoadBalancing      string           `json:"load_balancing,omitempty"`
 	Enabled            bool             `json:"enabled"`
 	EnableHTTPS        bool             `json:"enable_https"`
+	EnableHTTP2        *bool            `json:"enable_http2,omitempty"`
 	DomainCertIDs      []uint           `json:"domain_cert_ids,omitempty"`
 	RedirectHTTP       bool             `json:"redirect_http"`
 	LimitConnPerServer int              `json:"limit_conn_per_server,omitempty"`

@@ -43,6 +43,9 @@ func (CFConnection) TableName() string { return "of_cf_connections" }
 
 // CFPointingGroup stores a reusable node target for DNS records.
 type CFPointingGroup struct {
+	TargetMode     string    `json:"target_mode" gorm:"size:16;not null;default:''"`
+	RecordType     string    `json:"record_type" gorm:"size:16;not null;default:''"`
+	RecordContent  string    `json:"record_content" gorm:"size:253;not null;default:''"`
 	ID             uint      `json:"id" gorm:"primaryKey;autoIncrement"`
 	Name           string    `json:"name" gorm:"size:128;not null"`
 	PrimaryNodeID  uint      `json:"primary_node_id" gorm:"not null;index:idx_of_cf_pointing_groups_primary_node_id"`
@@ -52,6 +55,8 @@ type CFPointingGroup struct {
 	Enabled        bool      `json:"enabled" gorm:"not null;default:false"`
 	CreatedAt      time.Time `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt      time.Time `json:"updated_at" gorm:"autoUpdateTime"`
+	// TTL 为 1 时表示自动；零值兼容旧分组的 300 秒 TTL。
+	TTL int `json:"ttl" gorm:"not null;default:0"`
 }
 
 // TableName returns the Cloudflare pointing group table name.
@@ -78,7 +83,7 @@ type CFPointingMember struct {
 	Proxied      bool       `json:"proxied" gorm:"not null;default:false"`
 	CFZoneID     string     `json:"cf_zone_id" gorm:"size:64;not null;default:''"`
 	CFRecordID   string     `json:"cf_record_id" gorm:"size:64;not null;default:''"`
-	DesiredIP    string     `json:"desired_ip" gorm:"size:64;not null;default:''"`
+	DesiredIP    string     `json:"desired_ip" gorm:"size:253;not null;default:''"`
 	SyncStatus   string     `json:"sync_status" gorm:"size:16;not null;default:'pending'"`
 	LastError    string     `json:"last_error" gorm:"type:text;not null;default:''"`
 	SyncedAt     *time.Time `json:"synced_at"`
@@ -95,7 +100,7 @@ type CFPointingManagedRecord struct {
 	MemberID   uint      `json:"member_id" gorm:"not null;uniqueIndex:idx_of_cf_pointing_managed_records_member_node;index:idx_of_cf_pointing_managed_records_member_id"`
 	NodeID     uint      `json:"node_id" gorm:"not null;uniqueIndex:idx_of_cf_pointing_managed_records_member_node"`
 	CFRecordID string    `json:"cf_record_id" gorm:"size:64;not null;default:''"`
-	DesiredIP  string    `json:"desired_ip" gorm:"size:64;not null;default:''"`
+	DesiredIP  string    `json:"desired_ip" gorm:"size:253;not null;default:''"`
 	CreatedAt  time.Time `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt  time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 }

@@ -121,6 +121,11 @@ func populateProxyRouteFields(
 	route.LoadBalancing = loadBalancing
 	route.Enabled = input.Enabled
 	route.EnableHTTPS = input.EnableHTTPS
+	if input.EnableHTTP2 != nil {
+		route.EnableHTTP2 = *input.EnableHTTP2
+	} else if route.ID == 0 {
+		route.EnableHTTP2 = true
+	}
 	route.RedirectHTTP = input.RedirectHTTP
 	route.LimitConnPerServer = limitConnPerServer
 	route.LimitConnPerIP = limitConnPerIP

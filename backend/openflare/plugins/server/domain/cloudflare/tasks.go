@@ -211,6 +211,9 @@ func (handler *SyncMemberTaskHandler) Execute(ctx context.Context, payload []byt
 		task.AppendLog(ctx, "加载成员上下文失败: member_id=%d error=%v", input.MemberID, loadErr)
 	} else {
 		nodeNames, nodeIPs := syncTargetSummary(state.Nodes)
+		if state.Group.TargetMode == targetModeCustom {
+			nodeNames, nodeIPs = state.Group.RecordType, state.Group.RecordContent
+		}
 		task.AppendLog(ctx,
 			"开始域名同步: domain=%s zone=%s group=%s(#%d) nodes=%s ips=%s proxied=%v member_id=%d",
 			state.Domain.Domain,
@@ -237,6 +240,9 @@ func (handler *SyncMemberTaskHandler) Execute(ctx context.Context, payload []byt
 	message := "Cloudflare 域名同步成功"
 	if state != nil {
 		nodeNames, nodeIPs := syncTargetSummary(state.Nodes)
+		if state.Group.TargetMode == targetModeCustom {
+			nodeNames, nodeIPs = state.Group.RecordType, state.Group.RecordContent
+		}
 		message = fmt.Sprintf("Cloudflare 域名同步成功: %s → %s (proxied=%v)",
 			state.Domain.Domain, nodeIPs, state.Member.Proxied)
 		task.AppendLog(ctx,
@@ -295,7 +301,9 @@ func (handler *SyncGroupTaskHandler) Execute(ctx context.Context, payload []byte
 		task.AppendLog(ctx, "加载分组失败: group_id=%d error=%v", input.GroupID, groupErr)
 	} else {
 		scopeName = group.Name
-		if node, nodeErr := repository.GetOpenFlareNodeByID(ctx, group.ActiveNodeID); nodeErr != nil {
+		if group.TargetMode == "custom" {
+			activeNode = group.RecordType + " " + group.RecordContent
+		} else if node, nodeErr := repository.GetOpenFlareNodeByID(ctx, group.ActiveNodeID); nodeErr != nil {
 			task.AppendLog(ctx, "加载生效节点失败: group=%s active_node_id=%d error=%v",
 				group.Name, group.ActiveNodeID, nodeErr)
 		} else {
