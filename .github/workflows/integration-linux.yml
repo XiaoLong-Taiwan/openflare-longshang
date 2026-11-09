@@ -72,6 +72,8 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Generate translations
+        run: node scripts/merge-i18n-fragments.mjs
       - name: Typecheck and lint
         run: pnpm exec tsc --noEmit --jsx preserve && pnpm exec eslint . --max-warnings 0
       - name: Validate translations
