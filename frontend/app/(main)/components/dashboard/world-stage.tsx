@@ -206,7 +206,7 @@ export function WorldStage({
       label: t('requests24h'),
       value: formatCompactNumber(traffic.request_count),
       hint: t('qpsReported', {
-        qps: traffic.estimated_qps.toFixed(1),
+        qps: (traffic.average_qps ?? traffic.estimated_qps ?? 0).toFixed(4),
         count: traffic.reported_nodes,
       }),
       icon: Activity,

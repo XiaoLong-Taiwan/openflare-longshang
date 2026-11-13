@@ -17,6 +17,7 @@ import {
   TopDomainChart,
 } from './components/dashboard/distribution-rank-charts';
 import { NodeHealthTable } from './components/dashboard/node-health-table';
+import { DashboardMetricScope } from './components/dashboard/metric-scope';
 import { TrafficCapacityTrendChart } from './components/dashboard/traffic-capacity-trend-chart';
 import { TrafficTrendChart } from './components/dashboard/traffic-trend-chart';
 import { WorldStage } from './components/dashboard/world-stage';
@@ -85,6 +86,7 @@ export default function OpenFlareDashboardPage() {
         />
       ) : (
         <>
+          <DashboardMetricScope overview={overview} />
           <WorldStage
             summary={overview.summary}
             traffic={overview.traffic}

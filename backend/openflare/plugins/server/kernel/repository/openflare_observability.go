@@ -119,29 +119,11 @@ func ListOpenFlareLatestMetricSnapshotsSince(ctx context.Context, nodeID string,
 		return nil, chErr
 	}
 	// Routes through the active log store (PG/SQLite active).
-	all, listErr := ListOpenFlareMetricSnapshotsSince(ctx, nodeID, since, 0)
-	if listErr != nil {
-		return nil, listErr
+	s, err := logstore.Active(ctx)
+	if err != nil {
+		return nil, err
 	}
-	return openFlareLatestMetricSnapshots(all), nil
-}
-
-func openFlareLatestMetricSnapshots(snapshots []*model.OpenFlareMetricSnapshot) []*model.OpenFlareMetricSnapshot {
-	latestByNode := make(map[string]*model.OpenFlareMetricSnapshot, len(snapshots))
-	for _, snapshot := range snapshots {
-		if snapshot == nil || snapshot.NodeID == "" {
-			continue
-		}
-		if existing, ok := latestByNode[snapshot.NodeID]; ok && !snapshot.CapturedAt.After(existing.CapturedAt) {
-			continue
-		}
-		latestByNode[snapshot.NodeID] = snapshot
-	}
-	result := make([]*model.OpenFlareMetricSnapshot, 0, len(latestByNode))
-	for _, snapshot := range latestByNode {
-		result = append(result, snapshot)
-	}
-	return result
+	return s.Observability.ListLatestMetricSnapshots(ctx, nodeID, since)
 }
 
 // fromAnalyticsNodeMetricSnapshots converts analytics rows back to the business model.

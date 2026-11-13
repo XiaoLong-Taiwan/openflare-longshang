@@ -301,6 +301,14 @@ func (s *clickhouseLogStore) InsertMetricSnapshot(ctx context.Context, record *m
 	return nil
 }
 
+func (s *clickhouseLogStore) ListLatestMetricSnapshots(ctx context.Context, nodeID string, since time.Time) ([]*model.OpenFlareMetricSnapshot, error) {
+	rows, err := analyticsrepo.ListLatestNodeMetricSnapshots(ctx, toNodeObservabilityFilter(nodeID, since, 0))
+	if err != nil {
+		return nil, err
+	}
+	return fromAnalyticsNodeMetricSnapshots(rows), nil
+}
+
 func (s *clickhouseLogStore) ListMetricSnapshots(ctx context.Context, nodeID string, since time.Time, limit int) ([]*model.OpenFlareMetricSnapshot, error) {
 	rows, err := analyticsrepo.ListNodeMetricSnapshots(ctx, toNodeObservabilityFilter(nodeID, since, limit))
 	if err != nil {

@@ -14,7 +14,7 @@ import (
 	"Wavelet/openflare/plugins/server/kernel/model"
 )
 
-const observabilityTrendBuckets = 24
+const observabilityTrendBuckets = 25
 const unknownTrendNodeKey = "__unknown__"
 
 const (
@@ -292,8 +292,8 @@ func BuildNodeTrends(
 	applyAccessLogBytesToNetworkTrend(ctx, now, nodeID, trendSince, networkTrend)
 	diskIOTrend := BuildDiskIOTrendPoints(now, snapshots)
 
-	metricHourly, metricErr := repository.ListOpenFlareMetricHourlySince(ctx, nodeID, trendSince)
-	if metricErr == nil && len(metricHourly) > 0 {
+	metricHourly, metricErr := repository.ListOpenFlareMetricHourlySince(ctx, nodeID, trendSince.Truncate(time.Hour))
+	if metricErr == nil {
 		capacityTrend = BuildCapacityTrendPointsFromHourly(now, metricHourly)
 		diskIOTrend = BuildDiskIOTrendPointsFromHourly(now, metricHourly)
 	}
@@ -354,7 +354,7 @@ func applyAccessLogBytesToNetworkTrend(ctx context.Context, now time.Time, nodeI
 		return
 	}
 	// Prefer of_access_log_hourly (summed across hosts).
-	if hourly, err := analyticsListAccessLogHourlyBytes(ctx, nodeID, since); err == nil && len(hourly) > 0 {
+	if hourly, err := analyticsListAccessLogHourlyBytes(ctx, nodeID, since); err == nil && len(hourly) > 0 && since.Equal(since.Truncate(time.Hour)) && now.Equal(now.Truncate(time.Hour)) {
 		for hourUnix, totals := range hourly {
 			for index := range points {
 				if points[index].BucketStartedAt.Unix() == hourUnix {
@@ -449,15 +449,18 @@ func BuildCapacityTrendPoints(now time.Time, snapshots []*model.OpenFlareMetricS
 		accumulators[index].nodes = make(map[string]struct{})
 	}
 	for _, snapshot := range snapshots {
+		if snapshot == nil || snapshot.CapturedAt.Before(now.Add(-24*time.Hour)) || snapshot.CapturedAt.After(now) {
+			continue
+		}
 		index, ok := trendBucketIndex(snapshot.CapturedAt, start)
 		if !ok {
 			continue
 		}
-		if snapshot.CPUUsagePercent > 0 {
+		if snapshot.CPUUsagePercent >= 0 {
 			accumulators[index].cpuSum += snapshot.CPUUsagePercent
 			accumulators[index].cpuCount++
 		}
-		if memoryUsage := Percentage(snapshot.MemoryUsedBytes, snapshot.MemoryTotalBytes); memoryUsage > 0 {
+		if memoryUsage := Percentage(snapshot.MemoryUsedBytes, snapshot.MemoryTotalBytes); snapshot.MemoryTotalBytes > 0 {
 			accumulators[index].memSum += memoryUsage
 			accumulators[index].memCount++
 		}

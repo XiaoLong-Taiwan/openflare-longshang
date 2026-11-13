@@ -10,9 +10,11 @@ import (
 	"sort"
 	"time"
 
+	"Wavelet/openflare/plugins/server/kernel/model"
 	analyticsmodel "Wavelet/openflare/plugins/server/kernel/model/analytics"
 	analyticsrepo "Wavelet/openflare/plugins/server/kernel/repository/analytics"
 	"Wavelet/pkg/idgen"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -406,6 +408,14 @@ func (s *clickhouseLogStore) archiveDaily(ctx context.Context) error {
 }
 
 func ListNodeAccessDaily(ctx context.Context, nodeID string, since, until time.Time) ([]analyticsmodel.NodeAccessDaily, error) {
+	return listNodeAccessDaily(ctx, nodeID, since, until, 0, true)
+}
+
+func SummarizeNodeAccessDaily(ctx context.Context, query model.OpenFlareAccessLogQuery) ([]analyticsmodel.NodeAccessDaily, error) {
+	return listNodeAccessDaily(ctx, query.NodeID, query.Since, query.Until, query.StatusCode, false)
+}
+
+func listNodeAccessDaily(ctx context.Context, nodeID string, since, until time.Time, statusCode int, byDay bool) ([]analyticsmodel.NodeAccessDaily, error) {
 	store, err := Active(ctx)
 	if err != nil {
 		return nil, err
@@ -434,7 +444,14 @@ func ListNodeAccessDaily(ctx context.Context, nodeID string, since, until time.T
 	if !until.IsZero() {
 		q = q.Where("day <= ?", until.UTC().Format(time.DateOnly))
 	}
+	if statusCode != 0 {
+		q = q.Where("status_code = ?", statusCode)
+	}
+	group := "node_id, status_code"
+	if byDay {
+		group = "day, " + group
+	}
 	var rows []analyticsmodel.NodeAccessDaily
-	err = q.Select("day, node_id, status_code, SUM(request_count) AS request_count, SUM(bytes_sent) AS bytes_sent, SUM(request_length) AS request_length").Group("day, node_id, status_code").Order("day, node_id, status_code").Scan(&rows).Error
+	err = q.Select(group + ", SUM(request_count) AS request_count, SUM(bytes_sent) AS bytes_sent, SUM(request_length) AS request_length").Group(group).Order(group).Scan(&rows).Error
 	return rows, err
 }

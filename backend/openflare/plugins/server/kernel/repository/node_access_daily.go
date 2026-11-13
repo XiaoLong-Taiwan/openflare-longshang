@@ -18,17 +18,7 @@ func dailySummaryQuery(q model.OpenFlareAccessLogQuery) bool {
 }
 
 func dailyRows(ctx context.Context, q model.OpenFlareAccessLogQuery) ([]analyticsmodel.NodeAccessDaily, error) {
-	rows, err := logstore.ListNodeAccessDaily(ctx, q.NodeID, q.Since, q.Until)
-	if err != nil {
-		return nil, err
-	}
-	filtered := rows[:0]
-	for _, row := range rows {
-		if q.StatusCode == 0 || int(row.StatusCode) == q.StatusCode {
-			filtered = append(filtered, row)
-		}
-	}
-	return filtered, nil
+	return logstore.SummarizeNodeAccessDaily(ctx, q)
 }
 
 func dailyTraffic(ctx context.Context, q model.OpenFlareAccessLogQuery) (model.OpenFlareAccessLogTrafficSummary, error) {

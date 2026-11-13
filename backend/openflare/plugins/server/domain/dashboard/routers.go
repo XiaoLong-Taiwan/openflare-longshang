@@ -13,7 +13,7 @@ import (
 
 // GetOverviewHandler 获取仪表盘概览数据。
 // @Summary 获取仪表盘概览
-// @Description 聚合节点与可观测性数据，返回 OpenFlare 控制台仪表盘概览，需要管理员权限
+// @Description 聚合节点与可观测性数据，需要管理员权限。traffic 返回滚动 24 小时起止、保留存取明细口径、4xx/5xx 百分比与平均 QPS（请求数/86400，estimated_qps 保留同值）；capacity 返回最近 24 小时快照覆盖、新鲜/过期/缺失节点数与最新快照时间，新鲜阈值为 120 秒。趋势包含首尾部分小时共 25 桶；压缩数组列顺序不变。summary_fallback 表示使用小时趋势回退，UV 与流量节点数不可用。
 // @Tags openflare-dashboard
 // @Produce json
 // @Security SessionCookie

@@ -139,10 +139,10 @@ func TestGetOverviewStructure(t *testing.T) {
 	assert.NotEmpty(t, overview.Distributions.TopDomains)
 	assert.Empty(t, overview.Distributions.SourceCountries)
 
-	require.Len(t, overview.Trends.Traffic24h, 24)
-	require.Len(t, overview.Trends.Capacity24h, 24)
-	require.Len(t, overview.Trends.Network24h, 24)
-	require.Len(t, overview.Trends.DiskIO24h, 24)
+	require.Len(t, overview.Trends.Traffic24h, 25)
+	require.Len(t, overview.Trends.Capacity24h, 25)
+	require.Len(t, overview.Trends.Network24h, 25)
+	require.Len(t, overview.Trends.DiskIO24h, 25)
 	for _, row := range overview.Trends.Traffic24h {
 		require.Len(t, row, 7)
 	}

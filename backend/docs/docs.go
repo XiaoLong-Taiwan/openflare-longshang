@@ -7794,7 +7794,7 @@ const docTemplate = `{
                         "SessionCookie": []
                     }
                 ],
-                "description": "聚合节点与可观测性数据，返回 OpenFlare 控制台仪表盘概览，需要管理员权限",
+                "description": "聚合节点与可观测性数据，需要管理员权限。traffic 返回滚动 24 小时起止、保留存取明细口径、4xx/5xx 百分比与平均 QPS（请求数/86400，estimated_qps 保留同值）；capacity 返回最近 24 小时快照覆盖、新鲜/过期/缺失节点数与最新快照时间，新鲜阈值为 120 秒。趋势包含首尾部分小时共 25 桶；压缩数组列顺序不变。summary_fallback 表示使用小时趋势回退，UV 与流量节点数不可用。",
                 "produces": [
                     "application/json"
                 ],
@@ -16921,6 +16921,12 @@ const docTemplate = `{
                 "average_memory_usage_percent": {
                     "type": "number"
                 },
+                "fresh_nodes": {
+                    "type": "integer"
+                },
+                "freshness_threshold_seconds": {
+                    "type": "integer"
+                },
                 "high_cpu_nodes": {
                     "type": "integer"
                 },
@@ -16928,6 +16934,18 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "high_storage_nodes": {
+                    "type": "integer"
+                },
+                "latest_snapshot_at": {
+                    "type": "string"
+                },
+                "missing_nodes": {
+                    "type": "integer"
+                },
+                "reported_nodes": {
+                    "type": "integer"
+                },
+                "stale_nodes": {
                     "type": "integer"
                 }
             }
@@ -16983,6 +17001,9 @@ const docTemplate = `{
         "dashboard.Traffic": {
             "type": "object",
             "properties": {
+                "average_qps": {
+                    "type": "number"
+                },
                 "error_count": {
                     "type": "integer"
                 },
@@ -16995,8 +17016,32 @@ const docTemplate = `{
                 "request_count": {
                     "type": "integer"
                 },
+                "source": {
+                    "type": "string"
+                },
+                "status_4xx_count": {
+                    "type": "integer"
+                },
+                "status_4xx_rate": {
+                    "type": "number"
+                },
+                "status_5xx_count": {
+                    "type": "integer"
+                },
+                "status_5xx_rate": {
+                    "type": "number"
+                },
+                "summary_fallback": {
+                    "type": "boolean"
+                },
                 "unique_visitors": {
                     "type": "integer"
+                },
+                "window_ended_at": {
+                    "type": "string"
+                },
+                "window_started_at": {
+                    "type": "string"
                 }
             }
         },

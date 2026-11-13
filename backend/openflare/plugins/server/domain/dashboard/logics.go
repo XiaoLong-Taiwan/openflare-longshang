@@ -25,20 +25,35 @@ type Summary struct {
 
 // Traffic is the dashboard traffic section.
 type Traffic struct {
-	RequestCount   int64   `json:"request_count"`
-	UniqueVisitors int64   `json:"unique_visitors"`
-	ErrorCount     int64   `json:"error_count"`
-	EstimatedQPS   float64 `json:"estimated_qps"`
-	ReportedNodes  int     `json:"reported_nodes"`
+	WindowStartedAt time.Time `json:"window_started_at"`
+	WindowEndedAt   time.Time `json:"window_ended_at"`
+	Source          string    `json:"source"`
+	SummaryFallback bool      `json:"summary_fallback"`
+	Status4xxCount  int64     `json:"status_4xx_count"`
+	Status5xxCount  int64     `json:"status_5xx_count"`
+	Status4xxRate   float64   `json:"status_4xx_rate"`
+	Status5xxRate   float64   `json:"status_5xx_rate"`
+	AverageQPS      float64   `json:"average_qps"`
+	RequestCount    int64     `json:"request_count"`
+	UniqueVisitors  int64     `json:"unique_visitors"`
+	ErrorCount      int64     `json:"error_count"`
+	EstimatedQPS    float64   `json:"estimated_qps"`
+	ReportedNodes   int       `json:"reported_nodes"`
 }
 
 // Capacity is the dashboard capacity section.
 type Capacity struct {
-	AverageCPUUsagePercent    float64 `json:"average_cpu_usage_percent"`
-	AverageMemoryUsagePercent float64 `json:"average_memory_usage_percent"`
-	HighCPUNodes              int     `json:"high_cpu_nodes"`
-	HighMemoryNodes           int     `json:"high_memory_nodes"`
-	HighStorageNodes          int     `json:"high_storage_nodes"`
+	ReportedNodes             int        `json:"reported_nodes"`
+	FreshNodes                int        `json:"fresh_nodes"`
+	StaleNodes                int        `json:"stale_nodes"`
+	MissingNodes              int        `json:"missing_nodes"`
+	FreshnessThresholdSeconds int        `json:"freshness_threshold_seconds"`
+	LatestSnapshotAt          *time.Time `json:"latest_snapshot_at"`
+	AverageCPUUsagePercent    float64    `json:"average_cpu_usage_percent"`
+	AverageMemoryUsagePercent float64    `json:"average_memory_usage_percent"`
+	HighCPUNodes              int        `json:"high_cpu_nodes"`
+	HighMemoryNodes           int        `json:"high_memory_nodes"`
+	HighStorageNodes          int        `json:"high_storage_nodes"`
 }
 
 // NodeHealth is a dashboard node health row.
@@ -124,10 +139,6 @@ func buildOverviewView(ctx context.Context) (*OverviewView, error) {
 	if err != nil {
 		return nil, err
 	}
-	snapshots, err := repository.ListOpenFlareMetricSnapshotsSince(ctx, "", since, dashboardOverviewSnapshotLimit)
-	if err != nil {
-		return nil, err
-	}
 	accessLogRegions, err := repository.ListOpenFlareAccessLogRegionCounts(ctx, "", since, dashboardDistributionLimit)
 	if err != nil {
 		return nil, err
@@ -140,11 +151,13 @@ func buildOverviewView(ctx context.Context) (*OverviewView, error) {
 	// L1 business: trends + distributions + totals from access logs only.
 	view := &OverviewView{
 		GeneratedAt: now,
+		Traffic:     Traffic{WindowStartedAt: since, WindowEndedAt: now, Source: "retained_access_logs"},
+		Capacity:    Capacity{FreshnessThresholdSeconds: 120},
 		Nodes:       make([]NodeHealth, 0, len(nodes)),
 		Distributions: observability.BuildTrafficDistributionsFromAccessLogs(
 			ctx, since, now, dashboardDistributionLimit, accessLogRegions,
 		),
-		Trends: observability.BuildNodeTrends(ctx, now, "", snapshots),
+		Trends: observability.BuildNodeTrends(ctx, now, "", nil),
 	}
 
 	// Global traffic summary uses true window uniqExact for UV (not sum of hourly uniques).
@@ -163,7 +176,9 @@ func buildOverviewView(ctx context.Context) (*OverviewView, error) {
 	} else {
 		// Fallback: sum hourly request/error buckets only (UV left from summary path).
 		applyTrafficTotalsFromTrend(&view.Traffic, view.Trends.Traffic24h)
+		view.Traffic.SummaryFallback = true
 	}
+	applyTrafficRates(&view.Traffic, view.Trends.Traffic24h)
 
 	nodeTraffic := map[string]model.OpenFlareAccessLogNodeAggregate{}
 	if aggregates, aggErr := repository.NodeAggregatesOpenFlareAccessLogs(ctx, model.OpenFlareAccessLogQuery{
@@ -195,6 +210,7 @@ func buildOverviewView(ctx context.Context) (*OverviewView, error) {
 		}
 
 		latestSnapshot := latestSnapshots[node.NodeID]
+		applySnapshotCoverage(&view.Capacity, latestSnapshot, now)
 		nodeActiveEvents := activeEventsByNode[node.NodeID]
 
 		nodeHealth := NodeHealth{
@@ -246,11 +262,11 @@ func applyNodeSnapshotMetrics(nodeHealth *NodeHealth, snapshot *model.OpenFlareM
 	nodeHealth.CPUUsagePercent = snapshot.CPUUsagePercent
 	nodeHealth.MemoryUsagePercent = observability.Percentage(snapshot.MemoryUsedBytes, snapshot.MemoryTotalBytes)
 	nodeHealth.StorageUsagePercent = observability.Percentage(snapshot.StorageUsedBytes, snapshot.StorageTotalBytes)
-	if snapshot.CPUUsagePercent > 0 {
+	if snapshot.CPUUsagePercent >= 0 {
 		view.Capacity.AverageCPUUsagePercent += snapshot.CPUUsagePercent
 		cpuNodeCount++
 	}
-	if nodeHealth.MemoryUsagePercent > 0 {
+	if snapshot.MemoryTotalBytes > 0 {
 		view.Capacity.AverageMemoryUsagePercent += nodeHealth.MemoryUsagePercent
 		memoryNodeCount++
 	}
@@ -277,8 +293,36 @@ func applyTrafficTotalsFromTrend(traffic *Traffic, points []observability.Traffi
 		traffic.RequestCount += point.RequestCount
 		traffic.ErrorCount += point.ErrorCount
 	}
-	if traffic.RequestCount > 0 && traffic.ReportedNodes == 0 {
-		traffic.ReportedNodes = 1
+	traffic.EstimatedQPS = float64(traffic.RequestCount) / (24 * 3600)
+}
+
+func applyTrafficRates(traffic *Traffic, points []observability.TrafficTrendPoint) {
+	traffic.Status4xxCount = 0
+	traffic.Status5xxCount = 0
+	for _, point := range points {
+		traffic.Status4xxCount += point.Status4xxCount
+		traffic.Status5xxCount += point.Status5xxCount
+	}
+	traffic.AverageQPS = float64(traffic.RequestCount) / (24 * 3600)
+	traffic.EstimatedQPS = traffic.AverageQPS
+	traffic.Status4xxRate = observability.Percentage(traffic.Status4xxCount, traffic.RequestCount)
+	traffic.Status5xxRate = observability.Percentage(traffic.Status5xxCount, traffic.RequestCount)
+}
+
+func applySnapshotCoverage(capacity *Capacity, snapshot *model.OpenFlareMetricSnapshot, now time.Time) {
+	if snapshot == nil {
+		capacity.MissingNodes++
+		return
+	}
+	capacity.ReportedNodes++
+	if capacity.LatestSnapshotAt == nil || snapshot.CapturedAt.After(*capacity.LatestSnapshotAt) {
+		capturedAt := snapshot.CapturedAt
+		capacity.LatestSnapshotAt = &capturedAt
+	}
+	if snapshot.CapturedAt.After(now) || now.Sub(snapshot.CapturedAt) > time.Duration(capacity.FreshnessThresholdSeconds)*time.Second {
+		capacity.StaleNodes++
+	} else {
+		capacity.FreshNodes++
 	}
 }
 

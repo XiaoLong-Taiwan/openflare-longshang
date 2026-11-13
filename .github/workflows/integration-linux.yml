@@ -37,6 +37,8 @@ jobs:
             ./openflare/plugins/agent/state \
             ./openflare/plugins/agent/sync \
             ./openflare/plugins/server/domain/cloudflare \
+            ./openflare/plugins/server/domain/dashboard \
+            ./openflare/plugins/server/domain/observability \
             ./openflare/plugins/server/domain/fleet/... \
             ./openflare/plugins/server/domain/site/... \
             ./openflare/plugins/server/domain/option/uptimekuma \

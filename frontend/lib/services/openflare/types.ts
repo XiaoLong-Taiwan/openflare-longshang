@@ -1195,6 +1195,15 @@ export interface DashboardSummary {
 }
 
 export interface DashboardTraffic {
+  window_started_at?: string;
+  window_ended_at?: string;
+  source?: string;
+  summary_fallback?: boolean;
+  status_4xx_count?: number;
+  status_5xx_count?: number;
+  status_4xx_rate?: number;
+  status_5xx_rate?: number;
+  average_qps?: number;
   request_count: number;
   unique_visitors: number;
   error_count: number;
@@ -1203,6 +1212,12 @@ export interface DashboardTraffic {
 }
 
 export interface DashboardCapacity {
+  reported_nodes?: number;
+  fresh_nodes?: number;
+  stale_nodes?: number;
+  missing_nodes?: number;
+  freshness_threshold_seconds?: number;
+  latest_snapshot_at?: string | null;
   average_cpu_usage_percent: number;
   average_memory_usage_percent: number;
   high_cpu_nodes: number;

@@ -64,6 +64,7 @@ type AccessLogStore interface {
 type ObservabilityStore interface {
 	InsertMetricSnapshot(ctx context.Context, record *model.OpenFlareMetricSnapshot) error
 	ListMetricSnapshots(ctx context.Context, nodeID string, since time.Time, limit int) ([]*model.OpenFlareMetricSnapshot, error)
+	ListLatestMetricSnapshots(ctx context.Context, nodeID string, since time.Time) ([]*model.OpenFlareMetricSnapshot, error)
 	DeleteAllMetricSnapshots(ctx context.Context) (int64, error)
 	DeleteMetricSnapshotsBefore(ctx context.Context, cutoff time.Time) (int64, error)
 	BatchInsertNodeMetricSnapshots(ctx context.Context, rows []analyticsmodel.NodeMetricSnapshot) error

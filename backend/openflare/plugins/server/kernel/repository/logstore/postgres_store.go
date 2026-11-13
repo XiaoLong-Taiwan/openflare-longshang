@@ -1156,6 +1156,19 @@ func (s *gormLogStore) ListMetricSnapshots(ctx context.Context, nodeID string, s
 	return fromAnalyticsNodeMetricSnapshots(rows), nil
 }
 
+func (s *gormLogStore) ListLatestMetricSnapshots(ctx context.Context, nodeID string, since time.Time) ([]*model.OpenFlareMetricSnapshot, error) {
+	var rows []analyticsmodel.NodeMetricSnapshot
+	ranked := nodeIDScope(s.db.WithContext(ctx).Model(&analyticsmodel.NodeMetricSnapshot{}), nodeID).
+		Select("*, ROW_NUMBER() OVER (PARTITION BY node_id ORDER BY captured_at DESC, id DESC) AS snapshot_rank").
+		Where("captured_at >= ? AND node_id <> ''", since)
+	err := s.db.WithContext(ctx).Table("(?) AS ranked_snapshots", ranked).
+		Where("snapshot_rank = 1").Order("node_id").Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	return fromAnalyticsNodeMetricSnapshots(rows), nil
+}
+
 func (s *gormLogStore) DeleteAllMetricSnapshots(ctx context.Context) (int64, error) {
 	if err := s.ensureWritable(ctx); err != nil {
 		return 0, err
