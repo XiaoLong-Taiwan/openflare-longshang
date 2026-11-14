@@ -164,6 +164,10 @@ export function AccessLogFilters({
         <FilterField label={t('remoteAddr')}>
           <Input
             value={draft.remoteAddr}
+            autoCapitalize='none'
+            autoCorrect='off'
+            spellCheck={false}
+            enterKeyHint='search'
             onChange={(e) =>
               onDraftChange({ ...draft, remoteAddr: e.target.value })
             }
@@ -177,6 +181,10 @@ export function AccessLogFilters({
         <FilterField label={t('host')}>
           <Input
             value={draft.host}
+            autoCapitalize='none'
+            autoCorrect='off'
+            spellCheck={false}
+            enterKeyHint='search'
             onChange={(e) => onDraftChange({ ...draft, host: e.target.value })}
             onKeyDown={(e) => {
               if (e.key === 'Enter') onSearch();
@@ -188,6 +196,8 @@ export function AccessLogFilters({
         <FilterField label={t('statusCode')}>
           <Input
             value={draft.statusCode}
+            inputMode='numeric'
+            enterKeyHint='search'
             onChange={(e) =>
               onDraftChange({
                 ...draft,
@@ -225,6 +235,8 @@ export function AccessLogFilters({
                 <Search className='absolute left-2.5 top-2.5 size-3.5 text-muted-foreground' />
                 <Input
                   value={draft.nodeId}
+                  inputMode='numeric'
+                  enterKeyHint='search'
                   onChange={(e) =>
                     onDraftChange({ ...draft, nodeId: e.target.value })
                   }
@@ -239,6 +251,10 @@ export function AccessLogFilters({
             <FilterField label={t('path')}>
               <Input
                 value={draft.path}
+                autoCapitalize='none'
+                autoCorrect='off'
+                spellCheck={false}
+                enterKeyHint='search'
                 onChange={(e) =>
                   onDraftChange({ ...draft, path: e.target.value })
                 }
@@ -250,7 +266,7 @@ export function AccessLogFilters({
               />
             </FilterField>
             <FilterField label={t('timeRange')}>
-              <div className='grid grid-cols-2 gap-2'>
+              <div className='grid grid-cols-1 gap-2 sm:grid-cols-2'>
                 <DateTimePicker
                   value={draft.since}
                   onChange={(value) =>
@@ -280,7 +296,7 @@ export function AccessLogFilters({
               onPageSizeChange(Number.parseInt(value, 10))
             }
           >
-            <SelectTrigger className='h-9 text-xs'>
+            <SelectTrigger className='h-9 w-full text-xs max-md:min-h-11'>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -292,7 +308,7 @@ export function AccessLogFilters({
             </SelectContent>
           </Select>
         </div>
-        <div className='flex gap-2'>
+        <div className='flex gap-2 max-sm:[&_button]:min-h-11 max-sm:[&_button]:flex-1'>
           <Button size='sm' onClick={onSearch}>
             {t('apply')}
           </Button>

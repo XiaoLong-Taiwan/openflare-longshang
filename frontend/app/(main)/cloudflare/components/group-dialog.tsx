@@ -55,12 +55,13 @@ export function GroupDialog({
   const [recordType, setRecordType] = useState<'A' | 'AAAA' | 'CNAME'>('A');
   const [recordContent, setRecordContent] = useState('');
   const [selectedNodes, setSelectedNodes] = useState<
-    Array<{ nodeID: number; priority: number }>
+    Array<{ nodeID: number; priority: number; ipv6: string }>
   >([]);
   const [defaultProxied, setDefaultProxied] = useState(true);
   const [enabled, setEnabled] = useState(true);
   const [ttlMode, setTtlMode] = useState<'auto' | 'manual'>('auto');
   const [manualTTL, setManualTTL] = useState('300');
+  const [debounceSeconds, setDebounceSeconds] = useState('0');
   const ttl = ttlMode === 'auto' ? 1 : Number(manualTTL);
   const invalidTTL =
     ttlMode === 'manual' &&
@@ -77,12 +78,13 @@ export function GroupDialog({
         ? group.nodes.map((node) => ({
             nodeID: node.id,
             priority: node.priority,
+            ipv6: node.ipv6 ?? '',
           }))
         : group
           ? [
-              { nodeID: group.primary_node.id, priority: 0 },
+              { nodeID: group.primary_node.id, priority: 0, ipv6: '' },
               ...(group.backup_node
-                ? [{ nodeID: group.backup_node.id, priority: 1 }]
+                ? [{ nodeID: group.backup_node.id, priority: 1, ipv6: '' }]
                 : []),
             ]
           : [],
@@ -92,6 +94,7 @@ export function GroupDialog({
     const groupTTL = group ? (group.ttl ?? 300) : 1;
     setTtlMode(groupTTL === 1 ? 'auto' : 'manual');
     setManualTTL(String(groupTTL === 1 ? 300 : groupTTL));
+    setDebounceSeconds(String(group?.debounce_seconds ?? 0));
   }, [group, open]);
 
   return (
@@ -176,7 +179,7 @@ export function GroupDialog({
                     (item) => item.nodeID === node.id,
                   );
                   return (
-                    <div key={node.id} className='flex items-center gap-3'>
+                    <div key={node.id} className='flex flex-wrap items-center gap-3'>
                       <Checkbox
                         aria-label={t('selectNode', { name: node.name })}
                         checked={Boolean(selected)}
@@ -184,10 +187,26 @@ export function GroupDialog({
                         onCheckedChange={(checked) =>
                           setSelectedNodes((current) =>
                             checked
-                              ? [...current, { nodeID: node.id, priority: 0 }]
+                              ? [...current, { nodeID: node.id, priority: 0, ipv6: '' }]
                               : current.filter(
                                   (item) => item.nodeID !== node.id,
                                 ),
+                          )
+                        }
+                      />
+                      <Input
+                        className='w-full sm:w-44'
+                        placeholder={t('ipv6Placeholder')}
+                        aria-label={t('ipv6For', { name: node.name })}
+                        disabled={!selected}
+                        value={selected?.ipv6 ?? ''}
+                        onChange={(event) =>
+                          setSelectedNodes((current) =>
+                            current.map((item) =>
+                              item.nodeID === node.id
+                                ? { ...item, ipv6: event.target.value }
+                                : item,
+                            ),
                           )
                         }
                       />
@@ -271,6 +290,19 @@ export function GroupDialog({
               )}
             </Field>
           )}
+          <Field>
+            <FieldLabel htmlFor='cf-debounce-seconds'>{t('debounce')}</FieldLabel>
+            <Input
+              id='cf-debounce-seconds'
+              type='number'
+              min={0}
+              max={86400}
+              step={1}
+              value={debounceSeconds}
+              onChange={(event) => setDebounceSeconds(event.target.value)}
+            />
+            <FieldDescription>{t('debounceHint')}</FieldDescription>
+          </Field>
           <Field orientation='horizontal'>
             <FieldLabel htmlFor='cf-default-proxied'>
               {t('defaultProxied')}
@@ -321,10 +353,12 @@ export function GroupDialog({
                   (node) => ({
                     node_id: node.nodeID,
                     priority: node.priority,
+                    ipv6: node.ipv6,
                   }),
                 ),
                 default_proxied: defaultProxied,
                 ttl,
+                debounce_seconds: Number(debounceSeconds) || 0,
                 enabled,
               });
             }}

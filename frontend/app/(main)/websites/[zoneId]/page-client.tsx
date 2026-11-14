@@ -183,8 +183,9 @@ export function ZonePageClient() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className='w-full'>
-        <TabsList variant='line' className='mb-6 inline-flex w-fit gap-8'>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className='w-full min-w-0'>
+        <div className='mb-6 max-w-full overflow-x-auto pb-2'>
+        <TabsList variant='line' className='inline-flex w-max gap-6 sm:gap-8'>
           <TabsTrigger
             value='overview'
             className='px-0 pb-2 text-xs font-semibold'
@@ -210,6 +211,7 @@ export function ZonePageClient() {
             {tc('settings')}
           </TabsTrigger>
         </TabsList>
+        </div>
 
         <TabsContent value='overview'>
           <ZoneOverviewPanel overview={overview} zoneId={zoneId} />

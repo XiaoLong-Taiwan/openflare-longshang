@@ -163,6 +163,31 @@ func SaveRuleGraphHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, response.OK(rule))
 }
 
+// SimulateRuleGraphHandler evaluates a request against an unsaved WAF graph.
+// @Summary 模拟 WAF 请求
+// @Tags openflare-waf
+// @Accept json
+// @Produce json
+// @Security SessionCookie
+// @Param request body waf.SimulationInput true "规则图与模拟请求"
+// @Success 200 {object} response.Any{data=waf.SimulationResult} "模拟结果"
+// @Failure 400 {object} response.Any "参数或规则图错误"
+// @Failure 401 {object} response.Any "未登录"
+// @Failure 404 {object} response.Any "无权限或 IP 组不存在"
+// @Failure 500 {object} response.Any "内部错误"
+// @Router /api/v1/d/waf/simulate [post]
+func SimulateRuleGraphHandler(c *gin.Context) {
+	var input SimulationInput
+	if !apiutil.BindJSON(c, &input) {
+		return
+	}
+	result, err := SimulateRuleGraph(c.Request.Context(), input)
+	if handleRuleError(c, err) {
+		return
+	}
+	c.JSON(http.StatusOK, response.OK(result))
+}
+
 // DeleteRuleHandler deletes a non-global WAF rule.
 // @Summary 删除 WAF 规则
 // @Tags openflare-waf

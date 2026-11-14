@@ -31,14 +31,16 @@ type NodeOption struct {
 
 // GroupNodeInput assigns a node to a Cloudflare group priority.
 type GroupNodeInput struct {
-	NodeID   uint `json:"node_id"`
-	Priority int  `json:"priority"`
+	NodeID   uint   `json:"node_id"`
+	Priority int    `json:"priority"`
+	IPv6     string `json:"ipv6"`
 }
 
 // GroupNodeItem exposes a Cloudflare group node and its priority.
 type GroupNodeItem struct {
 	NodeOption
-	Priority int `json:"priority"`
+	Priority int    `json:"priority"`
+	IPv6     string `json:"ipv6"`
 }
 
 // GroupInput creates or updates a pointing group.
@@ -53,7 +55,8 @@ type GroupInput struct {
 	DefaultProxied bool             `json:"default_proxied"`
 	Enabled        bool             `json:"enabled"`
 	// TTL 为 1 时自动，否则为 60～86400 秒的整数；省略时创建默认自动，更新保留原值。
-	TTL *int `json:"ttl" example:"1"`
+	TTL             *int `json:"ttl" example:"1"`
+	DebounceSeconds *int `json:"debounce_seconds"`
 }
 
 // GroupItem is the admin-facing pointing group summary.
@@ -73,7 +76,8 @@ type GroupItem struct {
 	CreatedAt      time.Time       `json:"created_at"`
 	UpdatedAt      time.Time       `json:"updated_at"`
 	// TTL 为 1 时自动，否则为 DNS-only 成员使用的秒数。
-	TTL int `json:"ttl" example:"1"`
+	TTL             int `json:"ttl" example:"1"`
+	DebounceSeconds int `json:"debounce_seconds"`
 }
 
 // MemberCreateInput adds a ZoneDomain to a group. Nil Proxied copies the group default.

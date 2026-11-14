@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus, RefreshCw, Route, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -35,7 +35,6 @@ import { ProxyRouteService } from '@/lib/services/openflare';
 import { useTranslations } from 'next-intl';
 
 import {
-  getRouteDomainNames,
   getRouteDomainsLabel,
   getRoutePrimaryDomain,
   getUpstreamSummary,
@@ -49,47 +48,44 @@ export function ProxyRoutesPageClient() {
   const [routes, setRoutes] = useState<ProxyRouteItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const requestId = useRef(0);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ProxyRouteItem | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const fetchRoutes = useCallback(async () => {
+    const currentRequest = ++requestId.current;
     setLoading(true);
     try {
-      const data = await ProxyRouteService.list();
-      setRoutes(data);
+      const data = await ProxyRouteService.listPage(page, 20, search);
+      if (currentRequest !== requestId.current) return;
+      setRoutes(data.results);
+      setTotal(data.total);
+      if (page > 1 && data.results.length === 0) setPage(Math.max(1, Math.ceil(data.total / 20)));
     } catch (error) {
+      if (currentRequest !== requestId.current) return;
       toast.error(t('loadListFailed'), {
         description: error instanceof Error ? error.message : t('unknownError'),
       });
     } finally {
-      setLoading(false);
+      if (currentRequest === requestId.current) setLoading(false);
     }
-  }, [t]);
+  }, [t, page, search]);
 
   useEffect(() => {
     void fetchRoutes();
   }, [fetchRoutes]);
 
-  const filteredRoutes = useMemo(() => {
-    const normalizedKeyword = keyword.trim().toLowerCase();
-    if (!normalizedKeyword) {
-      return routes;
-    }
-
-    return routes.filter((route) => {
-      const haystack = [
-        route.site_name,
-        getRoutePrimaryDomain(route),
-        ...getRouteDomainNames(route),
-        route.origin_url,
-      ]
-        .join(' ')
-        .toLowerCase();
-
-      return haystack.includes(normalizedKeyword);
-    });
-  }, [keyword, routes]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(keyword.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [keyword]);
 
   const handleDelete = async () => {
     if (!deleteTarget) {
@@ -163,13 +159,13 @@ export function ProxyRoutesPageClient() {
                 <Skeleton key={index} className='h-10 w-full' />
               ))}
             </div>
-          ) : filteredRoutes.length === 0 ? (
+          ) : routes.length === 0 ? (
             <div className='flex flex-col items-center justify-center gap-2 py-12 text-center'>
               <p className='text-sm font-medium'>
-                {routes.length === 0 ? t('emptyTitle') : t('noMatches')}
+                {search ? t('noMatches') : t('emptyTitle')}
               </p>
               <p className='text-xs text-muted-foreground'>
-                {routes.length === 0 ? t('emptyDesc') : t('noMatchesDesc')}
+                {search ? t('noMatchesDesc') : t('emptyDesc')}
               </p>
             </div>
           ) : (
@@ -184,7 +180,7 @@ export function ProxyRoutesPageClient() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredRoutes.map((route) => (
+                {routes.map((route) => (
                   <TableRow key={route.id}>
                     <TableCell className='font-medium'>
                       {route.site_name}
@@ -234,6 +230,11 @@ export function ProxyRoutesPageClient() {
               </TableBody>
             </Table>
           )}
+          <div className='mt-4 flex items-center justify-end gap-3'>
+            <Button variant='outline' size='sm' disabled={loading || page <= 1} onClick={() => setPage((value) => value - 1)}>{tc('previousPage')}</Button>
+            <span className='text-sm text-muted-foreground'>{page} / {Math.max(1, Math.ceil(total / 20))}</span>
+            <Button variant='outline' size='sm' disabled={loading || page * 20 >= total} onClick={() => setPage((value) => value + 1)}>{tc('nextPage')}</Button>
+          </div>
         </CardContent>
       </Card>
 

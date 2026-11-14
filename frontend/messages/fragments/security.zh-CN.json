@@ -56,6 +56,15 @@
       "enableRule": "启用规则",
       "format": "格式化",
       "formatTitle": "自动整理节点与连线布局",
+      "simulate": "模拟请求",
+      "simulateTitle": "模拟 WAF 请求",
+      "simulateDesc": "离线评估当前画布规则，不会向源站发送请求。",
+      "simulateIP": "客户端 IP",
+      "simulateCountry": "国家代码",
+      "simulateDecision": "判定",
+      "simulateTrace": "节点路径",
+      "simulating": "模拟中…",
+      "runSimulation": "执行模拟",
       "saving": "保存中...",
       "save": "保存",
       "saved": "规则图已保存",
@@ -865,7 +874,11 @@
       "ttlManual": "手动",
       "ttlSeconds": "TTL（秒）",
       "ttlHint": "修改将应用于分组内所有灰云（仅 DNS）成员；橙云始终自动。Auto 当前约为 300 秒。",
-      "ttlError": "请输入 60 至 86400 之间的整数秒数。"
+      "ttlError": "请输入 60 至 86400 之间的整数秒数。",
+      "ipv6Placeholder": "选填 IPv6 地址",
+      "ipv6For": "节点 {name} 的 IPv6 地址",
+      "debounce": "健康防抖秒数",
+      "debounceHint": "连续离线或服务不健康达到此秒数后才切换；0 表示立即切换。"
     },
     "memberDialog": {
       "title": "添加域名成员",

@@ -189,13 +189,13 @@ func appendWriterStats[T any](stats []batchwriter.Stats, writer *batchwriter.Wri
 }
 
 // QueueMetricSnapshot enqueues a metric snapshot for asynchronous flush.
-func QueueMetricSnapshot(snapshot analyticsmodel.NodeMetricSnapshot) {
-	queueWithDedup(metricSnapshotWriter, metricSnapshotDedup, metricSnapshotKey(snapshot), snapshot)
+func QueueMetricSnapshot(snapshot analyticsmodel.NodeMetricSnapshot) bool {
+	return queueWithDedup(metricSnapshotWriter, metricSnapshotDedup, metricSnapshotKey(snapshot), snapshot)
 }
 
 // QueueEdgeHealth enqueues an L2 edge health snapshot for asynchronous flush.
-func QueueEdgeHealth(row analyticsmodel.NodeEdgeHealth) {
-	queueWithDedup(edgeHealthWriter, edgeHealthDedup, edgeHealthKey(row), row)
+func QueueEdgeHealth(row analyticsmodel.NodeEdgeHealth) bool {
+	return queueWithDedup(edgeHealthWriter, edgeHealthDedup, edgeHealthKey(row), row)
 }
 
 // QueueFrpsObservation enqueues an FRPS observation for asynchronous flush.
@@ -230,18 +230,20 @@ func QueueNodeAccessLogs(logs []analyticsmodel.NodeAccessLog) bool {
 	return true
 }
 
-func queueWithDedup[T any](writer *batchwriter.Writer[T], dedup *dedupSet, key string, item T) {
+func queueWithDedup[T any](writer *batchwriter.Writer[T], dedup *dedupSet, key string, item T) bool {
 	if writer == nil {
-		return
+		return false
 	}
 	// Mark first so concurrent duplicates still collapse; release on enqueue failure
 	// so a full queue does not permanently suppress the item.
 	if !dedup.markIfNew(key) {
-		return
+		return true
 	}
 	if !writer.TryEnqueue(item) {
 		dedup.unmark(key)
+		return false
 	}
+	return true
 }
 
 func mustNewObservabilityWriter[T any](

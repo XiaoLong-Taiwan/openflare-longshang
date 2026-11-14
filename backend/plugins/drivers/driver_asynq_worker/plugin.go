@@ -412,6 +412,10 @@ func (s *taskServiceImpl) Dispatch(ctx context.Context, taskType string, payload
 	return DispatchTask(ctx, taskType, payload, triggeredBy)
 }
 
+func (s *taskServiceImpl) Cancel(ctx context.Context, id uint64) error {
+	return CancelTask(ctx, id)
+}
+
 func (s *taskServiceImpl) ListTasks() []contracts.TaskMetaDTO {
 	all := GetDispatchableTasks()
 	res := make([]contracts.TaskMetaDTO, 0, len(all))

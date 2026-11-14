@@ -56,7 +56,8 @@ type CFPointingGroup struct {
 	CreatedAt      time.Time `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt      time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 	// TTL 为 1 时表示自动；零值兼容旧分组的 300 秒 TTL。
-	TTL int `json:"ttl" gorm:"not null;default:0"`
+	TTL             int `json:"ttl" gorm:"not null;default:0"`
+	DebounceSeconds int `json:"debounce_seconds" gorm:"not null;default:0"`
 }
 
 // TableName returns the Cloudflare pointing group table name.
@@ -68,6 +69,7 @@ type CFPointingGroupNode struct {
 	GroupID   uint      `json:"group_id" gorm:"not null;uniqueIndex:idx_of_cf_pointing_group_nodes_group_node;index:idx_of_cf_pointing_group_nodes_group_priority"`
 	NodeID    uint      `json:"node_id" gorm:"not null;uniqueIndex:idx_of_cf_pointing_group_nodes_group_node;index:idx_of_cf_pointing_group_nodes_node_id"`
 	Priority  int       `json:"priority" gorm:"not null;default:0;index:idx_of_cf_pointing_group_nodes_group_priority"`
+	IPv6      string    `json:"ipv6" gorm:"size:64;not null;default:''"`
 	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 }
@@ -101,6 +103,7 @@ type CFPointingManagedRecord struct {
 	NodeID     uint      `json:"node_id" gorm:"not null;uniqueIndex:idx_of_cf_pointing_managed_records_member_node"`
 	CFRecordID string    `json:"cf_record_id" gorm:"size:64;not null;default:''"`
 	DesiredIP  string    `json:"desired_ip" gorm:"size:253;not null;default:''"`
+	RecordType string    `json:"record_type" gorm:"size:16;not null;default:'A'"`
 	CreatedAt  time.Time `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt  time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 }

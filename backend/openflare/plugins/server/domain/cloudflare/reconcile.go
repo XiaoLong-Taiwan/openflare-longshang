@@ -24,6 +24,11 @@ const (
 	memberSyncStatusColumn = "sync_status"
 )
 
+type managedKey struct {
+	nodeID     uint
+	recordType string
+}
+
 var memberLocks [memberLockStripeCount]sync.Mutex
 
 // ReconcileMember makes one Cloudflare A record match the local desired state.
@@ -36,7 +41,7 @@ func ReconcileMember(ctx context.Context, memberID uint) error {
 		return err
 	}
 	if err := reconcileMember(ctx, memberID); err != nil {
-		if updateErr := repository.UpdateCFPointingMemberColumns(ctx, memberID, map[string]any{memberSyncStatusColumn: model.CFMemberSyncError, memberLastErrorColumn: err.Error()}); updateErr != nil {
+		if updateErr := repository.UpdateCFPointingMemberColumns(ctx, memberID, map[string]any{memberSyncStatusColumn: model.CFMemberSyncError, memberLastErrorColumn: errSyncFailed}); updateErr != nil {
 			logger.ErrorF(ctx, "[Cloudflare] persist member sync error failed: member_id=%d error=%v", memberID, updateErr)
 		}
 		return err
@@ -73,49 +78,73 @@ func reconcileMember(ctx context.Context, memberID uint) error {
 	if len(managed) == 0 && state.Member.CFRecordID != "" {
 		managed = append(managed, model.CFPointingManagedRecord{MemberID: memberID, NodeID: state.Group.ActiveNodeID, CFRecordID: state.Member.CFRecordID, DesiredIP: state.Member.DesiredIP})
 	}
-	managedByNode := make(map[uint]*model.CFPointingManagedRecord, len(managed))
+	managedByKey := make(map[managedKey]*model.CFPointingManagedRecord, len(managed))
 	for i := range managed {
-		managedByNode[managed[i].NodeID] = &managed[i]
+		recordType := managed[i].RecordType
+		if recordType == "" {
+			recordType = "A"
+		}
+		managedByKey[managedKey{nodeID: managed[i].NodeID, recordType: recordType}] = &managed[i]
 	}
-	targetNodeIDs := make(map[uint]struct{}, len(targets))
+	targetKeys := make(map[managedKey]struct{}, len(targets))
 	for _, target := range targets {
-		targetNodeIDs[target.Node.ID] = struct{}{}
+		for _, input := range memberRecordInputs(state, target) {
+			targetKeys[managedKey{nodeID: target.Node.ID, recordType: input.Type}] = struct{}{}
+		}
 	}
-	_, hadCustomTarget := managedByNode[0]
+	_, hadCustomTarget := managedByKey[managedKey{nodeID: 0, recordType: state.Group.RecordType}]
 	cleanupFirst := state.Group.TargetMode == targetModeCustom || hadCustomTarget
 	if cleanupFirst {
-		if err := cleanupManagedRecords(ctx, client, zoneID, managed, targetNodeIDs); err != nil {
+		if err := cleanupManagedRecords(ctx, client, zoneID, managed, targetKeys); err != nil {
 			return err
 		}
 	}
 	for _, target := range targets {
-		input := memberRecordInput(state, target)
-		record, syncErr := syncManagedRecord(ctx, client, zoneID, input, managedByNode[target.Node.ID], memberID, target.Node.ID)
-		if syncErr != nil {
-			return syncErr
+		for _, input := range memberRecordInputs(state, target) {
+			key := managedKey{nodeID: target.Node.ID, recordType: input.Type}
+			record, syncErr := syncManagedRecord(ctx, client, zoneID, input, managedByKey[key], memberID, target.Node.ID)
+			if syncErr != nil {
+				return syncErr
+			}
+			managedByKey[key] = record
 		}
-		managedByNode[target.Node.ID] = record
 	}
 	if !cleanupFirst {
-		if err := cleanupManagedRecords(ctx, client, zoneID, managed, targetNodeIDs); err != nil {
+		if err := cleanupManagedRecords(ctx, client, zoneID, managed, targetKeys); err != nil {
 			return err
 		}
 	}
 	primary := targets[0]
-	primaryRecord := managedByNode[primary.Node.ID]
+	primaryRecord := managedByKey[managedKey{nodeID: primary.Node.ID, recordType: "A"}]
+	if primaryRecord == nil {
+		primaryRecord = managedByKey[managedKey{nodeID: 0, recordType: state.Group.RecordType}]
+	}
 	return markMemberSynced(ctx, memberID, zoneID, primaryRecord.CFRecordID, primaryRecord.DesiredIP, primary.Node.ID)
 }
 
-func memberRecordInput(state *repository.CFPointingMemberContext, target repository.CFPointingGroupNodeContext) RecordInput {
-	input := recordInput(state.Domain.Domain, strings.TrimSpace(target.Node.IP), state.Member.Proxied)
+func memberRecordInputs(state *repository.CFPointingMemberContext, target repository.CFPointingGroupNodeContext) []RecordInput {
 	if state.Group.TargetMode == targetModeCustom {
-		input.Type, input.Content = state.Group.RecordType, state.Group.RecordContent
+		input := recordInput(state.Domain.Domain, state.Group.RecordType, state.Group.RecordContent, state.Member.Proxied)
+		input.TTL = groupTTL(&state.Group)
+		if input.Proxied {
+			input.TTL = automaticTTL
+		}
+		return []RecordInput{input}
 	}
-	input.TTL = groupTTL(&state.Group)
-	if input.Proxied {
-		input.TTL = automaticTTL
+	inputs := make([]RecordInput, 0, 2)
+	if ip := strings.TrimSpace(target.Node.IP); net.ParseIP(ip) != nil && net.ParseIP(ip).To4() != nil {
+		inputs = append(inputs, recordInput(state.Domain.Domain, "A", ip, state.Member.Proxied))
 	}
-	return input
+	if ip := strings.TrimSpace(target.GroupNode.IPv6); net.ParseIP(ip) != nil && net.ParseIP(ip).To4() == nil {
+		inputs = append(inputs, recordInput(state.Domain.Domain, "AAAA", ip, state.Member.Proxied))
+	}
+	for i := range inputs {
+		inputs[i].TTL = groupTTL(&state.Group)
+		if inputs[i].Proxied {
+			inputs[i].TTL = automaticTTL
+		}
+	}
+	return inputs
 }
 
 func memberTargets(state *repository.CFPointingMemberContext) ([]repository.CFPointingGroupNodeContext, error) {
@@ -128,7 +157,7 @@ func memberTargets(state *repository.CFPointingMemberContext) ([]repository.CFPo
 		}
 		return []repository.CFPointingGroupNodeContext{{}}, nil
 	}
-	targets := lowestPriorityAvailableNodes(state.Nodes)
+	targets := lowestPriorityAvailableNodes(state.Nodes, time.Duration(state.Group.DebounceSeconds)*time.Second)
 	if len(targets) == 0 {
 		return nil, errors.New(errNoAvailableNodes)
 	}
@@ -146,9 +175,13 @@ func memberZoneID(ctx context.Context, client Client, state *repository.CFPointi
 	return zone.ID, nil
 }
 
-func cleanupManagedRecords(ctx context.Context, client Client, zoneID string, managed []model.CFPointingManagedRecord, targets map[uint]struct{}) error {
+func cleanupManagedRecords(ctx context.Context, client Client, zoneID string, managed []model.CFPointingManagedRecord, targets map[managedKey]struct{}) error {
 	for i := range managed {
-		if _, keep := targets[managed[i].NodeID]; keep {
+		recordType := managed[i].RecordType
+		if recordType == "" {
+			recordType = "A"
+		}
+		if _, keep := targets[managedKey{nodeID: managed[i].NodeID, recordType: recordType}]; keep {
 			continue
 		}
 		if managed[i].CFRecordID != "" {
@@ -173,7 +206,7 @@ func syncManagedRecord(ctx context.Context, client Client, zoneID string, input 
 			if updateErr != nil {
 				return nil, updateErr
 			}
-			record.CFRecordID, record.DesiredIP = updated.ID, input.Content
+			record.CFRecordID, record.DesiredIP, record.RecordType = updated.ID, input.Content, input.Type
 			return record, repository.SaveCFPointingManagedRecord(ctx, record)
 		}
 		if !isNotFoundError(err) {
@@ -187,7 +220,7 @@ func syncManagedRecord(ctx context.Context, client Client, zoneID string, input 
 	if record == nil {
 		record = &model.CFPointingManagedRecord{MemberID: memberID, NodeID: nodeID}
 	}
-	record.CFRecordID, record.DesiredIP = created.ID, input.Content
+	record.CFRecordID, record.DesiredIP, record.RecordType = created.ID, input.Content, input.Type
 	if err := repository.SaveCFPointingManagedRecord(ctx, record); err != nil {
 		if deleteErr := client.DeleteRecord(ctx, zoneID, created.ID); deleteErr != nil && !isNotFoundError(deleteErr) {
 			logger.ErrorF(ctx, "failed to delete Cloudflare record %s after managed record save failed: %v", created.ID, deleteErr)
@@ -197,11 +230,11 @@ func syncManagedRecord(ctx context.Context, client Client, zoneID string, input 
 	return record, nil
 }
 
-func lowestPriorityAvailableNodes(nodes []repository.CFPointingGroupNodeContext) []repository.CFPointingGroupNodeContext {
+func lowestPriorityAvailableNodes(nodes []repository.CFPointingGroupNodeContext, debounce time.Duration) []repository.CFPointingGroupNodeContext {
 	priority := 0
 	found := false
 	for _, node := range nodes {
-		if !nodeAvailable(node.Node) {
+		if !nodeAvailable(node.Node, debounce) {
 			continue
 		}
 		if !found || node.GroupNode.Priority < priority {
@@ -214,26 +247,33 @@ func lowestPriorityAvailableNodes(nodes []repository.CFPointingGroupNodeContext)
 	}
 	available := make([]repository.CFPointingGroupNodeContext, 0, len(nodes))
 	for _, node := range nodes {
-		if nodeAvailable(node.Node) && node.GroupNode.Priority == priority {
+		if nodeAvailable(node.Node, debounce) && node.GroupNode.Priority == priority {
 			available = append(available, node)
 		}
 	}
 	return available
 }
 
-func nodeAvailable(node model.OpenFlareNode) bool {
-	if node.Status != "online" || net.ParseIP(strings.TrimSpace(node.IP)).To4() == nil || node.LastSeenAt == nil || node.LastSeenAt.IsZero() {
+func nodeAvailable(node model.OpenFlareNode, debounce time.Duration) bool {
+	if node.OpenrestyStatus == "unhealthy" || node.LastSeenAt == nil || node.LastSeenAt.IsZero() {
 		return false
 	}
-	return time.Since(*node.LastSeenAt) <= 60*time.Second
+	age := time.Since(*node.LastSeenAt)
+	if node.Status == "offline" {
+		return debounce > 0 && age <= debounce
+	}
+	if node.Status != "online" {
+		return false
+	}
+	return age <= time.Minute
 }
 
-func recordInput(name, ip string, proxied bool) RecordInput {
+func recordInput(name, recordType, ip string, proxied bool) RecordInput {
 	ttl := 300
 	if proxied {
 		ttl = 1
 	}
-	return RecordInput{Type: "A", Name: name, Content: ip, Proxied: proxied, TTL: ttl}
+	return RecordInput{Type: recordType, Name: name, Content: ip, Proxied: proxied, TTL: ttl}
 }
 
 func markMemberSynced(ctx context.Context, memberID uint, zoneID, recordID, ip string, activeNodeID uint) error {
@@ -248,7 +288,10 @@ func markMemberSynced(ctx context.Context, memberID uint, zoneID, recordID, ip s
 	}); err != nil {
 		return err
 	}
-	return repository.DB(ctx).Model(&model.CFPointingGroup{}).Where("id = ?", member.GroupID).Update("active_node_id", activeNodeID).Error
+	if err := repository.DB(ctx).Model(&model.CFPointingGroup{}).Where("id = ?", member.GroupID).Update("active_node_id", activeNodeID).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 // DeleteManagedRecord deletes the cached or uniquely discoverable A record.

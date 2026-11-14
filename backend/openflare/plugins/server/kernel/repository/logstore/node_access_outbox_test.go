@@ -150,6 +150,67 @@ func TestOutboxRetryAfterDeliveryBeforeAcknowledge(t *testing.T) {
 	}
 }
 
+func TestOutboxPersistsIndependentRetryBackoff(t *testing.T) {
+	s := newTestGormStore(t)
+	ctx := context.Background()
+	if err := enqueueNodeDelivery(s.db, nodeDelivery{DeleteIDs: []uint64{1}}); err != nil {
+		t.Fatal(err)
+	}
+	deliver := func(context.Context, nodeDelivery) error { return errors.New("temporary downstream failure") }
+	if err := flushNodeOutbox(ctx, s.db, deliver); err == nil {
+		t.Fatal("flushNodeOutbox(failure) = nil, want delivery error")
+	}
+	var pending analyticsmodel.NodeAccessOutbox
+	if err := s.db.First(&pending).Error; err != nil {
+		t.Fatal(err)
+	}
+	if pending.Attempts != 1 || pending.NextAttemptAt.Before(time.Now()) || pending.LastError == "" {
+		t.Errorf("persisted retry state = %+v, want attempt, future retry time, and error", pending)
+	}
+	if got := outboxRetryDelay(3); got != 4*time.Second {
+		t.Errorf("outboxRetryDelay(3) = %s, want 4s", got)
+	}
+}
+
+func TestOutboxInvalidPayloadIsRetriedWithoutBlockingQueue(t *testing.T) {
+	s := newTestGormStore(t)
+	ctx := context.Background()
+	if err := s.db.Create(&analyticsmodel.NodeAccessOutbox{ID: 1, Payload: "not-json", NextAttemptAt: time.Now().UTC()}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := flushNodeOutbox(ctx, s.db, func(context.Context, nodeDelivery) error { return nil }); err != nil {
+		t.Fatalf("flushNodeOutbox(invalid payload) error = %v, want nil after isolating poison message", err)
+	}
+	var pending analyticsmodel.NodeAccessOutbox
+	if err := s.db.First(&pending, 1).Error; err != nil {
+		t.Fatal(err)
+	}
+	if pending.Attempts != 1 || pending.LastError != "invalid outbox payload" || !pending.NextAttemptAt.After(time.Now()) {
+		t.Fatalf("invalid payload retry state = %+v", pending)
+	}
+}
+
+func TestOutboxHealthReportsPendingFailure(t *testing.T) {
+	s := newTestGormStore(t)
+	ctx := context.Background()
+	SetDBResolver(func(context.Context) *gorm.DB { return s.db })
+	t.Cleanup(func() { SetDBResolver(nil) })
+	if err := enqueueNodeDelivery(s.db, nodeDelivery{DeleteIDs: []uint64{1}}); err != nil {
+		t.Fatal(err)
+	}
+	want := errors.New("temporary downstream failure")
+	if err := flushNodeOutbox(ctx, s.db, func(context.Context, nodeDelivery) error { return want }); err == nil {
+		t.Fatal("flushNodeOutbox() = nil, want error")
+	}
+	health, err := GetNodeAccessOutboxHealth(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if health.Pending != 1 || health.OldestAt.IsZero() || health.LastError == "" || health.Healthy {
+		t.Fatalf("health=%+v, want pending unhealthy retry state", health)
+	}
+}
+
 func TestClickHouseHistoricalCheckpointAndRepeat(t *testing.T) {
 	ResetForTest()
 	t.Cleanup(ResetForTest)

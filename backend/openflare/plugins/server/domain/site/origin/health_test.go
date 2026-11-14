@@ -28,3 +28,21 @@ func TestIsHealthyStatus(t *testing.T) {
 		})
 	}
 }
+
+func TestClassifyHealthStatus(t *testing.T) {
+	tests := []struct {
+		status int
+		online bool
+		want   string
+	}{
+		{status: 200, online: true, want: "healthy"},
+		{status: 404, online: false, want: "http_4xx"},
+		{status: 503, online: false, want: "http_5xx"},
+		{status: 302, online: false, want: "unexpected_status"},
+	}
+	for _, test := range tests {
+		if got := classifyHealthStatus(test.status, test.online); got != test.want {
+			t.Errorf("classifyHealthStatus(%d, %t) = %q, want %q", test.status, test.online, got, test.want)
+		}
+	}
+}

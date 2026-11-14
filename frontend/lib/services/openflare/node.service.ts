@@ -2,6 +2,7 @@ import { OpenFlareBaseService } from './base.service';
 import type {
   NodeAgentReleaseInfo,
   NodeAgentUpdatePayload,
+  NodeBatchActionResponse,
   NodeBootstrapToken,
   NodeItem,
   NodeListQuery,
@@ -60,6 +61,22 @@ export class NodeService extends OpenFlareBaseService {
 
   static async requestForceSync(id: number): Promise<NodeItem> {
     return this.post<NodeItem>(`/${id}/force-sync`);
+  }
+
+  static async requestAgentUpdateBatch(
+    ids: number[],
+    payload?: NodeAgentUpdatePayload,
+  ): Promise<NodeBatchActionResponse> {
+    return this.post<NodeBatchActionResponse>('/batch/agent-update', {
+      ids,
+      ...(payload ?? {}),
+    });
+  }
+
+  static async requestForceSyncBatch(
+    ids: number[],
+  ): Promise<NodeBatchActionResponse> {
+    return this.post<NodeBatchActionResponse>('/batch/force-sync', { ids });
   }
 
   static async requestOpenrestyRestart(id: number): Promise<NodeItem> {

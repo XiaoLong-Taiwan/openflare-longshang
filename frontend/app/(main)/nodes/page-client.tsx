@@ -71,6 +71,7 @@ function NodesPage({ nodeFilter }: { nodeFilter: NodeFilter }) {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [status, setStatus] = useState<NodeStatus | ''>('');
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const searchTooLong = new TextEncoder().encode(search.trim()).length > 256;
 
   const resetNodeActions = useCallback(() => {
@@ -181,6 +182,20 @@ function NodesPage({ nodeFilter }: { nodeFilter: NodeFilter }) {
     void queryClient.invalidateQueries({ queryKey: nodesQueryKey });
   };
 
+  const batchMutation = useMutation({
+    mutationFn: (action: 'update' | 'sync') =>
+      action === 'update'
+        ? NodeService.requestAgentUpdateBatch([...selectedIds])
+        : NodeService.requestForceSyncBatch([...selectedIds]),
+    onSuccess: (result) => {
+      const successCount = result.results.filter((item) => item.success).length;
+      toast.success(t('batchCompleted', { count: successCount }));
+      setSelectedIds(new Set());
+      void queryClient.invalidateQueries({ queryKey: nodesQueryKey });
+    },
+    onError: (error) => toast.error(getErrorMessage(error, t('requestFailed'))),
+  });
+
   return (
     <div className='flex w-full flex-col gap-6 py-6 px-1'>
       <div className='flex items-center justify-between gap-3'>
@@ -230,6 +245,24 @@ function NodesPage({ nodeFilter }: { nodeFilter: NodeFilter }) {
                 <RefreshCw className='size-3.5 mr-1' />
               )}
               {t('refreshNow')}
+            </Button>
+            <Button
+              variant='outline'
+              size='sm'
+              className='h-7 text-xs'
+              disabled={selectedIds.size === 0 || batchMutation.isPending}
+              onClick={() => batchMutation.mutate('sync')}
+            >
+              {t('batchSync')}
+            </Button>
+            <Button
+              variant='outline'
+              size='sm'
+              className='h-7 text-xs'
+              disabled={selectedIds.size === 0 || batchMutation.isPending}
+              onClick={() => batchMutation.mutate('update')}
+            >
+              {t('batchUpdate')}
             </Button>
           </div>
         </CardHeader>
@@ -294,6 +327,25 @@ function NodesPage({ nodeFilter }: { nodeFilter: NodeFilter }) {
               onDelete={(node) => {
                 if (!nodesQuery.isPlaceholderData) setDeleteTarget(node);
               }}
+              selectedIds={selectedIds}
+              onToggle={(id) =>
+                setSelectedIds((current) => {
+                  const next = new Set(current);
+                  if (next.has(id)) next.delete(id);
+                  else next.add(id);
+                  return next;
+                })
+              }
+              onToggleAll={(checked) =>
+                setSelectedIds((current) => {
+                  const next = new Set(current);
+                  for (const node of nodes) {
+                    if (checked) next.add(node.id);
+                    else next.delete(node.id);
+                  }
+                  return next;
+                })
+              }
               actionsDisabled={nodesQuery.isPlaceholderData}
             />
           )}

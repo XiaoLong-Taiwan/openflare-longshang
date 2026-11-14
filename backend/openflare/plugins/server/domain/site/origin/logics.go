@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"sort"
@@ -51,6 +52,7 @@ type HealthView struct {
 	LatencyMS  int64  `json:"latency_ms"`
 	Online     bool   `json:"online"`
 	Message    string `json:"message"`
+	Category   string `json:"category"`
 	CheckedAt  string `json:"checked_at"`
 }
 
@@ -88,7 +90,7 @@ func CheckOrigin(ctx context.Context, id uint) (*HealthView, error) {
 	}
 	request, err := http.NewRequestWithContext(ctx, http.MethodHead, address, nil)
 	if err != nil {
-		return &HealthView{Online: false, Message: errOriginHealthInvalidURL, CheckedAt: time.Now().Format(time.RFC3339)}, nil
+		return &HealthView{Online: false, Category: "invalid_url", Message: errOriginHealthInvalidURL, CheckedAt: time.Now().Format(time.RFC3339)}, nil
 	}
 	startedAt := time.Now()
 	client := &http.Client{Timeout: 5 * time.Second}
@@ -96,7 +98,7 @@ func CheckOrigin(ctx context.Context, id uint) (*HealthView, error) {
 	latency := time.Since(startedAt).Milliseconds()
 	checkedAt := time.Now().Format(time.RFC3339)
 	if err != nil {
-		return &HealthView{LatencyMS: latency, Online: false, Message: err.Error(), CheckedAt: checkedAt}, nil
+		return &HealthView{LatencyMS: latency, Online: false, Category: classifyHealthError(err), Message: healthErrorMessage(err), CheckedAt: checkedAt}, nil
 	}
 	defer response.Body.Close()
 	accept4xx := true
@@ -108,9 +110,50 @@ func CheckOrigin(ctx context.Context, id uint) (*HealthView, error) {
 		StatusCode: response.StatusCode,
 		LatencyMS:  latency,
 		Online:     online,
+		Category:   classifyHealthStatus(response.StatusCode, online),
 		Message:    response.Status,
 		CheckedAt:  checkedAt,
 	}, nil
+}
+
+func classifyHealthStatus(statusCode int, online bool) string {
+	if online {
+		return "healthy"
+	}
+	if statusCode >= 500 {
+		return "http_5xx"
+	}
+	if statusCode >= 400 {
+		return "http_4xx"
+	}
+	return "unexpected_status"
+}
+
+func classifyHealthError(err error) string {
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return "timeout"
+	}
+	var dnsErr *net.DNSError
+	if errors.As(err, &dnsErr) {
+		return "dns"
+	}
+	var urlErr *url.Error
+	if errors.As(err, &urlErr) {
+		return classifyHealthError(urlErr.Err)
+	}
+	return "connection"
+}
+
+func healthErrorMessage(err error) string {
+	switch classifyHealthError(err) {
+	case "timeout":
+		return "源站请求逾时"
+	case "dns":
+		return "源站域名解析失败"
+	default:
+		return "无法连接源站"
+	}
 }
 
 func isHealthyStatus(statusCode int, accept4xx bool) bool {

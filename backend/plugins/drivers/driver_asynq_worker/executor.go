@@ -278,6 +278,37 @@ func RetryTask(ctx context.Context, id uint64) (string, error) {
 	return newTaskID, nil
 }
 
+func CancelTask(ctx context.Context, id uint64) error {
+	execution, err := getTaskExecutionByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf(errTaskExecutionNotFound, err)
+	}
+	if execution.Status != TaskExecutionStatusPending && execution.Status != TaskExecutionStatusRunning {
+		return fmt.Errorf("only pending or running tasks can be canceled, current status: %s", execution.Status)
+	}
+	inspector := GetAsynqInspector()
+	if err = inspector.CancelProcessing(execution.TaskID); err == nil {
+		logger.InfoF(ctx, "task cancellation requested taskID=%s", execution.TaskID)
+		return nil
+	}
+	queueName := QueueDefault
+	if meta := GetTaskMeta(execution.TaskType); meta != nil {
+		queueName = meta.Queue
+	}
+	if deleteErr := inspector.DeleteTask(queueName, execution.TaskID); deleteErr != nil {
+		return errors.Join(err, deleteErr)
+	}
+	return updateCanceledExecution(ctx, execution)
+}
+
+func updateCanceledExecution(ctx context.Context, execution *TaskExecution) error {
+	now := time.Now()
+	execution.Status = TaskExecutionStatusCanceled
+	execution.ErrorMessage = "任务已由管理员取消"
+	execution.FinishedAt = &now
+	return updateTaskExecution(ctx, execution)
+}
+
 // ProcessTask Asynq 实际调用的统一处理函数
 // Worker 注册时统一使用此函数，内部自动分发到对应的 TaskHandler
 func ProcessTask(ctx context.Context, t *asynq.Task) error {
@@ -441,6 +472,9 @@ func getOrCreateTaskExecution(ctx context.Context, taskID string, t *asynq.Task,
 // completeTaskExecution 完成并更新任务执行记录的状态和执行结果
 func completeTaskExecution(ctx context.Context, execution *TaskExecution, t *asynq.Task, duration time.Duration, finishTime time.Time, result *TaskResult, execErr error, span trace.Span) {
 	if execution == nil {
+		return
+	}
+	if execution.Status == TaskExecutionStatusCanceled {
 		return
 	}
 

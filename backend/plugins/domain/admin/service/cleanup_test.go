@@ -134,6 +134,7 @@ func (s *cleanupTaskService) Dispatch(context.Context, string, []byte, string) (
 	return "", nil
 }
 func (s *cleanupTaskService) Retry(context.Context, uint64) (string, error) { return "", nil }
+func (s *cleanupTaskService) Cancel(context.Context, uint64) error          { return nil }
 func (s *cleanupTaskService) ListTasks() []contracts.TaskMetaDTO            { return nil }
 func (s *cleanupTaskService) GetTaskMeta(string) (contracts.TaskMetaDTO, bool) {
 	return contracts.TaskMetaDTO{}, false

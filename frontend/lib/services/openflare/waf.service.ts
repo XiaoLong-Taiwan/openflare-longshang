@@ -7,7 +7,10 @@ import type {
   WAFIPGroupSyncResult,
   WAFCreateRulePayload,
   WAFRule,
+  WAFRuleGraph,
   WAFSaveRuleGraphPayload,
+  WAFSimulationRequest,
+  WAFSimulationResult,
   WAFSiteRuleGroups,
   WAFUpdateRuleMetaPayload,
 } from './types';
@@ -43,6 +46,13 @@ export class WafService extends OpenFlareBaseService {
 
   static async deleteRuleGroup(id: number): Promise<void> {
     return this.post<void>(`/rule-groups/${id}/delete`);
+  }
+
+  static async simulate(
+    graph: WAFRuleGraph,
+    request: WAFSimulationRequest,
+  ): Promise<WAFSimulationResult> {
+    return this.post<WAFSimulationResult>('/simulate', { graph, request });
   }
 
   static async listSiteRuleGroups(routeId: number): Promise<WAFSiteRuleGroups> {

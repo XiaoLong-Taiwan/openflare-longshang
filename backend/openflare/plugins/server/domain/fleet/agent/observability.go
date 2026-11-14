@@ -99,7 +99,7 @@ func persistNodeEdgeHealth(ctx context.Context, nodeID string, health *NodeEdgeH
 	if status == "" {
 		status = openrestyStatusUnknown
 	}
-	return repository.InsertOpenFlareEdgeHealth(ctx, &model.OpenFlareEdgeHealth{
+	return repository.InsertOpenFlareEdgeHealthDurable(ctx, &model.OpenFlareEdgeHealth{
 		NodeID:      nodeID,
 		CapturedAt:  timeFromUnix(health.CapturedAtUnix, reportedAt),
 		Status:      status,
@@ -160,7 +160,7 @@ func persistNodeMetricSnapshot(ctx context.Context, nodeID string, snapshot *Nod
 		DiskWriteBytes:    snapshot.DiskWriteBytes,
 		// NetworkRx/Tx no longer collected from agents; CH columns remain 0.
 	}
-	return repository.InsertOpenFlareMetricSnapshot(ctx, record)
+	return repository.InsertOpenFlareMetricSnapshotDurable(ctx, record)
 }
 
 func buildNodeAccessLogRecords(ctx context.Context, nodeID string, direct []NodeAccessLog, buffered []BufferedObservabilityRecord, reportedAt time.Time) ([]*model.OpenFlareAccessLog, error) {
@@ -206,7 +206,7 @@ func persistNodeAccessLogs(ctx context.Context, _ string, records []*model.OpenF
 	if len(records) == 0 {
 		return nil
 	}
-	return repository.InsertOpenFlareAccessLogsBatch(ctx, records)
+	return repository.InsertOpenFlareAccessLogsBatchDurable(ctx, records)
 }
 
 // ReconcileScopedNodeHealthEvents reconciles health events, optionally scoped to managed event types.

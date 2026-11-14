@@ -65,6 +65,10 @@
 
 ## 2. 采集频率（默认）
 
+Agent 觀測緩衝以同目錄暫存檔原子替換，並同步檔案與目錄後才視為寫入完成；無法解析的舊檔會以 `.corrupt-*` 隔離保留，不會以空緩衝覆蓋原始損壞內容。Server 的非同步觀測佇列拒絕資料時，心跳回報失敗，Agent 會保留並重送該窗口。
+
+ClickHouse 訪問日誌 outbox 使用資料庫持久化 `attempts`、`next_attempt_at` 與 `last_error`，短暫下游故障採指數退避，且不需等待新的日誌批次才重送。
+
 | 动作 | 默认频率 | 配置 |
 | --- | --- | --- |
 | Agent → Server 上报 | **每 3 秒** 一次完整 payload | `heartbeat_interval` / 控制面 `agent_heartbeat_interval`（毫秒，默认 `3000`） |

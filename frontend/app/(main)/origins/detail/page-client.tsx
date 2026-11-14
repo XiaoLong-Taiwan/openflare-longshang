@@ -206,15 +206,29 @@ export function OriginDetailPageClient() {
               onClick={() => void healthQuery.refetch()}
               disabled={healthQuery.isFetching}
             >
-              <RefreshCw className={healthQuery.isFetching ? 'animate-spin' : ''} />
+              <RefreshCw
+                className={healthQuery.isFetching ? 'animate-spin' : ''}
+              />
             </Button>
           </div>
           <div className='mt-2 flex items-center gap-2 text-sm'>
-            <span className={healthQuery.data?.online ? 'size-2 rounded-full bg-emerald-500' : 'size-2 rounded-full bg-destructive'} />
-            {healthQuery.isLoading ? t('checking') : healthQuery.data?.online ? t('online') : t('offline')}
+            <span
+              className={
+                healthQuery.data?.online
+                  ? 'size-2 rounded-full bg-emerald-500'
+                  : 'size-2 rounded-full bg-destructive'
+              }
+            />
+            {healthQuery.isLoading
+              ? t('checking')
+              : healthQuery.data?.online
+                ? t('online')
+                : t('offline')}
           </div>
           <p className='mt-1 text-xs text-muted-foreground'>
-            {healthQuery.data ? `${healthQuery.data.latency_ms} ms · ${healthQuery.data.status_code || '-'}` : t('notChecked')}
+            {healthQuery.data
+              ? `${t(`healthCategory.${healthQuery.data.category}`)} · ${healthQuery.data.latency_ms} ms · ${healthQuery.data.status_code || '-'}`
+              : t('notChecked')}
           </p>
         </div>
       </div>

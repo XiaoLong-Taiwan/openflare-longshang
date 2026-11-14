@@ -36,6 +36,7 @@ import { CertificateDetailDialog } from '../websites/components/certificate-deta
 import { CertificateEditorDialog } from '../websites/components/certificate-editor-dialog';
 import { CertificateImportDialog } from '../websites/components/certificate-import-dialog';
 import { WebsiteStatusBadge } from '../websites/components/status-badge';
+import { CertificateTaskTracking } from './components/certificate-task-tracking';
 import { useTranslations } from 'next-intl';
 
 import {
@@ -167,8 +168,8 @@ export default function CertificatesPage() {
         ) : certificates.length === 0 ? (
           <EmptyStateWithBorder icon={FileKey} description={t('emptyList')} />
         ) : (
-          <Table>
-            <TableHeader>
+          <Table className='max-md:block'>
+            <TableHeader className='max-md:sr-only'>
               <TableRow>
                 <TableHead>{t('columns.name')}</TableHead>
                 <TableHead>{t('columns.status')}</TableHead>
@@ -180,12 +181,12 @@ export default function CertificatesPage() {
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className='max-md:grid max-md:gap-3 max-md:p-3'>
               {certificates.map((certificate) => {
                 const status = getCertificateStatus(certificate, t);
                 return (
-                  <TableRow key={certificate.id}>
-                    <TableCell className='font-medium'>
+                  <TableRow key={certificate.id} className='max-md:flex max-md:min-w-0 max-md:flex-col max-md:rounded-lg max-md:border max-md:p-2'>
+                    <TableCell className='font-medium max-md:whitespace-normal max-md:break-all'>
                       {certificate.name}
                     </TableCell>
                     <TableCell>
@@ -194,19 +195,21 @@ export default function CertificatesPage() {
                         tone={status.tone}
                       />
                     </TableCell>
-                    <TableCell className='text-sm text-muted-foreground'>
+                    <TableCell className='text-sm text-muted-foreground max-md:flex max-md:flex-wrap max-md:gap-x-2'>
+                      <span className='hidden max-md:inline'>{t('notAfter')}</span>
                       {formatDateTime(certificate.not_after)}
                     </TableCell>
                     <TableCell>
+                      <span className='hidden max-md:inline'>{t('columns.source')}: </span>
                       {certificate.provider === 'acme'
                         ? t('sourceAcme')
                         : t('sourceUpload')}
                     </TableCell>
-                    <TableCell className='max-w-[240px] truncate text-sm text-muted-foreground'>
+                    <TableCell className='max-w-[240px] truncate text-sm text-muted-foreground max-md:max-w-none max-md:whitespace-normal max-md:break-words'>
                       {certificate.remark || t('noRemark')}
                     </TableCell>
                     <TableCell className='text-right'>
-                      <div className='flex justify-end gap-1'>
+                      <div className='flex justify-end gap-1 max-md:flex-wrap max-md:justify-start max-md:[&_button]:min-h-11 max-md:[&_button]:min-w-11'>
                         <Button
                           variant='ghost'
                           size='sm'
@@ -253,6 +256,8 @@ export default function CertificatesPage() {
           </Table>
         )}
       </div>
+
+      <CertificateTaskTracking />
 
       <CertificateImportDialog
         open={importOpen}

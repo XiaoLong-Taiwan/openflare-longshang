@@ -216,6 +216,8 @@ type ProxyConfig struct {
 	WebsocketEnabled      *bool          `json:"websocket_enabled,omitempty"`
 	ProxyRequestBuffering *bool          `json:"proxy_request_buffering,omitempty"`
 	ProxyBufferingEnabled *bool          `json:"proxy_buffering_enabled,omitempty"`
+	ProxyNextUpstream     []string       `json:"proxy_next_upstream,omitempty"`
+	ProxyNextUpstreamTries int            `json:"proxy_next_upstream_tries,omitempty"`
 	CustomHeaders         []CustomHeader `json:"custom_headers,omitempty"`
 }
 

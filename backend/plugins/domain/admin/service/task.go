@@ -48,6 +48,14 @@ func DispatchTask(ctx context.Context, req model.DispatchTaskRequest) (string, e
 	return taskID, nil
 }
 
+func CancelTask(ctx context.Context, id uint64) error {
+	taskSvc, err := requireTaskService(ctx)
+	if err != nil {
+		return err
+	}
+	return taskSvc.Cancel(ctx, id)
+}
+
 // validateTaskPayload normalises an optional raw payload through the task registry.
 func validateTaskPayload(taskSvc contracts.TaskService, name, payload string) ([]byte, error) {
 	var payloadBytes []byte

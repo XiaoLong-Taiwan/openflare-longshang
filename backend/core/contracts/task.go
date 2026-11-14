@@ -82,6 +82,7 @@ const (
 // TaskService defines the unified contract for dispatching and tracking background tasks.
 type TaskService interface {
 	Dispatch(ctx context.Context, taskType string, payload []byte, triggeredBy string) (string, error)
+	Cancel(ctx context.Context, id uint64) error
 	Retry(ctx context.Context, id uint64) (string, error)
 	ListTasks() []TaskMetaDTO
 	GetTaskMeta(taskType string) (TaskMetaDTO, bool)

@@ -163,9 +163,35 @@ func TestObservabilityBufferStoreDiscardsCorruptJSON(t *testing.T) {
 	if len(records) != 0 {
 		t.Fatalf("expected empty after discard, got %+v", records)
 	}
-	// Corrupt payload must not remain; empty rewrite is fine.
-	if body, err := os.ReadFile(path); err == nil && strings.Contains(string(body), "not-json") {
-		t.Fatalf("corrupt content still on disk: %s", body)
+	entries, err := os.ReadDir(filepath.Dir(path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("corrupt buffer entries = %v, want quarantine and rebuilt buffer", entries)
+	}
+	quarantined := false
+	for _, entry := range entries {
+		if strings.Contains(entry.Name(), ".corrupt-") {
+			quarantined = true
+			break
+		}
+	}
+	if !quarantined {
+		t.Fatalf("corrupt buffer entries = %v, want quarantined original", entries)
+	}
+}
+
+func TestObservabilityBufferStoreWritesAtomicallyAndReloads(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "observability-buffer.json")
+	store := NewObservabilityBufferStore(path)
+	want := ObservabilityBufferRecord{WindowStartedAtUnix: 60, HostMetrics: &protocol.NodeMetricSnapshot{CapturedAtUnix: 65}}
+	if err := store.Upsert(want, 0); err != nil {
+		t.Fatal(err)
+	}
+	reloaded, err := NewObservabilityBufferStore(path).Replayable(0, 0)
+	if err != nil || len(reloaded) != 1 || reloaded[0].WindowStartedAtUnix != want.WindowStartedAtUnix {
+		t.Fatalf("Replayable(after atomic Upsert) = %+v, %v; want persisted record", reloaded, err)
 	}
 }
 

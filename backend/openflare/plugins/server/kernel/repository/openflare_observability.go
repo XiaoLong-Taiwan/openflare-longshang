@@ -63,6 +63,19 @@ func InsertOpenFlareMetricSnapshot(ctx context.Context, record *model.OpenFlareM
 	return s.Observability.InsertMetricSnapshot(ctx, record)
 }
 
+// InsertOpenFlareMetricSnapshotDurable writes a metric snapshot synchronously before an agent ACK.
+func InsertOpenFlareMetricSnapshotDurable(ctx context.Context, record *model.OpenFlareMetricSnapshot) error {
+	if record == nil {
+		return nil
+	}
+	s, err := logstore.Active(ctx)
+	if err != nil {
+		return err
+	}
+	row := analyticsmodel.NodeMetricSnapshot{ID: uint64(record.ID), NodeID: record.NodeID, CapturedAt: record.CapturedAt, CPUUsagePercent: record.CPUUsagePercent, MemoryUsedBytes: record.MemoryUsedBytes, MemoryTotalBytes: record.MemoryTotalBytes, StorageUsedBytes: record.StorageUsedBytes, StorageTotalBytes: record.StorageTotalBytes, DiskReadBytes: record.DiskReadBytes, DiskWriteBytes: record.DiskWriteBytes, NetworkRxBytes: record.NetworkRxBytes, NetworkTxBytes: record.NetworkTxBytes, CreatedAt: record.CreatedAt}
+	return s.Observability.BatchInsertNodeMetricSnapshots(ctx, []analyticsmodel.NodeMetricSnapshot{row})
+}
+
 // InsertOpenFlareEdgeHealth inserts an L2 edge health snapshot into ClickHouse.
 func InsertOpenFlareEdgeHealth(ctx context.Context, record *model.OpenFlareEdgeHealth) error {
 	s, err := logstore.Active(ctx)
@@ -70,6 +83,19 @@ func InsertOpenFlareEdgeHealth(ctx context.Context, record *model.OpenFlareEdgeH
 		return err
 	}
 	return s.Observability.InsertEdgeHealth(ctx, record)
+}
+
+// InsertOpenFlareEdgeHealthDurable writes edge health synchronously before an agent ACK.
+func InsertOpenFlareEdgeHealthDurable(ctx context.Context, record *model.OpenFlareEdgeHealth) error {
+	if record == nil {
+		return nil
+	}
+	s, err := logstore.Active(ctx)
+	if err != nil {
+		return err
+	}
+	row := analyticsmodel.NodeEdgeHealth{ID: uint64(record.ID), NodeID: record.NodeID, CapturedAt: record.CapturedAt, Status: record.Status, Connections: record.Connections, CreatedAt: record.CreatedAt}
+	return s.Observability.BatchInsertNodeEdgeHealth(ctx, []analyticsmodel.NodeEdgeHealth{row})
 }
 
 // InsertOpenFlareNodeObservationFrps inserts an FRPS observation into ClickHouse.

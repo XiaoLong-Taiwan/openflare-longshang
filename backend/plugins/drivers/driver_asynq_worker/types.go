@@ -20,6 +20,7 @@ const (
 	TaskExecutionStatusRunning   TaskExecutionStatus = "running"
 	TaskExecutionStatusSucceeded TaskExecutionStatus = "succeeded"
 	TaskExecutionStatusFailed    TaskExecutionStatus = "failed"
+	TaskExecutionStatusCanceled  TaskExecutionStatus = "canceled"
 )
 
 // TaskExecution 任务执行记录

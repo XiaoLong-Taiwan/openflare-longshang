@@ -2025,6 +2025,17 @@
       "dashboard": "控制台"
     }
   },
+  "htmlWorkspace": {
+    "editor": "HTML 編輯器",
+    "livePreview": "即時預覽",
+    "preview": "預覽",
+    "previewTitle": "來源站台錯誤頁即時預覽",
+    "view": "編輯與預覽模式",
+    "bytes": "{used} / {max} 位元組",
+    "emptyHint": "留空使用內建預設",
+    "placeholder": "留空使用內建預設範本…",
+    "resize": "調整編輯器寬度"
+  },
   "layout": {
     "nav": {
       "home": "首頁",
@@ -2306,6 +2317,11 @@
     "title": "節點管理",
     "applyLogs": "應用程式記录",
     "create": "新增節點",
+    "selectAll": "選取本頁所有節點",
+    "selectNode": "選取 {name}",
+    "batchSync": "批次同步",
+    "batchUpdate": "批次更新 Agent",
+    "batchCompleted": "批次操作成功處理 {count} 個節點",
     "listTitle": "節點清單",
     "refreshNow": "立即刷新",
     "loadingList": "載入節點清單中...",
@@ -2962,6 +2978,15 @@
       "enableRule": "啟用規則",
       "format": "格式化",
       "formatTitle": "自動整理節點與连線布局",
+      "simulate": "模擬請求",
+      "simulateTitle": "模擬 WAF 請求",
+      "simulateDesc": "離線評估目前畫布規則，不會向源站發送請求。",
+      "simulateIP": "客戶端 IP",
+      "simulateCountry": "國家代碼",
+      "simulateDecision": "判定",
+      "simulateTrace": "節點路徑",
+      "simulating": "模擬中…",
+      "runSimulation": "執行模擬",
       "saving": "儲存中...",
       "save": "儲存",
       "saved": "規則图已儲存",
@@ -3771,7 +3796,11 @@
       "ttlManual": "手動",
       "ttlSeconds": "TTL（秒）",
       "ttlHint": "修改將套用至分組內所有灰雲（僅 DNS）成員；橙雲一律自動。Auto 目前約為 300 秒。",
-      "ttlError": "請輸入 60 至 86400 之間的整數秒數。"
+      "ttlError": "請輸入 60 至 86400 之間的整數秒數。",
+      "ipv6Placeholder": "選填 IPv6 位址",
+      "ipv6For": "節點 {name} 的 IPv6 位址",
+      "debounce": "健康防抖秒數",
+      "debounceHint": "連續離線或服務不健康達此秒數後才切換；0 表示立即切換。"
     },
     "memberDialog": {
       "title": "添加網域成员",
@@ -4184,6 +4213,17 @@
     "renew": "续期",
     "deleted": "憑證已刪除",
     "renewSubmitted": "憑證 {name} 续期工作已提交",
+    "renewalTasks": "憑證續期任務",
+    "renewalTasksLoading": "正在載入續期任務",
+    "renewalTasksFailed": "無法載入續期任務",
+    "renewalTasksEmpty": "目前沒有續期任務",
+    "renewalTaskCertificate": "憑證 ID：{id}",
+    "renewalStatus": {
+      "pending": "等待中",
+      "running": "執行中",
+      "succeeded": "成功",
+      "failed": "失敗"
+    },
     "imported": "憑證 {name} 已匯入",
     "applySubmitted": "憑證 {name} 申请工作已提交",
     "convertSubmitted": "憑證 {name} 转换申请已提交",
@@ -4322,6 +4362,16 @@
     "online": "在線",
     "offline": "離線",
     "notChecked": "尚未檢查",
+    "healthCategory": {
+      "healthy": "正常",
+      "http_4xx": "HTTP 4xx",
+      "http_5xx": "HTTP 5xx",
+      "timeout": "逾時",
+      "dns": "DNS 錯誤",
+      "connection": "連線錯誤",
+      "invalid_url": "URL 無效",
+      "unexpected_status": "非預期狀態"
+    },
     "noRemark": "暫無備注",
     "lastUpdated": "最後更新：{date}",
     "detail": "详情",
@@ -4463,6 +4513,11 @@
     "redirectHttpNeedsCert": "所选網域至少绑定一张憑證後才能啟用。",
     "reverseProxy": "反向代理",
     "reverseProxyDesc": "設定请求回源上游的策略與位址。",
+    "proxyRetryCauses": "代理重試條件",
+    "proxyRetryCausesPlaceholder": "error, timeout, http_502",
+    "proxyRetryCausesHint": "以逗號分隔，可用 error、timeout、invalid_header、http_500、http_502、http_503、http_504、http_403、http_404、http_429。",
+    "proxyRetryTries": "代理重試次數",
+    "proxyRetryTriesHint": "留空或 0 表示不設定；最多 10 次。",
     "proxySaved": "反向代理設定已儲存",
     "proxyConfig": "代理行為",
     "proxyConfigHint": "留空值繼承全局預設設定；支援 30s、90s、2m 等 Nginx 時間格式。布林選項支援繼承、開啟和關閉。",
@@ -4604,7 +4659,8 @@
       "enterSiteId": "請輸入站點标识",
       "enterIntegerOrMinusOne": "請輸入 -1、0 或正整數",
       "enterUsername": "請輸入帳號",
-      "enterPassword": "請輸入密碼"
+      "enterPassword": "請輸入密碼",
+      "retryCausesInvalid": "重試條件格式或內容不合法"
     }
   },
   "responses": {

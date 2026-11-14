@@ -44,6 +44,13 @@ type InprocQueue struct {
 	// derive their timeouts from it so shutdown cancellation propagates.
 	baseCtx context.Context
 	appCtx  *core.Context
+	runningTasks sync.Map
+}
+
+func (q *InprocQueue) cancelTask(taskID string) {
+	if value, ok := q.runningTasks.Load(taskID); ok {
+		value.(context.CancelFunc)()
+	}
 }
 
 // NewInprocQueue creates a new InprocQueue with a given concurrency and queue capacity.
@@ -172,6 +179,9 @@ func (q *InprocQueue) workerLoop(ctx context.Context) {
 }
 
 func (q *InprocQueue) executeTask(ctx context.Context, msg TaskMessage) {
+	if q.executionCanceled(ctx, msg.ID) {
+		return
+	}
 	td, ok := q.lookupTask(msg.TaskType)
 	if !ok {
 		logger.ErrorF(ctx, "driver_inproc_worker: no handler for task %q", msg.TaskType)
@@ -185,7 +195,11 @@ func (q *InprocQueue) executeTask(ctx context.Context, msg TaskMessage) {
 	}
 
 	taskCtx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
+	q.runningTasks.Store(msg.ID, cancel)
+	defer func() {
+		q.runningTasks.Delete(msg.ID)
+		cancel()
+	}()
 	if q.appCtx != nil {
 		taskCtx = core.WithAppContext(taskCtx, q.appCtx)
 		ctx = core.WithAppContext(ctx, q.appCtx)
@@ -195,6 +209,10 @@ func (q *InprocQueue) executeTask(ctx context.Context, msg TaskMessage) {
 	start := time.Now()
 	result, err := invokeHandler(taskCtx, td.Handler, msg.Payload)
 	duration := time.Since(start)
+	if errors.Is(taskCtx.Err(), context.Canceled) && q.executionCanceled(ctx, msg.ID) {
+		q.markCanceled(ctx, msg.ID)
+		return
+	}
 
 	if err != nil {
 		q.failExecution(ctx, msg, err, duration)
@@ -219,6 +237,28 @@ func (q *InprocQueue) executeTask(ctx context.Context, msg TaskMessage) {
 		return
 	}
 	q.succeedExecution(ctx, msg, duration, result)
+}
+
+func (q *InprocQueue) executionCanceled(ctx context.Context, taskID string) bool {
+	db := getDB(ctx)
+	if db == nil {
+		return false
+	}
+	var count int64
+	if err := db.Model(&taskExecution{}).Where("task_id = ? AND status = ?", taskID, taskExecutionStatusCanceled).Count(&count).Error; err != nil {
+		logger.ErrorF(ctx, "driver_inproc_worker: check cancellation failed taskID=%s: %v", taskID, err)
+		return false
+	}
+	return count > 0
+}
+
+func (q *InprocQueue) markCanceled(ctx context.Context, taskID string) {
+	if err := getDB(ctx).Model(&taskExecution{}).Where("task_id = ?", taskID).Updates(map[string]any{
+		"status": taskExecutionStatusCanceled,
+		"finished_at": time.Now(),
+	}).Error; err != nil {
+		logger.ErrorF(ctx, "driver_inproc_worker: persist cancellation failed taskID=%s: %v", taskID, err)
+	}
 }
 
 func invokeHandler(ctx context.Context, handler any, payload []byte) (*contracts.TaskResultDTO, error) {

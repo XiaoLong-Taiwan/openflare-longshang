@@ -26,6 +26,7 @@ import (
 	"context"
 	"embed"
 	"reflect"
+	"time"
 
 	_ "Wavelet/docs"
 
@@ -109,7 +110,10 @@ func (p *Plugin) Apply(ctx *core.Context) error {
 		logger.ErrorF(ctx.GoContext(), "[server] init GeoIP provider failed: %v", err)
 	}
 	chwriter.Init(ctx.GoContext())
+	outboxCtx, cancelOutbox := context.WithCancel(ctx.GoContext())
+	go logstore.RunNodeAccessOutboxWorker(outboxCtx, time.Second*30)
 	ctx.OnDispose(func() error {
+		cancelOutbox()
 		return chwriter.Stop(context.Background())
 	})
 

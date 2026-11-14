@@ -53,6 +53,7 @@ var RedisOpt asynq.RedisConnOpt
 
 // AsynqClient asynq 客户端，用于任务入队
 var AsynqClient *asynq.Client
+var AsynqInspector *asynq.Inspector
 
 var asynqClientMu sync.RWMutex
 
@@ -80,6 +81,16 @@ func GetAsynqClient() *asynq.Client {
 	return AsynqClient
 }
 
+func GetAsynqInspector() *asynq.Inspector {
+	if RedisOpt == nil {
+		RedisOpt = NewRedisConnOpt()
+	}
+	if AsynqInspector == nil {
+		AsynqInspector = asynq.NewInspector(RedisOpt)
+	}
+	return AsynqInspector
+}
+
 // ResetAsynqClient resets the Asynq client so it will be re-created with current config.
 func ResetAsynqClient() {
 	asynqClientMu.Lock()
@@ -87,6 +98,10 @@ func ResetAsynqClient() {
 	if AsynqClient != nil {
 		_ = AsynqClient.Close()
 		AsynqClient = nil
+	}
+	if AsynqInspector != nil {
+		_ = AsynqInspector.Close()
+		AsynqInspector = nil
 	}
 }
 

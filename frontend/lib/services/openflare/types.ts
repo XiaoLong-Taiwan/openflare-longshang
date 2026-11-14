@@ -54,6 +54,7 @@ export interface NodeItem {
   latest_apply_at?: string | null;
   created_at: string;
   updated_at: string;
+  debounce_seconds?: number;
 }
 
 export interface NodeListQuery {
@@ -110,6 +111,16 @@ export interface NodeAgentReleaseInfo {
 export interface NodeAgentUpdatePayload {
   channel?: ReleaseChannel;
   tag_name?: string;
+}
+
+export interface NodeBatchActionResult {
+  id: number;
+  success: boolean;
+  message: string;
+}
+
+export interface NodeBatchActionResponse {
+  results: NodeBatchActionResult[];
 }
 
 export interface NodeSystemProfile {
@@ -238,6 +249,8 @@ export interface ProxyRouteProxyConfig {
   websocket_enabled: boolean | null;
   proxy_request_buffering: boolean | null;
   proxy_buffering_enabled: boolean | null;
+  proxy_next_upstream: string[];
+  proxy_next_upstream_tries: number;
   custom_headers: ProxyRouteCustomHeader[];
 }
 
@@ -305,6 +318,7 @@ export interface ProxyRouteItem {
   pages_project_id?: number | null;
   created_at: string;
   updated_at: string;
+  debounce_seconds?: number;
 }
 
 export interface ProxyRouteMutationPayload {
@@ -665,6 +679,15 @@ export interface OriginHealth {
   latency_ms: number;
   online: boolean;
   message: string;
+  category:
+    | 'healthy'
+    | 'http_4xx'
+    | 'http_5xx'
+    | 'timeout'
+    | 'dns'
+    | 'connection'
+    | 'invalid_url'
+    | 'unexpected_status';
   checked_at: string;
 }
 
@@ -1054,6 +1077,22 @@ export interface WAFRuleGraph {
   schema_version: number;
   nodes: WAFRuleNode[];
   edges: WAFRuleEdge[];
+}
+
+export interface WAFSimulationRequest {
+  ip: string;
+  country: string;
+  region: string;
+  user_agent: string;
+  path: string;
+  query: string;
+  body: string;
+}
+
+export interface WAFSimulationResult {
+  decision: 'allow' | 'block' | 'challenge' | 'indeterminate';
+  status_code?: number;
+  trace: string[];
 }
 
 export interface WAFRule {
@@ -1449,6 +1488,7 @@ export interface CloudflareNodeOption {
 
 export interface CloudflareGroupNode extends CloudflareNodeOption {
   priority: number;
+  ipv6?: string;
 }
 
 export interface CloudflareGroup {
@@ -1467,6 +1507,7 @@ export interface CloudflareGroup {
   member_count: number;
   created_at: string;
   updated_at: string;
+  debounce_seconds?: number;
 }
 
 export interface CloudflareGroupPayload {
@@ -1476,8 +1517,9 @@ export interface CloudflareGroupPayload {
   name: string;
   primary_node_id?: number;
   backup_node_id?: number | null;
-  nodes?: Array<{ node_id: number; priority: number }>;
+  nodes?: Array<{ node_id: number; priority: number; ipv6?: string }>;
   ttl?: number;
+  debounce_seconds?: number;
   default_proxied: boolean;
   enabled: boolean;
 }

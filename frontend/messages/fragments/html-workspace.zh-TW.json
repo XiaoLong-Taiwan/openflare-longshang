@@ -1,0 +1,13 @@
+{
+  "htmlWorkspace": {
+    "editor": "HTML 編輯器",
+    "livePreview": "即時預覽",
+    "preview": "預覽",
+    "previewTitle": "來源站台錯誤頁即時預覽",
+    "view": "編輯與預覽模式",
+    "bytes": "{used} / {max} 位元組",
+    "emptyHint": "留空使用內建預設",
+    "placeholder": "留空使用內建預設範本…",
+    "resize": "調整編輯器寬度"
+  }
+}

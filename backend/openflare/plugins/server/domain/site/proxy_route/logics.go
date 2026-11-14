@@ -34,6 +34,8 @@ type ProxyConfigInput struct {
 	WebsocketEnabled      *bool               `json:"websocket_enabled"`
 	ProxyRequestBuffering *bool               `json:"proxy_request_buffering"`
 	ProxyBufferingEnabled *bool               `json:"proxy_buffering_enabled"`
+	ProxyNextUpstream     []string             `json:"proxy_next_upstream"`
+	ProxyNextUpstreamTries int                  `json:"proxy_next_upstream_tries"`
 	CustomHeaders         []CustomHeaderInput `json:"custom_headers"`
 }
 
@@ -206,6 +208,11 @@ var (
 	proxyTimeoutPattern    = regexp.MustCompile(`^[1-9][0-9]*(?:ms|s|m|h|d|w)$`)
 )
 
+var proxyNextUpstreamValues = map[string]struct{}{
+	"error": {}, "timeout": {}, "invalid_header": {}, "http_500": {}, "http_502": {},
+	"http_503": {}, "http_504": {}, "http_403": {}, "http_404": {}, "http_429": {},
+}
+
 func normalizeProxyConfig(input ProxyConfigInput) (ProxyConfigInput, error) {
 	for _, value := range []string{
 		input.ProxyConnectTimeout,
@@ -227,6 +234,24 @@ func normalizeProxyConfig(input ProxyConfigInput) (ProxyConfigInput, error) {
 	input.ClientBodyTimeout = strings.TrimSpace(input.ClientBodyTimeout)
 	input.SendTimeout = strings.TrimSpace(input.SendTimeout)
 	input.ClientMaxBodySize = strings.TrimSpace(input.ClientMaxBodySize)
+	if input.ProxyNextUpstreamTries < 0 || input.ProxyNextUpstreamTries > 10 || len(input.ProxyNextUpstream) > len(proxyNextUpstreamValues) {
+		return ProxyConfigInput{}, errors.New(errProxyRouteConfigInvalid)
+	}
+	seenNextUpstream := make(map[string]struct{}, len(input.ProxyNextUpstream))
+	for index, value := range input.ProxyNextUpstream {
+		value = strings.TrimSpace(strings.ToLower(value))
+		if _, ok := proxyNextUpstreamValues[value]; !ok {
+			return ProxyConfigInput{}, errors.New(errProxyRouteConfigInvalid)
+		}
+		if _, exists := seenNextUpstream[value]; exists {
+			return ProxyConfigInput{}, errors.New(errProxyRouteConfigInvalid)
+		}
+		seenNextUpstream[value] = struct{}{}
+		input.ProxyNextUpstream[index] = value
+	}
+	if len(input.ProxyNextUpstream) == 0 {
+		input.ProxyNextUpstreamTries = 0
+	}
 	if input.ClientMaxBodySize != "" && !proxyBodySizePattern.MatchString(input.ClientMaxBodySize) {
 		return ProxyConfigInput{}, errors.New(errProxyRouteConfigInvalid)
 	}

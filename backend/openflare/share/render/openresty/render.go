@@ -508,6 +508,12 @@ func renderProxyBlock(config ProxyConfig) string {
 	if config.ProxyBufferingEnabled != nil {
 		fmt.Fprintf(&builder, "        proxy_buffering %s;\n", onOff(*config.ProxyBufferingEnabled))
 	}
+	if len(config.ProxyNextUpstream) > 0 {
+		fmt.Fprintf(&builder, "        proxy_next_upstream %s;\n", strings.Join(config.ProxyNextUpstream, " "))
+		if config.ProxyNextUpstreamTries > 0 {
+			fmt.Fprintf(&builder, "        proxy_next_upstream_tries %d;\n", config.ProxyNextUpstreamTries)
+		}
+	}
 	return builder.String()
 }
 

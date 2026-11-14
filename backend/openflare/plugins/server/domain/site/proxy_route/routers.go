@@ -25,12 +25,28 @@ func handleLogicError(c *gin.Context, err error) bool {
 // @Tags openflare-proxy-route
 // @Produce json
 // @Security SessionCookie
+// @Param page query int false "页码，从 1 开始"
+// @Param page_size query int false "每页条数，默认 20，最大 100"
+// @Param search query string false "按站点名称、源站地址或绑定域名搜索"
 // @Success 200 {object} response.Any{data=[]proxy_route.View} "代理规则列表"
 // @Failure 400 {object} response.Any "参数错误"
 // @Failure 401 {object} response.Any "未登录"
 // @Failure 404 {object} response.Any "无权限或不存在"
 // @Router /api/v1/d/proxy-routes [get]
 func GetProxyRoutes(c *gin.Context) {
+	if c.Request.URL.Query().Has("page") || c.Request.URL.Query().Has("page_size") || c.Request.URL.Query().Has("search") {
+		var query ListQuery
+		if err := c.ShouldBindQuery(&query); err != nil {
+			response.AbortBadRequest(c, "代理列表查詢參數無效")
+			return
+		}
+		result, err := ListPage(c.Request.Context(), query)
+		if handleLogicError(c, err) {
+			return
+		}
+		c.JSON(http.StatusOK, response.OK(result))
+		return
+	}
 	routes, err := ListProxyRoutes(c.Request.Context())
 	if handleLogicError(c, err) {
 		return

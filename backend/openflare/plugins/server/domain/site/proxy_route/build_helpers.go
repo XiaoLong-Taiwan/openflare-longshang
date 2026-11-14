@@ -22,6 +22,7 @@ type proxyRouteJSONFields struct {
 	customHeadersJSON   string
 }
 
+
 func resolveProxyRouteUpstreams(ctx context.Context, upstreamType string, input Input) (string, *uint, []string, error) {
 	switch upstreamType {
 	case proxyRouteUpstreamTypeTunnel, proxyRouteUpstreamTypePages:

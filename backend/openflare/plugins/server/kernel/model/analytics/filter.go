@@ -105,12 +105,22 @@ type BatchWriterStats struct {
 // ClickHouseOperationalStats summarizes ClickHouse merge/mutation pressure
 // and in-process batch writer queue health.
 type ClickHouseOperationalStats struct {
-	Database         string `json:"database"`
-	ActiveParts      int64  `json:"active_parts"`
-	TotalRows        int64  `json:"total_rows"`
-	PendingMutations int64  `json:"pending_mutations"`
-	AsyncInsertQueue int64  `json:"async_insert_queue"`
-	AsyncInsertBytes int64  `json:"async_insert_bytes"`
+	Database         string                  `json:"database"`
+	ActiveParts      int64                   `json:"active_parts"`
+	TotalRows        int64                   `json:"total_rows"`
+	PendingMutations int64                   `json:"pending_mutations"`
+	AsyncInsertQueue int64                   `json:"async_insert_queue"`
+	AsyncInsertBytes int64                   `json:"async_insert_bytes"`
 	// BatchWriters reports in-process queue depth/drops/flush errors for CH writers.
 	BatchWriters []BatchWriterStats `json:"batch_writers,omitempty"`
+	NodeAccessOutbox *NodeAccessOutboxStats `json:"node_access_outbox,omitempty"`
+}
+
+// NodeAccessOutboxStats reports durable outbox delivery status.
+type NodeAccessOutboxStats struct {
+	Pending     int64     `json:"pending"`
+	OldestAt    time.Time `json:"oldest_at,omitempty"`
+	LastError   string    `json:"last_error,omitempty"`
+	LastAttempt time.Time `json:"last_attempt,omitempty"`
+	Healthy     bool      `json:"healthy"`
 }

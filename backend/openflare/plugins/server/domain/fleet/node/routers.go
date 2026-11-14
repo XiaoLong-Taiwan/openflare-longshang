@@ -216,6 +216,30 @@ func RequestAgentUpdateHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, response.OK(view))
 }
 
+// RequestAgentUpdateBatchHandler requests agent updates for multiple nodes.
+// @Summary 批次请求 Agent 更新
+// @Tags openflare-node
+// @Accept json
+// @Produce json
+// @Security SessionCookie
+// @Param body body node.BatchNodeRequest true "节点与更新参数"
+// @Success 200 {object} response.Any{data=node.BatchNodeResponse} "批次结果"
+// @Failure 400 {object} response.Any "参数错误"
+// @Failure 401 {object} response.Any "未登录"
+// @Router /api/v1/d/nodes/batch/agent-update [post]
+func RequestAgentUpdateBatchHandler(c *gin.Context) {
+	var request BatchNodeRequest
+	if !apiutil.BindJSON(c, &request) {
+		return
+	}
+	result, err := RequestAgentUpdateBatch(c.Request.Context(), request)
+	if err != nil {
+		response.AbortBadRequest(c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, response.OK(result))
+}
+
 // RequestOpenrestyRestartHandler requests openresty restart on a node.
 // @Summary 请求重启 OpenResty
 // @Description 向指定节点下发 OpenResty 重启指令，需要管理员权限
@@ -262,6 +286,30 @@ func RequestForceSyncHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, response.OK(view))
+}
+
+// RequestForceSyncBatchHandler requests configuration sync for multiple nodes.
+// @Summary 批次同步节点配置
+// @Tags openflare-node
+// @Accept json
+// @Produce json
+// @Security SessionCookie
+// @Param body body node.BatchNodeRequest true "节点列表"
+// @Success 200 {object} response.Any{data=node.BatchNodeResponse} "批次结果"
+// @Failure 400 {object} response.Any "参数错误"
+// @Failure 401 {object} response.Any "未登录"
+// @Router /api/v1/d/nodes/batch/force-sync [post]
+func RequestForceSyncBatchHandler(c *gin.Context) {
+	var request BatchNodeRequest
+	if !apiutil.BindJSON(c, &request) {
+		return
+	}
+	result, err := RequestForceSyncBatch(c.Request.Context(), request)
+	if err != nil {
+		response.AbortBadRequest(c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, response.OK(result))
 }
 
 // GetObservabilityHandler returns node observability details.

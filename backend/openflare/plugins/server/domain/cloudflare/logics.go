@@ -241,6 +241,16 @@ func groupFromInput(ctx context.Context, existing *model.CFPointingGroup, input 
 	if ttl != automaticTTL && (ttl < minManualTTL || ttl > maxManualTTL) {
 		return nil, nil, errors.New(errGroupTTLInvalid)
 	}
+	debounceSeconds := 0
+	if existing != nil {
+		debounceSeconds = existing.DebounceSeconds
+	}
+	if input.DebounceSeconds != nil {
+		if *input.DebounceSeconds < 0 || *input.DebounceSeconds > 86400 {
+			return nil, nil, errors.New(errDebounceInvalid)
+		}
+		debounceSeconds = *input.DebounceSeconds
+	}
 	mode, recordType, content, err := groupTargetFromInput(existing, input)
 	if err != nil {
 		return nil, nil, err
@@ -267,6 +277,7 @@ func groupFromInput(ctx context.Context, existing *model.CFPointingGroup, input 
 	}
 	existing.Name = name
 	existing.TTL = ttl
+	existing.DebounceSeconds = debounceSeconds
 	existing.TargetMode, existing.RecordType, existing.RecordContent = mode, recordType, content
 	existing.PrimaryNodeID = 0
 	existing.ActiveNodeID = 0
@@ -291,6 +302,18 @@ func groupNodesFromInput(ctx context.Context, inputs []GroupNodeInput) ([]model.
 		if item.NodeID == 0 || item.Priority < 0 {
 			return nil, errors.New(errNodeInvalid)
 		}
+		if item.IPv6 != "" {
+			ip := net.ParseIP(strings.TrimSpace(item.IPv6))
+			if ip == nil || ip.To4() != nil {
+				return nil, errors.New(errNodeIPv6Invalid)
+			}
+		}
+		if item.IPv6 != "" {
+			ip := net.ParseIP(strings.TrimSpace(item.IPv6))
+			if ip == nil || ip.To4() != nil {
+				return nil, errors.New(errNodeIPv6Invalid)
+			}
+		}
 		if _, ok := seen[item.NodeID]; ok {
 			return nil, errors.New(errGroupNodeSame)
 		}
@@ -298,7 +321,7 @@ func groupNodesFromInput(ctx context.Context, inputs []GroupNodeInput) ([]model.
 		if _, err := validEdgeNode(ctx, item.NodeID, false); err != nil {
 			return nil, err
 		}
-		nodes = append(nodes, model.CFPointingGroupNode{NodeID: item.NodeID, Priority: item.Priority})
+		nodes = append(nodes, model.CFPointingGroupNode{NodeID: item.NodeID, Priority: item.Priority, IPv6: strings.TrimSpace(item.IPv6)})
 	}
 	return nodes, nil
 }
@@ -390,12 +413,13 @@ func buildGroupItem(ctx context.Context, group *model.CFPointingGroup) (*GroupIt
 		if nodeErr != nil {
 			return nil, nodeErr
 		}
-		item.Nodes = append(item.Nodes, GroupNodeItem{NodeOption: node, Priority: groupNode.Priority})
+		item.Nodes = append(item.Nodes, GroupNodeItem{NodeOption: node, Priority: groupNode.Priority, IPv6: groupNode.IPv6})
 	}
 	if len(item.Nodes) == 0 && mode == targetModeNode {
 		item.Nodes = append(item.Nodes, GroupNodeItem{NodeOption: item.PrimaryNode, Priority: 0})
 	}
 	item.TTL = groupTTL(group)
+	item.DebounceSeconds = group.DebounceSeconds
 	if group.BackupNodeID != nil {
 		backup, backupErr := groupNodeOption(ctx, *group.BackupNodeID)
 		if backupErr != nil {

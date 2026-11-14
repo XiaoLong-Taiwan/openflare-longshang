@@ -376,15 +376,19 @@ func SetupLogStoresForTest(t *testing.T) {
 		},
 	})
 	logstore.SetObservabilityHooks(logstore.ObservabilityHooks{
-		QueueMetricSnapshot: func(record analyticsmodel.NodeMetricSnapshot) {
+		QueueMetricSnapshot: func(record analyticsmodel.NodeMetricSnapshot) bool {
 			if err := store.Observability.BatchInsertNodeMetricSnapshots(context.Background(), []analyticsmodel.NodeMetricSnapshot{record}); err != nil {
 				t.Errorf("batch insert node metric snapshots failed in test hook: %v", err)
+				 return false
 			}
+			return true
 		},
-		QueueEdgeHealth: func(record analyticsmodel.NodeEdgeHealth) {
+		QueueEdgeHealth: func(record analyticsmodel.NodeEdgeHealth) bool {
 			if err := store.Observability.BatchInsertNodeEdgeHealth(context.Background(), []analyticsmodel.NodeEdgeHealth{record}); err != nil {
 				t.Errorf("batch insert node edge health failed in test hook: %v", err)
+				return false
 			}
+			return true
 		},
 		QueueNodeObsFrps: func(record analyticsmodel.NodeObsFrps) {
 			if err := store.Observability.BatchInsertNodeObsFrps(context.Background(), []analyticsmodel.NodeObsFrps{record}); err != nil {

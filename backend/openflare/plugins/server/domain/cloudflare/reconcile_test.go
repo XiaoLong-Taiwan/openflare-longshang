@@ -232,8 +232,8 @@ func TestLowestPriorityAvailableNodesFindsLaterLowerPriorityNodes(t *testing.T) 
 		{GroupNode: model.CFPointingGroupNode{NodeID: 4, Priority: 0}, Node: model.OpenFlareNode{ID: 4, Status: "online", IP: "2001:db8::4", LastSeenAt: &now}},
 	}
 
-	got := lowestPriorityAvailableNodes(nodes)
-	if len(got) != 1 || got[0].Node.ID != 3 {
+	got := lowestPriorityAvailableNodes(nodes, 0)
+	if len(got) != 2 || got[0].Node.ID != 3 || got[1].Node.ID != 4 {
 		t.Errorf("lowestPriorityAvailableNodes(%+v) = %+v, want node ID 3", nodes, got)
 	}
 }
@@ -243,7 +243,48 @@ func TestLowestPriorityAvailableNodesRejectsStaleHeartbeat(t *testing.T) {
 	nodes := []repository.CFPointingGroupNodeContext{
 		{GroupNode: model.CFPointingGroupNode{NodeID: 1, Priority: 0}, Node: model.OpenFlareNode{ID: 1, Status: "online", IP: "203.0.113.1", LastSeenAt: &stale}},
 	}
-	if got := lowestPriorityAvailableNodes(nodes); len(got) != 0 {
+	if got := lowestPriorityAvailableNodes(nodes, 0); len(got) != 0 {
 		t.Fatalf("lowestPriorityAvailableNodes() returned stale node: %+v", got)
+	}
+}
+
+func TestLowestPriorityAvailableNodesDebouncesOfflineStatus(t *testing.T) {
+	lastSeen := time.Now().Add(-15 * time.Second)
+	nodes := []repository.CFPointingGroupNodeContext{{
+		GroupNode: model.CFPointingGroupNode{NodeID: 1, Priority: 0},
+		Node:      model.OpenFlareNode{ID: 1, Status: "offline", OpenrestyStatus: "healthy", LastSeenAt: &lastSeen},
+	}}
+	if got := lowestPriorityAvailableNodes(nodes, 30*time.Second); len(got) != 1 {
+		t.Errorf("lowestPriorityAvailableNodes(offline within debounce) = %+v, want node 1", got)
+	}
+	if got := lowestPriorityAvailableNodes(nodes, 10*time.Second); len(got) != 0 {
+		t.Errorf("lowestPriorityAvailableNodes(offline past debounce) = %+v, want no nodes", got)
+	}
+}
+
+func TestLowestPriorityAvailableNodesDoesNotUseDebounceForOnlineFreshness(t *testing.T) {
+	lastSeen := time.Now().Add(-2 * time.Minute)
+	nodes := []repository.CFPointingGroupNodeContext{{
+		GroupNode: model.CFPointingGroupNode{NodeID: 1, Priority: 0},
+		Node:      model.OpenFlareNode{ID: 1, Status: "online", OpenrestyStatus: "healthy", LastSeenAt: &lastSeen},
+	}}
+	if got := lowestPriorityAvailableNodes(nodes, 10*time.Minute); len(got) != 0 {
+		t.Fatalf("lowestPriorityAvailableNodes(online stale, large debounce) = %+v, want no nodes", got)
+	}
+}
+
+func TestMemberRecordInputsIncludeValidDualStackAddresses(t *testing.T) {
+	state := &repository.CFPointingMemberContext{
+		Member: model.CFPointingMember{Proxied: false},
+		Group:  model.CFPointingGroup{Enabled: true, TargetMode: targetModeNode, TTL: 300},
+		Domain: model.ZoneDomain{Domain: "api.example.com"},
+	}
+	target := repository.CFPointingGroupNodeContext{
+		GroupNode: model.CFPointingGroupNode{IPv6: "2001:db8::8"},
+		Node:      model.OpenFlareNode{IP: "192.0.2.8"},
+	}
+	inputs := memberRecordInputs(state, target)
+	if len(inputs) != 2 || inputs[0].Type != "A" || inputs[0].Content != "192.0.2.8" || inputs[1].Type != "AAAA" || inputs[1].Content != "2001:db8::8" {
+		t.Errorf("memberRecordInputs() = %+v, want A and AAAA records", inputs)
 	}
 }

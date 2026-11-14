@@ -1,0 +1,13 @@
+{
+  "htmlWorkspace": {
+    "editor": "HTML editor",
+    "livePreview": "Live preview",
+    "preview": "Preview",
+    "previewTitle": "Origin error page live preview",
+    "view": "Editor and preview mode",
+    "bytes": "{used} / {max} bytes",
+    "emptyHint": "Leave empty to use the built-in default",
+    "placeholder": "Leave empty to use the built-in template…",
+    "resize": "Resize editor width"
+  }
+}

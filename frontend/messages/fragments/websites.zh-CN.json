@@ -156,6 +156,12 @@
     "renew": "续期",
     "deleted": "证书已删除",
     "renewSubmitted": "证书 {name} 续期任务已提交",
+    "renewalTasks": "证书续期任务",
+    "renewalTasksLoading": "正在加载续期任务",
+    "renewalTasksFailed": "无法加载续期任务",
+    "renewalTasksEmpty": "当前没有续期任务",
+    "renewalTaskCertificate": "证书 ID：{id}",
+    "renewalStatus": { "pending": "等待中", "running": "执行中", "succeeded": "成功", "failed": "失败" },
     "imported": "证书 {name} 已导入",
     "applySubmitted": "证书 {name} 申请任务已提交",
     "convertSubmitted": "证书 {name} 转换申请已提交",
@@ -295,6 +301,16 @@
     "online": "在线",
     "offline": "离线",
     "notChecked": "尚未检查",
+    "healthCategory": {
+      "healthy": "正常",
+      "http_4xx": "HTTP 4xx",
+      "http_5xx": "HTTP 5xx",
+      "timeout": "超时",
+      "dns": "DNS 错误",
+      "connection": "连接错误",
+      "invalid_url": "URL 无效",
+      "unexpected_status": "非预期状态"
+    },
     "noRemark": "暂无备注",
     "lastUpdated": "最后更新：{date}",
     "detail": "详情",
@@ -436,6 +452,11 @@
     "redirectHttpNeedsCert": "所选域名至少绑定一张证书后才能启用。",
     "reverseProxy": "反向代理",
     "reverseProxyDesc": "配置请求回源上游的策略与地址。",
+    "proxyRetryCauses": "代理重试条件",
+    "proxyRetryCausesPlaceholder": "error, timeout, http_502",
+    "proxyRetryCausesHint": "使用逗号分隔，可用 error、timeout、invalid_header、http_500、http_502、http_503、http_504、http_403、http_404、http_429。",
+    "proxyRetryTries": "代理重试次数",
+    "proxyRetryTriesHint": "留空或 0 表示不设置；最多 10 次。",
     "proxySaved": "反向代理设置已保存",
     "proxyConfig": "代理行为",
     "proxyConfigHint": "留空值继承全局默认设置；支持 30s、90s、2m 等 Nginx 时间格式。布尔选项支持继承、开启和关闭。",
@@ -577,7 +598,8 @@
       "enterSiteId": "请输入站点标识",
       "enterIntegerOrMinusOne": "请输入 -1、0 或正整数",
       "enterUsername": "请输入账号",
-      "enterPassword": "请输入密码"
+      "enterPassword": "请输入密码",
+      "retryCausesInvalid": "重试条件格式或内容不合法"
     }
   },
   "responses": {

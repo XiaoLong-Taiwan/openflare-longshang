@@ -56,6 +56,15 @@
       "enableRule": "Enable rule",
       "format": "Format",
       "formatTitle": "Auto-arrange nodes and edges",
+      "simulate": "Simulate",
+      "simulateTitle": "Simulate a request",
+      "simulateDesc": "Evaluates the current graph offline; no request is sent to an origin.",
+      "simulateIP": "Client IP",
+      "simulateCountry": "Country code",
+      "simulateDecision": "Decision",
+      "simulateTrace": "Node trace",
+      "simulating": "Simulating...",
+      "runSimulation": "Run simulation",
       "saving": "Saving...",
       "save": "Save",
       "saved": "Rule graph saved",
@@ -865,7 +874,11 @@
       "ttlManual": "Manual",
       "ttlSeconds": "TTL (seconds)",
       "ttlHint": "Changes apply to all DNS-only (gray-cloud) members in this group; proxied (orange-cloud) members always use Auto. Auto is currently about 300 seconds.",
-      "ttlError": "Enter a whole number of seconds between 60 and 86400."
+      "ttlError": "Enter a whole number of seconds between 60 and 86400.",
+      "ipv6Placeholder": "Optional IPv6 address",
+      "ipv6For": "IPv6 address for node {name}",
+      "debounce": "Health debounce seconds",
+      "debounceHint": "Switch after the node remains offline or unhealthy for this many seconds; 0 switches immediately."
     },
     "memberDialog": {
       "title": "Add domain members",

@@ -18,5 +18,8 @@
 - `backend/plugins/drivers/driver_http/frontend.go`、`frontend_test.go`：對照 OpenFlare `a2404a50`，在 Cordis HTTP driver 加入通用 Next.js 靜態匯出正整數 ID 模板 fallback；精確資產優先，其次對應同目錄 `1.html`、`1.txt`、`1/__next.*.txt`，模板不存在時維持既有 SPA shell。平台不硬編碼 Cloudflare／websites 業務前綴；無效 ID、額外子路徑與 API／檔案／Swagger 命名空間不套模板。17 個 HTTP 回歸案例及 driver 套件通過。此通用能力尚未回流 Wavelet，回流並合併後確認仍在，再移除此登記。
 
 - `backend/go.mod`、`backend/go.sum`：對齊 OpenFlare `e2acbecb` 的 `github.com/go-jose/go-jose/v4 v4.1.6`，保留 Wavelet module 與既有 OTel 版本；Auth service、go-oidc 及 go-jose／JWT 套件測試與 module checksum 驗證通過。此平台共用 OIDC 間接依賴升級尚待回流 Wavelet；本次沒有宣稱真實第三方登入已驗證。
+- `backend/core/contracts/task.go`、`backend/plugins/drivers/driver_{asynq,inproc}_worker/`：新增通用背景任務合作取消契約與 `canceled` 執行狀態，支援等待任務移除及執行中任務透過 context 停止；此能力不含 OpenFlare 業務，需回流 Wavelet 後移除此登記。
+- `backend/openflare/plugins/agent/localfile/`、`backend/openflare/plugins/agent/state/observability_buffer.go`：將 Agent 觀測緩衝改用暫存檔、fsync、原子替換與目錄同步，損壞輸入改為隔離保留，避免重建時覆蓋或擴散損壞；其中 localfile 原子檔案能力屬通用平台能力，需回流 Wavelet 後移除此登記。
+- `backend/openflare/plugins/server/kernel/repository/logstore/`、`backend/openflare/plugins/server/domain/observability/chwriter/`：通用非同步觀測入隊 hook 回傳容量拒絕結果，避免 heartbeat 在 buffer 滿時錯誤確認；需回流 Wavelet 平台層後移除此登記。
 
 以上为本地待回流补丁，尚未同步至 Wavelet；回流并合并上游后确认修复仍在，再移除此登记。

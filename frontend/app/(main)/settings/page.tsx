@@ -64,7 +64,7 @@ export default function SettingsPage() {
           <div className='font-medium text-sm text-muted-foreground'>
             {category}
           </div>
-          <div className='grid grid-cols-2 gap-4'>
+          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
             {items.map((item) => (
               <Link key={item.href} href={item.href}>
                 <Card className='py-2 border border-dashed shadow-none hover:bg-muted/50 transition-colors cursor-pointer h-full'>

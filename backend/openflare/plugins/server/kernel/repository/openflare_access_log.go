@@ -63,6 +63,30 @@ func InsertOpenFlareAccessLogsBatch(ctx context.Context, records []*model.OpenFl
 	return s.AccessLogs.InsertBatch(ctx, records)
 }
 
+// InsertOpenFlareAccessLogsBatchDurable writes access logs synchronously before an agent ACK.
+func InsertOpenFlareAccessLogsBatchDurable(ctx context.Context, records []*model.OpenFlareAccessLog) error {
+	if len(records) == 0 {
+		return nil
+	}
+	s, err := logstore.Active(ctx)
+	if err != nil {
+		return err
+	}
+	rows := make([]analyticsmodel.NodeAccessLog, 0, len(records))
+	for _, record := range records {
+		if record == nil {
+			continue
+		}
+		rows = append(rows, analyticsmodel.NodeAccessLog{
+			ID: record.ID, NodeID: record.NodeID, LoggedAt: record.LoggedAt, RemoteAddr: record.RemoteAddr,
+			Region: record.Region, Host: record.Host, Path: record.Path, UserAgent: record.UserAgent,
+			CacheStatus: record.CacheStatus, StatusCode: int32(record.StatusCode), BytesSent: uint64(record.BytesSent),
+			RequestLength: uint64(record.RequestLength), RequestTimeMs: uint32(record.RequestTimeMs), CreatedAt: record.CreatedAt,
+		})
+	}
+	return s.AccessLogs.BatchInsertNodeAccessLogs(ctx, rows)
+}
+
 // ListOpenFlareAccessLogs lists access logs matching the query.
 func ListOpenFlareAccessLogs(ctx context.Context, query model.OpenFlareAccessLogQuery) ([]*model.OpenFlareAccessLog, error) {
 	s, err := logstore.Active(ctx)

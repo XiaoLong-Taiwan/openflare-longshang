@@ -48,6 +48,31 @@ func TestRenderRouteConfigStructuredUpstreams(t *testing.T) {
 	}
 }
 
+func TestRenderRouteConfigProxyRetry(t *testing.T) {
+	doc := Document{Routes: []Route{{
+		ID: 7,
+		SiteName: "retry.example.com",
+		Domains: []string{"retry.example.com"},
+		OriginURL: "http://origin.example.com",
+		ProxyConfig: ProxyConfig{
+			ProxyNextUpstream: []string{"error", "timeout", "http_502"},
+			ProxyNextUpstreamTries: 3,
+		},
+	}}}
+	config, err := RenderRouteConfig(doc, nil)
+	if err != nil {
+		t.Fatalf("RenderRouteConfig() error = %v", err)
+	}
+	for _, expected := range []string{
+		"proxy_next_upstream error timeout http_502;",
+		"proxy_next_upstream_tries 3;",
+	} {
+		if !strings.Contains(config, expected) {
+			t.Errorf("RenderRouteConfig() missing %q", expected)
+		}
+	}
+}
+
 func TestRenderRouteConfigLegacyUpstreamsRemainRoundRobin(t *testing.T) {
 	doc := Document{
 		Routes: []Route{{

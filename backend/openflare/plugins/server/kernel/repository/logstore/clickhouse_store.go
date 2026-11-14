@@ -88,6 +88,11 @@ func (s *clickhouseLogStore) BatchInsertNodeAccessLogs(ctx context.Context, rows
 	if err := backfillSampleKeys(ctx, db); err != nil {
 		return err
 	}
+	if err := db.WithContext(ctx).Model(&analyticsmodel.NodeAccessOutbox{}).
+		Where("last_error IS NOT NULL AND last_error <> ''").
+		Update("next_attempt_at", time.Now().UTC()).Error; err != nil {
+		return err
+	}
 	if err := persistNodeBatch(ctx, db, rows, func(tx *gorm.DB, selected []analyticsmodel.NodeAccessLog) error {
 		return enqueueNodeDelivery(tx, nodeDelivery{Rows: selected})
 	}); err != nil {
@@ -296,7 +301,9 @@ func (s *clickhouseLogStore) InsertMetricSnapshot(ctx context.Context, record *m
 		return err
 	}
 	if h := currentObservabilityHooks().QueueMetricSnapshot; h != nil {
-		h(toAnalyticsNodeMetricSnapshot(record))
+		if !h(toAnalyticsNodeMetricSnapshot(record)) {
+			return ErrObservabilityQueueFull
+		}
 	}
 	return nil
 }
@@ -364,7 +371,9 @@ func (s *clickhouseLogStore) InsertEdgeHealth(ctx context.Context, record *model
 		return err
 	}
 	if h := currentObservabilityHooks().QueueEdgeHealth; h != nil {
-		h(toAnalyticsNodeEdgeHealth(record))
+		if !h(toAnalyticsNodeEdgeHealth(record)) {
+			return ErrObservabilityQueueFull
+		}
 	}
 	return nil
 }
@@ -692,7 +701,19 @@ func (s *clickhouseLogStore) ActiveDatabase(_ context.Context) (string, error) {
 
 // ClickHouseOperationalStats 委托 analyticsrepo 汇总 CH 运行状态。
 func (s *clickhouseLogStore) ClickHouseOperationalStats(ctx context.Context) (*analyticsmodel.ClickHouseOperationalStats, error) {
-	return analyticsrepo.GetClickHouseOperationalStats(ctx)
+	stats, err := analyticsrepo.GetClickHouseOperationalStats(ctx)
+	if err != nil {
+		return nil, err
+	}
+	health, err := GetNodeAccessOutboxHealth(ctx)
+	if err != nil {
+		return nil, err
+	}
+	stats.NodeAccessOutbox = &analyticsmodel.NodeAccessOutboxStats{
+		Pending: health.Pending, OldestAt: health.OldestAt, LastError: health.LastError,
+		LastAttempt: health.LastAttempt, Healthy: health.Healthy,
+	}
+	return stats, nil
 }
 
 // ---- UserAccessLogStore ----

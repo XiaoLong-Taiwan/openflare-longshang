@@ -7,6 +7,8 @@ const (
 	errGroupTargetModeInvalid  = "請選擇有效的目標模式"
 	errRecordContentInvalid    = "請填寫有效的 A、AAAA 或 CNAME 記錄值"
 	errGroupTTLInvalid         = "TTL 必須為 1（自動）或 60 至 86400 秒的整數"
+	errDebounceInvalid         = "防抖時間必須為 0 至 86400 秒的整數"
+	errNodeIPv6Invalid         = "節點 IPv6 位址無效"
 	errConnectionNotConfigured = "尚未配置 Cloudflare 连接"
 	errConnectionSourceInvalid = "无效的 Cloudflare 连接来源"
 	errStandaloneInputRequired = "请填写 Cloudflare API Token"

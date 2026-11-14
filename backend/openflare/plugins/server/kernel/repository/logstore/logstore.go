@@ -20,6 +20,8 @@ var ErrMigrating = errors.New("log database is migrating, writes are disabled")
 // ErrAccessLogQueueFull 表示节点访问日志批次未能完整进入异步队列。
 var ErrAccessLogQueueFull = errors.New("access log queue cannot accept batch")
 
+var ErrObservabilityQueueFull = errors.New("observability queue cannot accept record")
+
 // AccessLogStore 节点访问日志（of_node_access_logs）。
 type AccessLogStore interface {
 	// InsertBatch 为写入入口：冻结检查 + 经 hook 入队（异步），不直接落库。

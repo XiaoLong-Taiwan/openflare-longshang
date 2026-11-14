@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 )
 
 type inprocTaskService struct {
@@ -23,6 +24,37 @@ func newInprocTaskService(taskReg extpoints.TaskExtension) contracts.TaskService
 
 func (s *inprocTaskService) Dispatch(ctx context.Context, taskType string, payload []byte, triggeredBy string) (string, error) {
 	return DispatchTask(ctx, taskType, payload, triggeredBy)
+}
+
+func (s *inprocTaskService) Cancel(ctx context.Context, id uint64) error {
+	db := getDB(ctx)
+	if db == nil {
+		return errors.New("driver_inproc_worker: db not initialized")
+	}
+	var exec taskExecution
+	if err := db.Where("id = ?", id).First(&exec).Error; err != nil {
+		return fmt.Errorf("driver_inproc_worker: task execution not found: %w", err)
+	}
+	if exec.Status != taskExecutionStatusPending && exec.Status != taskExecutionStatusRunning {
+		return fmt.Errorf("driver_inproc_worker: only pending or running tasks can be canceled, current status: %s", exec.Status)
+	}
+	if err := db.Model(&taskExecution{}).Where("id = ? AND status IN ?", id, []taskExecutionStatus{taskExecutionStatusPending, taskExecutionStatusRunning}).Updates(map[string]any{
+		"status":        taskExecutionStatusCanceled,
+		"error_message": "任务已由管理员取消",
+		"finished_at":   time.Now(),
+	}).Error; err != nil {
+		return err
+	}
+	if q, ok := globalQueueForCancel(); ok {
+		q.cancelTask(exec.TaskID)
+	}
+	return nil
+}
+
+func globalQueueForCancel() (*InprocQueue, bool) {
+	globalMu.RLock()
+	defer globalMu.RUnlock()
+	return globalQueue, globalQueue != nil
 }
 
 func (s *inprocTaskService) Retry(ctx context.Context, id uint64) (string, error) {

@@ -5,6 +5,7 @@ package proxy_route
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"Wavelet/openflare/plugins/server/kernel/model"
@@ -69,6 +70,31 @@ func TestNormalizeProxyConfigAcceptsNginxDurations(t *testing.T) {
 			}
 			if err == nil && test.value == " 90s " && got.ProxyReadTimeout != "90s" {
 				t.Errorf("normalizeProxyConfig(%q) timeout = %q, want %q", test.value, got.ProxyReadTimeout, "90s")
+			}
+		})
+	}
+}
+
+func TestNormalizeProxyConfigRetryPolicy(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   ProxyConfigInput
+		want    []string
+		wantErr bool
+	}{
+		{name: "valid retry causes", input: ProxyConfigInput{ProxyNextUpstream: []string{" ERROR ", "http_502"}, ProxyNextUpstreamTries: 3}, want: []string{"error", "http_502"}},
+		{name: "unknown retry cause", input: ProxyConfigInput{ProxyNextUpstream: []string{"http_599"}}, wantErr: true},
+		{name: "duplicate retry cause", input: ProxyConfigInput{ProxyNextUpstream: []string{"error", "error"}}, wantErr: true},
+		{name: "too many tries", input: ProxyConfigInput{ProxyNextUpstream: []string{"error"}, ProxyNextUpstreamTries: 11}, wantErr: true},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := normalizeProxyConfig(test.input)
+			if (err != nil) != test.wantErr {
+				t.Fatalf("normalizeProxyConfig(%+v) error = %v, wantErr %t", test.input, err, test.wantErr)
+			}
+			if err == nil && !slices.Equal(got.ProxyNextUpstream, test.want) {
+				t.Errorf("normalizeProxyConfig(%+v) retry causes = %v, want %v", test.input, got.ProxyNextUpstream, test.want)
 			}
 		})
 	}

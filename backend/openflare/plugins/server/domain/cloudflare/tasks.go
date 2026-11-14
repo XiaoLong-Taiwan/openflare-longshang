@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"Wavelet/openflare/plugins/server/kernel/model"
 	"Wavelet/openflare/plugins/server/kernel/repository"
@@ -130,6 +131,7 @@ func (handler *SyncAllGroupsTaskHandler) Execute(ctx context.Context, payload []
 	if err != nil {
 		return nil, err
 	}
+	failed := false
 	for _, group := range groups {
 		if !group.Enabled {
 			continue
@@ -140,9 +142,13 @@ func (handler *SyncAllGroupsTaskHandler) Execute(ctx context.Context, payload []
 		}
 		for _, member := range members {
 			if err = ReconcileMember(ctx, member.ID); err != nil {
-				return nil, err
+				failed = true
+				task.AppendLog(ctx, "分组健康同步失败: member_id=%d error=%v", member.ID, err)
 			}
 		}
+	}
+	if failed {
+		return nil, errors.New(errSyncFailed)
 	}
 	return &task.TaskResult{Message: "Cloudflare 分组健康同步完成"}, nil
 }
@@ -210,7 +216,7 @@ func (handler *SyncMemberTaskHandler) Execute(ctx context.Context, payload []byt
 	if loadErr != nil {
 		task.AppendLog(ctx, "加载成员上下文失败: member_id=%d error=%v", input.MemberID, loadErr)
 	} else {
-		nodeNames, nodeIPs := syncTargetSummary(state.Nodes)
+		nodeNames, nodeIPs := syncTargetSummary(state.Nodes, state.Group.DebounceSeconds)
 		if state.Group.TargetMode == targetModeCustom {
 			nodeNames, nodeIPs = state.Group.RecordType, state.Group.RecordContent
 		}
@@ -239,7 +245,7 @@ func (handler *SyncMemberTaskHandler) Execute(ctx context.Context, payload []byt
 
 	message := "Cloudflare 域名同步成功"
 	if state != nil {
-		nodeNames, nodeIPs := syncTargetSummary(state.Nodes)
+		nodeNames, nodeIPs := syncTargetSummary(state.Nodes, state.Group.DebounceSeconds)
 		if state.Group.TargetMode == targetModeCustom {
 			nodeNames, nodeIPs = state.Group.RecordType, state.Group.RecordContent
 		}
@@ -255,8 +261,8 @@ func (handler *SyncMemberTaskHandler) Execute(ctx context.Context, payload []byt
 	return &task.TaskResult{Message: message}, nil
 }
 
-func syncTargetSummary(nodes []repository.CFPointingGroupNodeContext) (string, string) {
-	targets := lowestPriorityAvailableNodes(nodes)
+func syncTargetSummary(nodes []repository.CFPointingGroupNodeContext, debounceSeconds int) (string, string) {
+	targets := lowestPriorityAvailableNodes(nodes, time.Duration(debounceSeconds)*time.Second)
 	names := make([]string, 0, len(targets))
 	ips := make([]string, 0, len(targets))
 	for _, target := range targets {
@@ -380,6 +386,7 @@ func executeBatchSync(
 	}
 
 	syncedCount := 0
+	failedCount := 0
 	for index, member := range members {
 		domainName := fmt.Sprintf("zone_domain_id=%d", member.ZoneDomainID)
 		if domain, domainErr := repository.GetZoneDomainByID(ctx, member.ZoneDomainID); domainErr == nil {
@@ -396,20 +403,24 @@ func executeBatchSync(
 		task.AppendLog(ctx, "[%d/%d] 同步域名 %s (member_id=%d proxied=%v)",
 			index+1, len(members), domainName, member.ID, member.Proxied)
 		if err := ReconcileMember(ctx, member.ID); err != nil {
+			failedCount++
 			task.AppendLog(ctx, "[%d/%d] 失败: domain=%s member_id=%d error=%v",
 				index+1, len(members), domainName, member.ID, err)
-			return nil, err
+			continue
 		}
 		syncedCount++
 		task.AppendLog(ctx, "[%d/%d] 成功: domain=%s", index+1, len(members), domainName)
 	}
 
-	message := fmt.Sprintf("Cloudflare %s同步完成: %s 共 %d 个域名", scope, scopeName, syncedCount)
+	message := fmt.Sprintf("Cloudflare %s同步完成: %s 成功 %d 个，失败 %d 个", scope, scopeName, syncedCount, failedCount)
 	if activeNode != "" {
-		message = fmt.Sprintf("Cloudflare %s同步完成: %s → %s，共 %d 个域名",
-			scope, scopeName, activeNode, syncedCount)
+		message = fmt.Sprintf("Cloudflare %s同步完成: %s → %s，成功 %d 个，失败 %d 个",
+			scope, scopeName, activeNode, syncedCount, failedCount)
 	}
 	task.AppendLog(ctx, "%s", message)
+	if failedCount > 0 {
+		return nil, errors.New(errSyncFailed)
+	}
 	return &task.TaskResult{Message: message}, nil
 }
 

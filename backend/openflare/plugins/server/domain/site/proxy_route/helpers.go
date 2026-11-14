@@ -569,6 +569,16 @@ func decodeStoredProxyConfig(raw string) (ProxyConfigInput, error) {
 	if err := decodeProxyConfigField(payload, "send_timeout", &config.SendTimeout); err != nil {
 		return ProxyConfigInput{}, err
 	}
+	if value, ok := payload["proxy_next_upstream"]; ok && string(value) != "null" {
+		if err := json.Unmarshal(value, &config.ProxyNextUpstream); err != nil {
+			return ProxyConfigInput{}, errors.New("proxy_config payload is invalid")
+		}
+	}
+	if value, ok := payload["proxy_next_upstream_tries"]; ok && string(value) != "null" {
+		if err := json.Unmarshal(value, &config.ProxyNextUpstreamTries); err != nil {
+			return ProxyConfigInput{}, errors.New("proxy_config payload is invalid")
+		}
+	}
 	delete(payload, "proxy_connect_timeout")
 	delete(payload, "proxy_send_timeout")
 	delete(payload, "proxy_read_timeout")

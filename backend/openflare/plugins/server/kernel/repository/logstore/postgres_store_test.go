@@ -417,8 +417,8 @@ func TestGormObservabilityInsertList(t *testing.T) {
 		hookedFrpc   *analyticsmodel.NodeObsFrpc
 	)
 	SetObservabilityHooks(ObservabilityHooks{
-		QueueMetricSnapshot: func(row analyticsmodel.NodeMetricSnapshot) { hookedMetric = &row },
-		QueueEdgeHealth:     func(row analyticsmodel.NodeEdgeHealth) { hookedEdge = &row },
+		QueueMetricSnapshot: func(row analyticsmodel.NodeMetricSnapshot) bool { hookedMetric = &row; return true },
+		QueueEdgeHealth:     func(row analyticsmodel.NodeEdgeHealth) bool { hookedEdge = &row; return true },
 		QueueNodeObsFrps:    func(row analyticsmodel.NodeObsFrps) { hookedFrps = &row },
 		QueueNodeObsFrpc:    func(row analyticsmodel.NodeObsFrpc) { hookedFrpc = &row },
 	})

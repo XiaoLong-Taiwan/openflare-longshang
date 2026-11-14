@@ -156,6 +156,12 @@
     "renew": "Продлить",
     "deleted": "Сертификат удален.",
     "renewSubmitted": "Задача продления отправлена на сертификат {name}",
+    "renewalTasks": "Certificate renewal tasks",
+    "renewalTasksLoading": "Loading renewal tasks",
+    "renewalTasksFailed": "Could not load renewal tasks",
+    "renewalTasksEmpty": "There are no renewal tasks",
+    "renewalTaskCertificate": "Certificate ID: {id}",
+    "renewalStatus": { "pending": "Pending", "running": "Running", "succeeded": "Succeeded", "failed": "Failed" },
     "imported": "Сертификат {name} импортирован.",
     "applySubmitted": "Задача заявки отправлена на сертификат {name}",
     "convertSubmitted": "Заявка на конвертацию подана для получения сертификата {name}",
@@ -295,6 +301,16 @@
     "online": "Online",
     "offline": "Offline",
     "notChecked": "Not checked",
+    "healthCategory": {
+      "healthy": "Норма",
+      "http_4xx": "HTTP 4xx",
+      "http_5xx": "HTTP 5xx",
+      "timeout": "Тайм-аут",
+      "dns": "Ошибка DNS",
+      "connection": "Ошибка подключения",
+      "invalid_url": "Недействительный URL",
+      "unexpected_status": "Неожиданный статус"
+    },
     "noRemark": "Нет примечания",
     "lastUpdated": "Последнее обновление: {date}",
     "detail": "Подробности",
@@ -436,6 +452,11 @@
     "redirectHttpNeedsCert": "Прежде чем эту функцию можно будет включить, хотя бы один выбранный домен должен иметь привязанный сертификат.",
     "reverseProxy": "Обратный прокси",
     "reverseProxyDesc": "Настройте адреса серверов-источников и стратегию выбора сервера.",
+    "proxyRetryCauses": "Proxy retry conditions",
+    "proxyRetryCausesPlaceholder": "error, timeout, http_502",
+    "proxyRetryCausesHint": "Comma-separated: error, timeout, invalid_header, http_500, http_502, http_503, http_504, http_403, http_404, http_429.",
+    "proxyRetryTries": "Proxy retry attempts",
+    "proxyRetryTriesHint": "Leave empty or use 0 to disable; up to 10 attempts.",
     "proxySaved": "Настройки обратного прокси сохранены.",
     "proxyConfig": "Proxy behavior",
     "proxyConfigHint": "Empty values inherit the global defaults. Use Nginx durations such as 30s, 90s, or 2m. Boolean options support inherit, on, and off.",
@@ -577,7 +598,8 @@
       "enterSiteId": "Введите идентификатор сайта",
       "enterIntegerOrMinusOne": "Введите -1, 0 или целое положительное число.",
       "enterUsername": "Введите имя пользователя",
-      "enterPassword": "Введите пароль"
+      "enterPassword": "Введите пароль",
+      "retryCausesInvalid": "Retry conditions are invalid"
     }
   },
   "responses": {

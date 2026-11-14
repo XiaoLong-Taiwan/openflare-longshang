@@ -5,6 +5,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -37,6 +38,9 @@ export function NodesTable({
   deletingId,
   onEdit,
   onDelete,
+  selectedIds,
+  onToggle,
+  onToggleAll,
   actionsDisabled = false,
 }: {
   nodes: NodeItem[];
@@ -44,6 +48,9 @@ export function NodesTable({
   actionsDisabled?: boolean;
   onEdit: (node: NodeItem) => void;
   onDelete: (node: NodeItem) => void;
+  selectedIds: Set<number>;
+  onToggle: (id: number) => void;
+  onToggleAll: (checked: boolean) => void;
 }) {
   const t = useTranslations('nodes');
   return (
@@ -54,6 +61,16 @@ export function NodesTable({
       <Table>
         <TableHeader>
           <TableRow className='border-dashed hover:bg-transparent'>
+            <TableHead className='w-10 py-2 h-8'>
+              <Checkbox
+                checked={
+                  nodes.length > 0 &&
+                  nodes.every((node) => selectedIds.has(node.id))
+                }
+                onCheckedChange={(checked) => onToggleAll(checked === true)}
+                aria-label={t('selectAll')}
+              />
+            </TableHead>
             <TableHead className='py-2 h-8'>{t('table.node')}</TableHead>
             <TableHead className='py-2 h-8'>{t('table.status')}</TableHead>
             <TableHead className='py-2 h-8'>{t('table.version')}</TableHead>
@@ -71,6 +88,13 @@ export function NodesTable({
         <TableBody>
           {nodes.map((node) => (
             <TableRow key={node.id} className='border-dashed align-top'>
+              <TableCell className='py-3'>
+                <Checkbox
+                  checked={selectedIds.has(node.id)}
+                  onCheckedChange={() => onToggle(node.id)}
+                  aria-label={t('selectNode', { name: node.name })}
+                />
+              </TableCell>
               <TableCell className='py-3'>
                 <div className='space-y-1'>
                   <div className='flex items-center gap-2'>

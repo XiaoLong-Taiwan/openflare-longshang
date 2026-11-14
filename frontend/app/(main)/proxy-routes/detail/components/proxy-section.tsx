@@ -71,6 +71,8 @@ type ReverseProxyValues = {
   websocket_enabled: ProxyBooleanValue;
   proxy_request_buffering: ProxyBooleanValue;
   proxy_buffering_enabled: ProxyBooleanValue;
+  proxy_next_upstream_text: string;
+  proxy_next_upstream_tries: number;
 };
 
 interface ProxySectionProps {
@@ -110,6 +112,8 @@ export function ProxySection({
       websocket_enabled: z.enum(['inherit', 'on', 'off']),
       proxy_request_buffering: z.enum(['inherit', 'on', 'off']),
       proxy_buffering_enabled: z.enum(['inherit', 'on', 'off']),
+      proxy_next_upstream_text: z.string(),
+      proxy_next_upstream_tries: z.number().int().min(0).max(10),
     })
     .superRefine((value, context) => {
       if (value.upstream_type === 'direct') {
@@ -203,6 +207,33 @@ export function ProxySection({
           message: t('validation.bodySizeInvalid'),
         });
       }
+
+      const retryCauses = value.proxy_next_upstream_text
+        .split(',')
+        .map((item) => item.trim().toLowerCase())
+        .filter(Boolean);
+      const allowedRetryCauses = new Set([
+        'error',
+        'timeout',
+        'invalid_header',
+        'http_500',
+        'http_502',
+        'http_503',
+        'http_504',
+        'http_403',
+        'http_404',
+        'http_429',
+      ]);
+      if (
+        retryCauses.some((cause) => !allowedRetryCauses.has(cause)) ||
+        new Set(retryCauses).size !== retryCauses.length
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['proxy_next_upstream_text'],
+          message: t('validation.retryCausesInvalid'),
+        });
+      }
     });
   const { saving, save } = useRouteSectionSave(
     route,
@@ -277,6 +308,11 @@ export function ProxySection({
           : route.proxy_config.proxy_buffering_enabled
             ? 'on'
             : 'off',
+      proxy_next_upstream_text: (
+        route.proxy_config?.proxy_next_upstream || []
+      ).join(', '),
+      proxy_next_upstream_tries:
+        route.proxy_config?.proxy_next_upstream_tries || 0,
     },
   });
 
@@ -329,6 +365,11 @@ export function ProxySection({
           : route.proxy_config.proxy_buffering_enabled
             ? 'on'
             : 'off',
+      proxy_next_upstream_text: (
+        route.proxy_config?.proxy_next_upstream || []
+      ).join(', '),
+      proxy_next_upstream_tries:
+        route.proxy_config?.proxy_next_upstream_tries || 0,
     });
   }, [form, route]);
 
@@ -403,6 +444,11 @@ export function ProxySection({
                 values.proxy_buffering_enabled === 'inherit'
                   ? null
                   : values.proxy_buffering_enabled === 'on',
+              proxy_next_upstream: values.proxy_next_upstream_text
+                .split(',')
+                .map((item) => item.trim().toLowerCase())
+                .filter(Boolean),
+              proxy_next_upstream_tries: values.proxy_next_upstream_tries,
               custom_headers: headers,
             };
 
@@ -712,6 +758,49 @@ export function ProxySection({
                         {...field}
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='proxy_next_upstream_text'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('proxyRetryCauses')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t('proxyRetryCausesPlaceholder')}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t('proxyRetryCausesHint')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='proxy_next_upstream_tries'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('proxyRetryTries')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='number'
+                        min={0}
+                        max={10}
+                        {...field}
+                        onChange={(event) =>
+                          field.onChange(Number(event.target.value))
+                        }
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t('proxyRetryTriesHint')}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

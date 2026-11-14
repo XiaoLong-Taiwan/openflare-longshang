@@ -169,6 +169,11 @@ func TestCustomTargetsReconcileWithoutNodes(t *testing.T) {
 			if len(fake.created) != 1 || fake.created[0].Type != tt.kind || fake.created[0].Content != tt.content || fake.created[0].TTL != ttl {
 				t.Fatalf("ReconcileMember(%s) created = %+v, want content %q TTL 600", tt.kind, fake.created, tt.content)
 			}
+			if len(fake.created) != 0 && fake.created[0].Type != "A" {
+				if records, listErr := repository.ListCFPointingManagedRecords(ctx, memberID); listErr == nil && len(records) == 1 && records[0].RecordType != tt.kind {
+					t.Errorf("managed record type = %q, want %q", records[0].RecordType, tt.kind)
+				}
+			}
 			records, err := repository.ListCFPointingManagedRecords(ctx, memberID)
 			if err != nil || len(records) != 1 || records[0].NodeID != 0 || records[0].DesiredIP != tt.content {
 				t.Fatalf("managed custom records = %+v, %v, want node 0 content %q", records, err, tt.content)

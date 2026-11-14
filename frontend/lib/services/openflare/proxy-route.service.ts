@@ -9,6 +9,11 @@ export class ProxyRouteService extends OpenFlareBaseService {
     return this.get<ProxyRouteItem[]>('/');
   }
 
+  static async listPage(page: number, pageSize: number, search: string): Promise<{total: number; results: ProxyRouteItem[]}> {
+    const query = new URLSearchParams({page: String(page), page_size: String(pageSize), search});
+    return this.get<{total: number; results: ProxyRouteItem[]}>(`/?${query}`);
+  }
+
   static async getById(id: number): Promise<ProxyRouteItem> {
     return this.get<ProxyRouteItem>(`/${id}`);
   }

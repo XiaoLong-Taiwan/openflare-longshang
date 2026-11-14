@@ -113,6 +113,7 @@ func RegisterRoutes(adminRouter extpoints.RouterExtension) {
 			executions.GET("", ListTaskExecutions)
 			executions.GET("/:id", GetTaskExecution)
 			executions.POST("/:id/retry", RetryTask)
+			executions.POST("/:id/cancel", CancelTask)
 		}
 
 		schedules := taskGroup.Group("/schedules")

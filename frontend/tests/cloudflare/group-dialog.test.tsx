@@ -111,7 +111,7 @@ describe('Cloudflare group TTL', () => {
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
         target_mode: 'node',
-        nodes: [{ node_id: 1, priority: 0 }],
+        nodes: [{ node_id: 1, priority: 0, ipv6: '' }],
         record_content: '',
       }),
     );
@@ -147,7 +147,7 @@ describe('Cloudflare group TTL', () => {
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
         ttl: 600,
-        nodes: [{ node_id: 1, priority: 0 }],
+        nodes: [{ node_id: 1, priority: 0, ipv6: '' }],
       }),
     );
   });

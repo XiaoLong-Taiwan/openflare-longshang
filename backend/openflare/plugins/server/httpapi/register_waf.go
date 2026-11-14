@@ -28,6 +28,7 @@ func registerWAFRoutes(apiGroup core.RouterExtension, auth contracts.AuthService
 		wafRoute.POST("/rule-groups/:id/meta", waf.UpdateRuleMetaHandler)
 		wafRoute.POST("/rule-groups/:id/graph", waf.SaveRuleGraphHandler)
 		wafRoute.POST("/rule-groups/:id/delete", waf.DeleteRuleHandler)
+		wafRoute.POST("/simulate", waf.SimulateRuleGraphHandler)
 
 		wafRoute.GET("/sites/:route_id/rule-groups", waf.GetSiteRuleGroupsHandler)
 		wafRoute.POST("/sites/:route_id/rule-groups", waf.ReplaceSiteRuleGroupsHandler)

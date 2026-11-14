@@ -1142,7 +1142,7 @@ func (s *gormLogStore) InsertMetricSnapshot(ctx context.Context, record *model.O
 		return err
 	}
 	if h := currentObservabilityHooks().QueueMetricSnapshot; h != nil {
-		h(toAnalyticsNodeMetricSnapshot(record))
+		if !h(toAnalyticsNodeMetricSnapshot(record)) { return ErrObservabilityQueueFull }
 	}
 	return nil
 }
@@ -1359,7 +1359,7 @@ func (s *gormLogStore) InsertEdgeHealth(ctx context.Context, record *model.OpenF
 		return err
 	}
 	if h := currentObservabilityHooks().QueueEdgeHealth; h != nil {
-		h(toAnalyticsNodeEdgeHealth(record))
+		if !h(toAnalyticsNodeEdgeHealth(record)) { return ErrObservabilityQueueFull }
 	}
 	return nil
 }

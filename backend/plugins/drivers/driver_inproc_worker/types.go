@@ -12,6 +12,7 @@ const (
 	taskExecutionStatusRunning   taskExecutionStatus = "running"
 	taskExecutionStatusSucceeded taskExecutionStatus = "succeeded"
 	taskExecutionStatusFailed    taskExecutionStatus = "failed"
+	taskExecutionStatusCanceled  taskExecutionStatus = "canceled"
 
 	taskExecutionColStatus = "status"
 )

@@ -6,8 +6,11 @@ import CodeMirror from '@uiw/react-codemirror';
 import { html } from '@codemirror/lang-html';
 import { Expand, Terminal } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 import {
   ORIGIN_ERROR_PAGE_HTML_MAX_BYTES,
   previewOriginErrorPageHTML,
@@ -39,50 +42,39 @@ export function HtmlEditorWorkspace({
     </>
   ),
   showPreviewLink = true,
-  previewTitle = '源站错误页实时预览',
+  previewTitle,
 }: HtmlEditorWorkspaceProps) {
+  const t = useTranslations('htmlWorkspace');
   const containerRef = useRef<HTMLDivElement>(null);
+  const [mobileView, setMobileView] = useState('editor');
   const [editorWidthPercent, setEditorWidthPercent] = useState(48);
   const { resolvedTheme } = useTheme();
   const cmTheme = resolvedTheme === 'dark' ? 'dark' : 'light';
   const previewSrcDoc = preview(value);
   const htmlBytes = new TextEncoder().encode(value).length;
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
+  const resizeAt = (clientX: number) => {
     const container = containerRef.current;
     if (!container) return;
     const rect = container.getBoundingClientRect();
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const x = moveEvent.clientX - rect.left;
-      const pct = (x / rect.width) * 100;
-      if (pct > 25 && pct < 75) {
-        setEditorWidthPercent(pct);
-      }
-    };
-
-    const handleMouseUp = () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    if (rect.width > 0) {
+      setEditorWidthPercent(Math.min(75, Math.max(25, ((clientX - rect.left) / rect.width) * 100)));
+    }
   };
 
   return (
     <div
       ref={containerRef}
-      className='w-full border border-border/40 bg-card/60 backdrop-blur-md rounded-lg overflow-hidden flex flex-col shadow-sm h-[calc(100vh-160px)] min-h-[520px]'
+      style={{ '--editor-width': `${editorWidthPercent}%` } as React.CSSProperties}
+      className='w-full min-w-0 border border-border/40 bg-card/60 backdrop-blur-md rounded-lg overflow-hidden flex flex-col shadow-sm h-[calc(100dvh-160px)] min-h-[360px] md:min-h-[520px]'
     >
       <div className='flex items-center justify-between px-4 py-2 border-b bg-muted/40 shrink-0 gap-4 flex-wrap'>
         <div className='flex items-center gap-2 min-w-0'>
           <Terminal className='size-4 text-primary shrink-0' />
-          <span className='text-xs font-semibold'>HTML 编辑器</span>
+          <span className='text-xs font-semibold'>{t('editor')}</span>
           <span className='text-[11px] text-muted-foreground font-mono truncate'>
-            {htmlBytes} / {maxBytes} 字节
-            {value.trim() === '' ? ' · 空则使用内置默认' : ''}
+            {t('bytes', { used: htmlBytes, max: maxBytes })}
+            {value.trim() === '' ? ` · ${t('emptyHint')}` : ''}
           </span>
         </div>
         <div className='flex items-center gap-1.5 flex-wrap'>
@@ -90,10 +82,15 @@ export function HtmlEditorWorkspace({
         </div>
       </div>
 
+      <Tabs value={mobileView} onValueChange={setMobileView} className='shrink-0 p-2 md:hidden'>
+        <TabsList className='w-full' aria-label={t('view')}>
+          <TabsTrigger value='editor'>{t('editor')}</TabsTrigger>
+          <TabsTrigger value='preview'>{t('livePreview')}</TabsTrigger>
+        </TabsList>
+      </Tabs>
       <div className='flex flex-1 min-h-0 overflow-hidden'>
         <div
-          style={{ width: `${editorWidthPercent}%` }}
-          className='h-full overflow-hidden relative min-w-[200px] bg-background border-r border-border/40'
+          className={cn('h-full w-full md:w-(--editor-width) overflow-hidden relative min-w-0 bg-background md:border-r border-border/40', mobileView === 'editor' ? 'block' : 'hidden md:block')}
         >
           <CodeMirror
             value={value}
@@ -109,21 +106,44 @@ export function HtmlEditorWorkspace({
               allowMultipleSelections: false,
               indentOnInput: true,
             }}
-            placeholder='留空使用内置默认模板…'
+            placeholder={t('placeholder')}
           />
         </div>
 
         <div
-          onMouseDown={handleMouseDown}
-          className='w-1.5 bg-border/60 hover:bg-primary/50 cursor-col-resize transition-colors flex items-center justify-center shrink-0 select-none z-10'
-          title='拖动调整宽度'
+          role='separator'
+          tabIndex={0}
+          aria-label={t('resize')}
+          aria-orientation='vertical'
+          aria-valuemin={25}
+          aria-valuemax={75}
+          aria-valuenow={Math.round(editorWidthPercent)}
+          onPointerDown={(event) => {
+            if (event.button !== 0) return;
+            event.preventDefault();
+            event.currentTarget.setPointerCapture(event.pointerId);
+            resizeAt(event.clientX);
+          }}
+          onPointerMove={(event) => {
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) resizeAt(event.clientX);
+          }}
+          onPointerUp={(event) => {
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+          }}
+          onKeyDown={(event) => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+            event.preventDefault();
+            setEditorWidthPercent((width) => event.key === 'Home' ? 25 : event.key === 'End' ? 75 : Math.min(75, Math.max(25, width + (event.key === 'ArrowLeft' ? -2 : 2))));
+          }}
+          className='hidden md:flex w-3 touch-none bg-border/60 hover:bg-primary/50 focus-visible:outline-2 focus-visible:outline-ring cursor-col-resize transition-colors items-center justify-center shrink-0 select-none'
+          title={t('resize')}
         >
           <div className='h-8 w-1 rounded bg-muted-foreground/30' />
         </div>
 
-        <div className='flex-1 min-w-[200px] flex flex-col overflow-hidden bg-muted/10'>
+        <div className={cn('flex-1 min-w-0 flex-col overflow-hidden bg-muted/10', mobileView === 'preview' ? 'flex' : 'hidden md:flex')}>
           <div className='flex items-center justify-between px-4 py-1.5 border-b bg-muted/20 shrink-0 text-[11px] text-muted-foreground font-mono gap-2'>
-            <span className='font-semibold'>实时预览</span>
+            <span className='font-semibold'>{t('livePreview')}</span>
             <div className='flex items-center gap-2'>
               <span
                 className={footerHint === null ? 'hidden' : 'hidden sm:inline'}
@@ -139,7 +159,7 @@ export function HtmlEditorWorkspace({
                 >
                   <Link href='/responses/error-page/preview'>
                     <Expand className='size-3' />
-                    预览
+                    {t('preview')}
                   </Link>
                 </Button>
               ) : null}
@@ -147,7 +167,7 @@ export function HtmlEditorWorkspace({
           </div>
           <div className='flex-1 min-h-0 overflow-hidden bg-background'>
             <iframe
-              title={previewTitle}
+              title={previewTitle ?? t('previewTitle')}
               sandbox=''
               srcDoc={previewSrcDoc}
               className='h-full w-full border-0 bg-background'

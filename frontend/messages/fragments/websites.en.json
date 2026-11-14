@@ -156,6 +156,12 @@
     "renew": "Renew",
     "deleted": "Certificate deleted",
     "renewSubmitted": "Renewal task submitted for certificate {name}",
+    "renewalTasks": "Certificate renewal tasks",
+    "renewalTasksLoading": "Loading renewal tasks",
+    "renewalTasksFailed": "Could not load renewal tasks",
+    "renewalTasksEmpty": "There are no renewal tasks",
+    "renewalTaskCertificate": "Certificate ID: {id}",
+    "renewalStatus": { "pending": "Pending", "running": "Running", "succeeded": "Succeeded", "failed": "Failed" },
     "imported": "Certificate {name} imported",
     "applySubmitted": "Application task submitted for certificate {name}",
     "convertSubmitted": "Conversion application submitted for certificate {name}",
@@ -295,6 +301,16 @@
     "online": "Online",
     "offline": "Offline",
     "notChecked": "Not checked",
+    "healthCategory": {
+      "healthy": "Healthy",
+      "http_4xx": "HTTP 4xx",
+      "http_5xx": "HTTP 5xx",
+      "timeout": "Timeout",
+      "dns": "DNS error",
+      "connection": "Connection error",
+      "invalid_url": "Invalid URL",
+      "unexpected_status": "Unexpected status"
+    },
     "noRemark": "No remark",
     "lastUpdated": "Last updated: {date}",
     "detail": "Details",
@@ -436,6 +452,11 @@
     "redirectHttpNeedsCert": "At least one selected domain must have a bound certificate before this can be enabled.",
     "reverseProxy": "Reverse proxy",
     "reverseProxyDesc": "Configure the origin strategy and upstream addresses.",
+    "proxyRetryCauses": "Proxy retry conditions",
+    "proxyRetryCausesPlaceholder": "error, timeout, http_502",
+    "proxyRetryCausesHint": "Comma-separated: error, timeout, invalid_header, http_500, http_502, http_503, http_504, http_403, http_404, http_429.",
+    "proxyRetryTries": "Proxy retry attempts",
+    "proxyRetryTriesHint": "Leave empty or use 0 to disable; up to 10 attempts.",
     "proxySaved": "Reverse proxy settings saved",
     "proxyConfig": "Proxy behavior",
     "proxyConfigHint": "Empty values inherit the global defaults. Use Nginx durations such as 30s, 90s, or 2m. Boolean options support inherit, on, and off.",
@@ -577,7 +598,8 @@
       "enterSiteId": "Enter a site identifier",
       "enterIntegerOrMinusOne": "Enter -1, 0, or a positive integer",
       "enterUsername": "Enter a username",
-      "enterPassword": "Enter a password"
+      "enterPassword": "Enter a password",
+      "retryCausesInvalid": "Retry conditions are invalid"
     }
   },
   "responses": {

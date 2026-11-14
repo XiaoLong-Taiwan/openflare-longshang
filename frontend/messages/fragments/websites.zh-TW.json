@@ -157,6 +157,12 @@
     "renew": "续期",
     "deleted": "憑證已刪除",
     "renewSubmitted": "憑證 {name} 续期工作已提交",
+    "renewalTasks": "憑證續期任務",
+    "renewalTasksLoading": "正在載入續期任務",
+    "renewalTasksFailed": "無法載入續期任務",
+    "renewalTasksEmpty": "目前沒有續期任務",
+    "renewalTaskCertificate": "憑證 ID：{id}",
+    "renewalStatus": { "pending": "等待中", "running": "執行中", "succeeded": "成功", "failed": "失敗" },
     "imported": "憑證 {name} 已匯入",
     "applySubmitted": "憑證 {name} 申请工作已提交",
     "convertSubmitted": "憑證 {name} 转换申请已提交",
@@ -295,6 +301,16 @@
     "online": "在線",
     "offline": "離線",
     "notChecked": "尚未檢查",
+    "healthCategory": {
+      "healthy": "正常",
+      "http_4xx": "HTTP 4xx",
+      "http_5xx": "HTTP 5xx",
+      "timeout": "逾時",
+      "dns": "DNS 錯誤",
+      "connection": "連線錯誤",
+      "invalid_url": "URL 無效",
+      "unexpected_status": "非預期狀態"
+    },
     "noRemark": "暫無備注",
     "lastUpdated": "最後更新：{date}",
     "detail": "详情",
@@ -436,6 +452,11 @@
     "redirectHttpNeedsCert": "所选網域至少绑定一张憑證後才能啟用。",
     "reverseProxy": "反向代理",
     "reverseProxyDesc": "設定请求回源上游的策略與位址。",
+    "proxyRetryCauses": "代理重試條件",
+    "proxyRetryCausesPlaceholder": "error, timeout, http_502",
+    "proxyRetryCausesHint": "以逗號分隔，可用 error、timeout、invalid_header、http_500、http_502、http_503、http_504、http_403、http_404、http_429。",
+    "proxyRetryTries": "代理重試次數",
+    "proxyRetryTriesHint": "留空或 0 表示不設定；最多 10 次。",
     "proxySaved": "反向代理設定已儲存",
     "proxyConfig": "代理行為",
     "proxyConfigHint": "留空值繼承全局預設設定；支援 30s、90s、2m 等 Nginx 時間格式。布林選項支援繼承、開啟和關閉。",
@@ -577,7 +598,8 @@
       "enterSiteId": "請輸入站點标识",
       "enterIntegerOrMinusOne": "請輸入 -1、0 或正整數",
       "enterUsername": "請輸入帳號",
-      "enterPassword": "請輸入密碼"
+      "enterPassword": "請輸入密碼",
+      "retryCausesInvalid": "重試條件格式或內容不合法"
     }
   },
   "responses": {

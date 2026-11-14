@@ -14,6 +14,8 @@ func registerNodeRoutes(apiGroup core.RouterExtension, auth contracts.AuthServic
 	nodeRoute := apiGroup.Group("/nodes")
 	nodeRoute.Use(apiutil.AdminMiddlewares(auth)...)
 	{
+		nodeRoute.POST("/batch/agent-update", node.RequestAgentUpdateBatchHandler)
+		nodeRoute.POST("/batch/force-sync", node.RequestForceSyncBatchHandler)
 		nodeRoute.GET("/page", node.ListNodePageHandler)
 		nodeRoute.GET("/:id", node.GetNodeHandler)
 		nodeRoute.GET("/bootstrap-token", node.GetBootstrapTokenHandler)

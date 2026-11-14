@@ -13,7 +13,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
+	"Wavelet/openflare/plugins/agent/localfile"
 	"Wavelet/openflare/plugins/agent/protocol"
 )
 
@@ -198,7 +200,9 @@ func (s *ObservabilityBufferStore) loadUnlocked() ([]ObservabilityBufferRecord, 
 	// Binary upgrade: drop pre-v2 or corrupt buffer entirely; agent rebuilds on subsequent heartbeats.
 	records, reason, ok := parseObservabilityBufferDisk(data)
 	if !ok {
-		s.discardBufferFile(reason)
+		if err := s.discardBufferFile(reason); err != nil {
+			return nil, err
+		}
 		return []ObservabilityBufferRecord{}, nil
 	}
 
@@ -231,14 +235,18 @@ func parseObservabilityBufferDisk(data []byte) (records []ObservabilityBufferRec
 	return records, "", true
 }
 
-func (s *ObservabilityBufferStore) discardBufferFile(reason string) {
-	if err := os.Remove(s.path); err != nil && !os.IsNotExist(err) {
-		slog.Warn("remove observability buffer failed", "path", s.path, "reason", reason, "error", err)
-	} else {
-		slog.Info("discarded observability buffer; will rebuild on run", "path", s.path, "reason", reason)
+func (s *ObservabilityBufferStore) discardBufferFile(reason string) error {
+	quarantine := s.path + ".corrupt-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	if err := os.Rename(s.path, quarantine); err != nil {
+		return err
 	}
+	if err := localfile.SyncDirectory(filepath.Dir(s.path)); err != nil {
+		return err
+	}
+	slog.Warn("quarantined observability buffer", "path", quarantine, "reason", reason)
 	s.cache = []ObservabilityBufferRecord{}
 	s.cacheLoaded = true
+	return nil
 }
 
 func (s *ObservabilityBufferStore) saveUnlocked(records []ObservabilityBufferRecord) error {
@@ -249,7 +257,7 @@ func (s *ObservabilityBufferStore) saveUnlocked(records []ObservabilityBufferRec
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(s.path, data, stateFilePerm); err != nil { //nolint:gosec // path is agent-local buffer path from config
+	if err := localfile.WriteAtomic(s.path, data, stateFilePerm); err != nil {
 		return err
 	}
 	s.cache = records

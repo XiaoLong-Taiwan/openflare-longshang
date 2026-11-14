@@ -54,6 +54,8 @@ func (s *NoopTaskService) Dispatch(ctx context.Context, taskType string, payload
 // Retry retries a task mock execution.
 func (s *NoopTaskService) Retry(context.Context, uint64) (string, error) { return "", nil }
 
+func (s *NoopTaskService) Cancel(context.Context, uint64) error { return nil }
+
 // ListTasks lists task mock metadata.
 func (s *NoopTaskService) ListTasks() []contracts.TaskMetaDTO { return nil }
 

@@ -195,6 +195,19 @@ func RetryTask(c *gin.Context) {
 	c.JSON(http.StatusOK, response.OK(newTaskID))
 }
 
+func CancelTask(c *gin.Context) {
+	id, err := parseUintParam(c, errs.InvalidTaskExecutionID)
+	if err != nil {
+		response.AbortBadRequest(c, err.Error())
+		return
+	}
+	if err = service.CancelTask(c.Request.Context(), id); err != nil {
+		response.AbortBadRequest(c, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, response.OKNil())
+}
+
 // ListSchedules 获取定时任务列表
 // @Summary 获取定时任务列表
 // @Description 返回系统所有的定时任务配置列表，包括名称、关联的异步任务类型、Cron 表达式和启用状态，需要管理员权限

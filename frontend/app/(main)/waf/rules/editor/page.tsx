@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { ArrowLeft, GitBranch, Save } from 'lucide-react';
+import { ArrowLeft, GitBranch, Play, Save } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
@@ -20,6 +20,15 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
@@ -180,6 +189,26 @@ function EditorContent() {
     changeGraph(layoutRuleGraph(graph));
   }, [changeGraph, graph]);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
+  const [simulationOpen, setSimulationOpen] = useState(false);
+  const [simulationIP, setSimulationIP] = useState('192.0.2.1');
+  const [simulationCountry, setSimulationCountry] = useState('US');
+  const [simulationResult, setSimulationResult] =
+    useState<Awaited<ReturnType<typeof services.openflareWaf.simulate>>>();
+  const simulationMutation = useMutation({
+    mutationFn: () => {
+      if (!graph) throw new Error('WAF graph is not loaded');
+      return services.openflareWaf.simulate(graph, {
+        ip: simulationIP,
+        country: simulationCountry,
+        region: '',
+        user_agent: 'Mozilla/5.0',
+        path: '/',
+        query: '',
+        body: '',
+      });
+    },
+    onSuccess: setSimulationResult,
+  });
   const leave = () => {
     if (!dirty) {
       router.push('/waf');
@@ -272,6 +301,17 @@ function EditorContent() {
               {t('format')}
             </Button>
             <Button
+              type='button'
+              variant='outline'
+              onClick={() => {
+                setSimulationResult(undefined);
+                setSimulationOpen(true);
+              }}
+            >
+              <Play data-icon='inline-start' />
+              {t('simulate')}
+            </Button>
+            <Button
               disabled={!dirty || issues.length > 0 || saveMutation.isPending}
               onClick={() => saveMutation.mutate()}
             >
@@ -300,6 +340,53 @@ function EditorContent() {
           />
         )}
       </div>
+
+      <Dialog open={simulationOpen} onOpenChange={setSimulationOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('simulateTitle')}</DialogTitle>
+            <DialogDescription>{t('simulateDesc')}</DialogDescription>
+          </DialogHeader>
+          <div className='flex flex-col gap-4'>
+            <div className='flex flex-col gap-2'>
+              <Label htmlFor='simulation-ip'>{t('simulateIP')}</Label>
+              <Input
+                id='simulation-ip'
+                value={simulationIP}
+                onChange={(event) => setSimulationIP(event.target.value)}
+              />
+            </div>
+            <div className='flex flex-col gap-2'>
+              <Label htmlFor='simulation-country'>{t('simulateCountry')}</Label>
+              <Input
+                id='simulation-country'
+                value={simulationCountry}
+                onChange={(event) => setSimulationCountry(event.target.value)}
+              />
+            </div>
+            {simulationResult && (
+              <div className='flex flex-col gap-2 text-sm'>
+                <p>
+                  {t('simulateDecision')}: {simulationResult.decision}
+                </p>
+                <p>
+                  {t('simulateTrace')}: {simulationResult.trace.join(' → ')}
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              disabled={simulationMutation.isPending}
+              onClick={() => simulationMutation.mutate()}
+            >
+              {simulationMutation.isPending
+                ? t('simulating')
+                : t('runSimulation')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={leaveConfirmOpen} onOpenChange={setLeaveConfirmOpen}>
         <AlertDialogContent>

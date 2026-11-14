@@ -42,6 +42,9 @@ type NodeAccessOutbox struct {
 	ID        uint64 `gorm:"primaryKey;autoIncrement:false"`
 	Payload   string
 	CreatedAt time.Time
+	Attempts  int
+	NextAttemptAt time.Time
+	LastError string
 }
 
 func (NodeAccessOutbox) TableName() string { return "of_node_access_outbox" }
