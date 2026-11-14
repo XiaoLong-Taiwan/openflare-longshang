@@ -8250,6 +8250,130 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/d/nodes/batch/agent-update": {
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openflare-node"
+                ],
+                "summary": "批次请求 Agent 更新",
+                "parameters": [
+                    {
+                        "description": "节点与更新参数",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/node.BatchNodeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "批次结果",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Any"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/node.BatchNodeResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/d/nodes/batch/force-sync": {
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openflare-node"
+                ],
+                "summary": "批次同步节点配置",
+                "parameters": [
+                    {
+                        "description": "节点列表",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/node.BatchNodeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "批次结果",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Any"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/node.BatchNodeResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/d/nodes/bootstrap-token": {
             "get": {
                 "security": [
@@ -10914,6 +11038,26 @@ const docTemplate = `{
                     "openflare-proxy-route"
                 ],
                 "summary": "获取代理规则列表",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "页码，从 1 开始",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页条数，默认 20，最大 100",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "按站点名称、源站地址或绑定域名搜索",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "代理规则列表",
@@ -13064,6 +13208,80 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "无权限或不存在",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "500": {
+                        "description": "内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/d/waf/simulate": {
+            "post": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openflare-waf"
+                ],
+                "summary": "模拟 WAF 请求",
+                "parameters": [
+                    {
+                        "description": "规则图与模拟请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/waf.SimulationInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "模拟结果",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Any"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/waf.SimulationResult"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "参数或规则图错误",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "404": {
+                        "description": "无权限或 IP 组不存在",
                         "schema": {
                             "$ref": "#/definitions/response.Any"
                         }
@@ -16399,6 +16617,9 @@ const docTemplate = `{
                 "backup_node_id": {
                     "type": "integer"
                 },
+                "debounce_seconds": {
+                    "type": "integer"
+                },
                 "default_proxied": {
                     "type": "boolean"
                 },
@@ -16444,6 +16665,9 @@ const docTemplate = `{
                 },
                 "created_at": {
                     "type": "string"
+                },
+                "debounce_seconds": {
+                    "type": "integer"
                 },
                 "default_proxied": {
                     "type": "boolean"
@@ -16491,6 +16715,9 @@ const docTemplate = `{
         "cloudflare.GroupNodeInput": {
             "type": "object",
             "properties": {
+                "ipv6": {
+                    "type": "string"
+                },
                 "node_id": {
                     "type": "integer"
                 },
@@ -16506,6 +16733,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "ip": {
+                    "type": "string"
+                },
+                "ipv6": {
                     "type": "string"
                 },
                 "name": {
@@ -19413,6 +19643,48 @@ const docTemplate = `{
                 }
             }
         },
+        "node.BatchNodeRequest": {
+            "type": "object",
+            "properties": {
+                "channel": {
+                    "type": "string"
+                },
+                "ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "tag_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "node.BatchNodeResponse": {
+            "type": "object",
+            "properties": {
+                "results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/node.BatchNodeResult"
+                    }
+                }
+            }
+        },
+        "node.BatchNodeResult": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
         "node.BootstrapView": {
             "type": "object",
             "properties": {
@@ -20598,6 +20870,9 @@ const docTemplate = `{
         "origin.HealthView": {
             "type": "object",
             "properties": {
+                "category": {
+                    "type": "string"
+                },
                 "checked_at": {
                     "type": "string"
                 },
@@ -21393,6 +21668,15 @@ const docTemplate = `{
                 },
                 "proxy_connect_timeout": {
                     "type": "string"
+                },
+                "proxy_next_upstream": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "proxy_next_upstream_tries": {
+                    "type": "integer"
                 },
                 "proxy_read_timeout": {
                     "type": "string"
@@ -22334,6 +22618,60 @@ const docTemplate = `{
                 },
                 "revision": {
                     "type": "integer"
+                }
+            }
+        },
+        "waf.SimulationInput": {
+            "type": "object",
+            "properties": {
+                "graph": {
+                    "$ref": "#/definitions/waf.RuleGraph"
+                },
+                "request": {
+                    "$ref": "#/definitions/waf.SimulationRequest"
+                }
+            }
+        },
+        "waf.SimulationRequest": {
+            "type": "object",
+            "properties": {
+                "body": {
+                    "type": "string"
+                },
+                "country": {
+                    "type": "string"
+                },
+                "ip": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "query": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "user_agent": {
+                    "type": "string"
+                }
+            }
+        },
+        "waf.SimulationResult": {
+            "type": "object",
+            "properties": {
+                "decision": {
+                    "type": "string"
+                },
+                "status_code": {
+                    "type": "integer"
+                },
+                "trace": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
