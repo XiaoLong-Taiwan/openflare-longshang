@@ -17,7 +17,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
+import { ManualCertificateFields } from './manual-certificate-fields';
 import type { TlsCertificateItem } from '@/lib/services/openflare';
 import { TlsCertificateService } from '@/lib/services/openflare';
 
@@ -135,13 +135,13 @@ export function CertificateImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && handleClose()}>
-      <DialogContent className='max-w-2xl'>
+      <DialogContent className='max-w-2xl max-h-[90dvh] overflow-y-auto'>
         <DialogHeader>
           <DialogTitle>{t('importTitle')}</DialogTitle>
           <DialogDescription>{t('importDesc')}</DialogDescription>
         </DialogHeader>
 
-        {error ? <p className='text-sm text-destructive'>{error}</p> : null}
+        {error ? <p role='alert' className='text-sm text-destructive'>{error}</p> : null}
 
         <Tabs
           value={importMode}
@@ -154,45 +154,7 @@ export function CertificateImportDialog({
 
           <TabsContent value='manual' className='space-y-4'>
             <form className='space-y-4' onSubmit={handleManualSubmit}>
-              <div className='grid gap-4 md:grid-cols-2'>
-                <div className='space-y-2'>
-                  <Label>{t('name')}</Label>
-                  <Input
-                    placeholder='example-com'
-                    {...manualForm.register('name')}
-                  />
-                  {manualForm.formState.errors.name ? (
-                    <p className='text-xs text-destructive'>
-                      {manualForm.formState.errors.name.message}
-                    </p>
-                  ) : null}
-                </div>
-                <div className='space-y-2'>
-                  <Label>{t('remark')}</Label>
-                  <Input
-                    placeholder={t('remarkProdPlaceholder')}
-                    {...manualForm.register('remark')}
-                  />
-                </div>
-              </div>
-
-              <div className='space-y-2'>
-                <Label>{t('certPem')}</Label>
-                <Textarea
-                  className='min-h-32 font-mono text-xs'
-                  placeholder='-----BEGIN CERTIFICATE-----'
-                  {...manualForm.register('cert_pem')}
-                />
-              </div>
-
-              <div className='space-y-2'>
-                <Label>{t('keyPem')}</Label>
-                <Textarea
-                  className='min-h-32 font-mono text-xs'
-                  placeholder='-----BEGIN PRIVATE KEY-----'
-                  {...manualForm.register('key_pem')}
-                />
-              </div>
+              <ManualCertificateFields form={manualForm} />
 
               <Button type='submit' disabled={pending}>
                 {pending ? (
@@ -207,12 +169,15 @@ export function CertificateImportDialog({
             </form>
           </TabsContent>
 
-          <TabsContent value='file' className='space-y-4'>
+          <TabsContent value='file' forceMount hidden={importMode !== 'file'} className='space-y-4'>
             <form className='space-y-4' onSubmit={handleFileSubmit}>
               <div className='grid gap-4 md:grid-cols-2'>
                 <div className='space-y-2'>
-                  <Label>{t('name')}</Label>
+                  <Label htmlFor='certificate-file-name'>{t('name')}</Label>
                   <Input
+                    id='certificate-file-name'
+                    required
+                    maxLength={255}
                     value={fileForm.name}
                     onChange={(event) =>
                       setFileForm((current) => ({
@@ -224,8 +189,10 @@ export function CertificateImportDialog({
                   />
                 </div>
                 <div className='space-y-2'>
-                  <Label>{t('remark')}</Label>
+                  <Label htmlFor='certificate-file-remark'>{t('remark')}</Label>
                   <Input
+                    id='certificate-file-remark'
+                    maxLength={255}
                     value={fileForm.remark}
                     onChange={(event) =>
                       setFileForm((current) => ({
@@ -240,8 +207,10 @@ export function CertificateImportDialog({
 
               <div className='grid gap-4 md:grid-cols-2'>
                 <div className='space-y-2'>
-                  <Label>{t('certFile')}</Label>
+                  <Label htmlFor='certificate-cert-file'>{t('certFile')}</Label>
                   <Input
+                    id='certificate-cert-file'
+                    required
                     key={`cert-${fileInputNonce}`}
                     type='file'
                     accept='.pem,.crt,.cer'
@@ -256,8 +225,10 @@ export function CertificateImportDialog({
                   </p>
                 </div>
                 <div className='space-y-2'>
-                  <Label>{t('keyFile')}</Label>
+                  <Label htmlFor='certificate-key-file'>{t('keyFile')}</Label>
                   <Input
+                    id='certificate-key-file'
+                    required
                     key={`key-${fileInputNonce}`}
                     type='file'
                     accept='.key,.pem'

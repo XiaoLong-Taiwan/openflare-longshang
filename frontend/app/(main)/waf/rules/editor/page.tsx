@@ -236,9 +236,9 @@ function EditorContent() {
     return <EditorSkeleton />;
 
   return (
-    <div className='flex h-[calc(100dvh-8rem)] w-full flex-col px-1 py-6'>
+    <div className='flex min-h-[640px] h-[calc(100dvh-8rem)] w-full min-w-0 flex-col px-1 py-6'>
       <UnsavedChanges dirty={dirty} />
-      <header className='mb-4 flex flex-col gap-4'>
+      <header className='mb-4 flex shrink-0 flex-col gap-4'>
         <Button
           variant='ghost'
           size='sm'
@@ -248,10 +248,10 @@ function EditorContent() {
           <ArrowLeft className='size-3.5' />
           {t('back')}
         </Button>
-        <div className='flex items-center justify-between gap-4'>
-          <div className='flex min-w-0 items-center gap-2'>
+        <div className='flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between'>
+          <div className='flex min-w-0 flex-wrap items-center gap-2'>
             <GitBranch className='size-5 text-primary' />
-            <h1 className='text-2xl font-semibold tracking-tight'>
+            <h1 className='min-w-0 break-all text-2xl font-semibold tracking-tight'>
               {ruleQuery.data.name}
             </h1>
             <Badge variant={ruleQuery.data.enabled ? 'default' : 'secondary'}>
@@ -264,7 +264,7 @@ function EditorContent() {
             </Badge>
             {dirty && <Badge variant='secondary'>{t('unsaved')}</Badge>}
           </div>
-          <div className='flex shrink-0 items-center gap-2'>
+          <div className='flex shrink-0 flex-wrap items-center gap-2'>
             <div className='flex items-center gap-2'>
               <Switch
                 id='rule-enabled'
@@ -321,7 +321,7 @@ function EditorContent() {
           </div>
         </div>
       </header>
-      <div className='flex min-h-0 flex-1 overflow-hidden rounded-xl border bg-background shadow-sm'>
+      <div className='flex min-h-[360px] flex-1 overflow-hidden rounded-xl border bg-background shadow-sm'>
         <RuleFlowCanvas
           graph={graph}
           issues={issues}

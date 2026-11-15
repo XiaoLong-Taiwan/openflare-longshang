@@ -24,12 +24,14 @@ export function NodeInfoRow({
   return (
     <div
       className={cn(
-        'flex items-start justify-between gap-4 py-2.5 text-sm',
+        'flex min-w-0 flex-col gap-1 py-2.5 text-sm sm:flex-row sm:items-start sm:justify-between sm:gap-4',
         className,
       )}
     >
-      <span className='shrink-0 text-muted-foreground'>{label}</span>
-      <div className='min-w-0 text-right font-medium'>{children}</div>
+      <span className='text-muted-foreground sm:max-w-[45%]'>{label}</span>
+      <div className='min-w-0 whitespace-pre-wrap font-medium [overflow-wrap:anywhere] sm:text-right'>
+        {children}
+      </div>
     </div>
   );
 }
@@ -70,14 +72,16 @@ export function NodeSectionCard({
   className?: string;
 }) {
   return (
-    <Card className={cn('border shadow-none', className)}>
+    <Card className={cn('min-w-0 border shadow-none', className)}>
       <CardHeader
         className={cn(
           'pb-3',
-          action ? 'flex-row items-start justify-between space-y-0' : '',
+          action
+            ? 'flex flex-col items-start gap-3 sm:flex-row sm:justify-between'
+            : '',
         )}
       >
-        <div className='space-y-1'>
+        <div className='flex min-w-0 flex-col gap-1 [overflow-wrap:anywhere]'>
           <CardTitle className='text-base font-semibold'>{title}</CardTitle>
           {description ? (
             <CardDescription>{description}</CardDescription>
@@ -92,7 +96,7 @@ export function NodeSectionCard({
 
 export function NodeErrorBanner({ message }: { message: string }) {
   return (
-    <div className='rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive'>
+    <div className='min-w-0 whitespace-pre-wrap rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive [overflow-wrap:anywhere]'>
       {message}
     </div>
   );

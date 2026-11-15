@@ -129,6 +129,26 @@
   }
 }
 
+@media (max-width: 767px) {
+  [data-slot='button'],
+  [data-slot='sidebar-trigger'],
+  [data-slot='select-trigger'],
+  [data-slot='select-item'] {
+    min-height: 2.75rem;
+  }
+
+  [data-slot='button'][data-size^='icon'],
+  [data-slot='sidebar-trigger'] {
+    min-width: 2.75rem;
+  }
+
+  [data-slot='input'],
+  [data-slot='select-trigger'] {
+    min-height: 2.75rem;
+    font-size: 1rem;
+  }
+}
+
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }

@@ -4,10 +4,15 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { type ReactNode, useCallback, useMemo } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
@@ -92,11 +97,11 @@ export function NodeDetailShell({
   );
 
   return (
-    <div className='py-6 px-1 space-y-6'>
+    <div className='flex w-full min-w-0 flex-col gap-6 py-6 px-1'>
       <section className='overflow-hidden rounded-2xl border bg-gradient-to-br from-card via-card to-muted/30'>
         <div className='flex flex-col gap-5 p-5 md:p-6'>
           <div className='flex flex-wrap items-start justify-between gap-4'>
-            <div className='flex min-w-0 items-start gap-3'>
+            <div className='flex min-w-0 flex-1 items-start gap-3'>
               <Button
                 variant='ghost'
                 size='sm'
@@ -110,7 +115,7 @@ export function NodeDetailShell({
 
               <div className='min-w-0 space-y-2'>
                 <div className='flex flex-wrap items-center gap-2'>
-                  <h1 className='text-2xl font-semibold tracking-tight'>
+                  <h1 className='text-2xl font-semibold tracking-tight [overflow-wrap:anywhere]'>
                     {title}
                   </h1>
                   <NodeStatusBadge label={typeLabel} tone={typeTone} />
@@ -127,7 +132,27 @@ export function NodeDetailShell({
               </div>
             </div>
 
-            <div className='flex flex-wrap items-center gap-2'>{actions}</div>
+            <Collapsible className='w-full min-w-0'>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  className='group w-full justify-between sm:hidden'
+                >
+                  {t('moreActions')}
+                  <ChevronDown
+                    data-icon='inline-end'
+                    className='group-data-[state=open]:rotate-180'
+                  />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent
+                forceMount
+                className='hidden flex-wrap items-center gap-2 pt-3 data-[state=open]:flex sm:flex sm:pt-0 [&_button]:h-auto [&_button]:min-h-8 [&_button]:max-w-full [&_button]:whitespace-normal [&_button]:[overflow-wrap:anywhere]'
+              >
+                {actions}
+              </CollapsibleContent>
+            </Collapsible>
           </div>
 
           {kpis.length > 0 ? (

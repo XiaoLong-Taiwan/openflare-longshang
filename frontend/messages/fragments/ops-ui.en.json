@@ -1,0 +1,9 @@
+{
+  "dashboard": {
+    "scope": { "explanation": "Metric definitions and data freshness" }
+  },
+  "nodes": {
+    "selectedCount": "{count} nodes selected",
+    "moreActions": "More actions"
+  }
+}

@@ -145,6 +145,9 @@ export function ProxyRoutesPageClient() {
               {t('listTitle')}
             </CardTitle>
             <Input
+              aria-label={t('searchPlaceholder')}
+              type='search'
+              enterKeyHint='search'
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
               placeholder={t('searchPlaceholder')}
@@ -173,42 +176,47 @@ export function ProxyRoutesPageClient() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('siteName')}</TableHead>
-                  <TableHead>{t('domain')}</TableHead>
-                  <TableHead>{t('status')}</TableHead>
-                  <TableHead>{t('upstream')}</TableHead>
+                  <TableHead className='hidden md:table-cell'>{t('domain')}</TableHead>
+                  <TableHead className='hidden md:table-cell'>{t('status')}</TableHead>
+                  <TableHead className='hidden md:table-cell'>{t('upstream')}</TableHead>
                   <TableHead className='text-right'>{t('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {routes.map((route) => (
                   <TableRow key={route.id}>
-                    <TableCell className='font-medium'>
+                    <TableCell className='max-w-[55vw] whitespace-normal break-all font-medium'>
                       {route.site_name}
+                      <div className='mt-2 flex flex-col gap-2 text-xs text-muted-foreground md:hidden'>
+                        <span>{t('domain')}: {getRouteDomainsLabel(route, t)}</span>
+                        <span>{t('upstream')}: {getUpstreamSummary(route, t)}</span>
+                        <Badge variant={route.enabled ? 'default' : 'secondary'}>{route.enabled ? t('enabled') : t('disabled')}</Badge>
+                      </div>
                     </TableCell>
                     <TableCell
-                      className='max-w-[220px] truncate'
+                      className='hidden md:table-cell max-w-[220px] truncate'
                       title={getRouteDomainsLabel(route, t)}
                     >
                       {getRoutePrimaryDomain(route) ||
                         getRouteDomainsLabel(route, t)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className='hidden md:table-cell'>
                       <Badge variant={route.enabled ? 'default' : 'secondary'}>
                         {route.enabled ? t('enabled') : t('disabled')}
                       </Badge>
                     </TableCell>
                     <TableCell
-                      className='max-w-[280px] truncate'
+                      className='hidden md:table-cell max-w-[280px] truncate'
                       title={getUpstreamSummary(route, t)}
                     >
                       {getUpstreamSummary(route, t)}
                     </TableCell>
                     <TableCell className='text-right'>
-                      <div className='flex justify-end gap-2'>
+                      <div className='flex flex-wrap justify-end gap-2'>
                         <Button
                           variant='outline'
                           size='sm'
-                          className='h-7 text-xs'
+                          className='min-h-11 md:min-h-7 text-xs'
                           asChild
                         >
                           <Link href={`/proxy-routes/detail?id=${route.id}`}>
@@ -218,7 +226,8 @@ export function ProxyRoutesPageClient() {
                         <Button
                           variant='ghost'
                           size='sm'
-                          className='h-7 text-xs text-destructive hover:text-destructive'
+                          aria-label={`${tc('delete')}: ${route.site_name}`}
+                          className='min-h-11 md:min-h-7 text-xs text-destructive hover:text-destructive'
                           onClick={() => setDeleteTarget(route)}
                         >
                           <Trash2 className='size-3.5' />
@@ -230,7 +239,7 @@ export function ProxyRoutesPageClient() {
               </TableBody>
             </Table>
           )}
-          <div className='mt-4 flex items-center justify-end gap-3'>
+          <div className='mt-4 flex flex-wrap items-center justify-end gap-3'>
             <Button variant='outline' size='sm' disabled={loading || page <= 1} onClick={() => setPage((value) => value - 1)}>{tc('previousPage')}</Button>
             <span className='text-sm text-muted-foreground'>{page} / {Math.max(1, Math.ceil(total / 20))}</span>
             <Button variant='outline' size='sm' disabled={loading || page * 20 >= total} onClick={() => setPage((value) => value + 1)}>{tc('nextPage')}</Button>

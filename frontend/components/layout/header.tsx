@@ -100,7 +100,7 @@ export function SiteHeader({
   }, []);
 
   return (
-    <div className='flex flex-col w-full'>
+    <div className='flex w-full min-w-0 shrink-0 flex-col'>
       <AppBanner />
       {user?.need_change_password && (
         <div className='bg-amber-500/10 border-b border-amber-500/20 px-4 py-3 text-amber-500 text-xs sm:text-sm flex items-center justify-between gap-4'>
@@ -118,15 +118,15 @@ export function SiteHeader({
           </Button>
         </div>
       )}
-      <header className='flex h-(--header-height) shrink-0 items-center bg-background px-4 md:px-0'>
-        <div className='flex w-full items-center justify-between md:hidden'>
-          <div className='flex items-center gap-2'>
+      <header className='flex h-(--header-height) shrink-0 items-center bg-background px-2 sm:px-4 md:px-0'>
+        <div className='flex w-full min-w-0 items-center justify-between gap-1 md:hidden'>
+          <div className='flex min-w-0 items-center gap-1'>
             <SidebarTrigger />
-            <span className='text-sm font-medium truncate max-w-[120px]'>
+            <span className='min-w-0 truncate text-sm font-medium'>
               {user?.nickname || user?.username || t('guest')}
             </span>
           </div>
-          <div className='flex items-center gap-1'>
+          <div className='flex shrink-0 items-center gap-1'>
             <Button
               variant='ghost'
               size='icon'

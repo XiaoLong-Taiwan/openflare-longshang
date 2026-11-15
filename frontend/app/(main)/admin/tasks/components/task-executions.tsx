@@ -272,18 +272,18 @@ export function TaskExecutionsManager() {
         <EmptyStateWithBorder icon={Activity} description={t('noExecutions')} />
       ) : (
         <div className='rounded-lg border bg-card'>
-          <Table className='min-w-[900px]'>
+          <Table className='w-full table-fixed md:table-auto md:min-w-[900px]'>
             <TableHeader>
               <TableRow className='hover:bg-transparent'>
-                <TableHead className='w-[180px]'>{t('colTask')}</TableHead>
+                <TableHead className='md:w-[180px]'>{t('colTask')}</TableHead>
                 <TableHead className='w-[100px]'>{t('colStatus')}</TableHead>
-                <TableHead className='w-[110px]'>{t('colTrigger')}</TableHead>
-                <TableHead className='w-[120px]'>{t('colRetry')}</TableHead>
-                <TableHead className='w-[120px]'>{t('colDuration')}</TableHead>
-                <TableHead className='min-w-[220px]'>
+                <TableHead className='hidden md:table-cell w-[110px]'>{t('colTrigger')}</TableHead>
+                <TableHead className='hidden md:table-cell w-[120px]'>{t('colRetry')}</TableHead>
+                <TableHead className='hidden md:table-cell w-[120px]'>{t('colDuration')}</TableHead>
+                <TableHead className='hidden md:table-cell min-w-[220px]'>
                   {t('colResult')}
                 </TableHead>
-                <TableHead className='w-[170px]'>{t('colCreatedAt')}</TableHead>
+                <TableHead className='hidden md:table-cell w-[170px]'>{t('colCreatedAt')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -293,14 +293,19 @@ export function TaskExecutionsManager() {
                   className='cursor-pointer'
                   onClick={() => openExecutionDetail(execution)}
                 >
-                  <TableCell>
+                  <TableCell className='whitespace-normal break-all'>
                     <div className='flex flex-col gap-1'>
-                      <span className='text-sm font-medium'>
+                      <Button variant='link' className='h-auto justify-start whitespace-normal break-all p-0 text-left' onClick={() => openExecutionDetail(execution)}>
                         {execution.task_name || execution.task_type}
-                      </span>
+                      </Button>
                       <span className='font-mono text-[11px] text-muted-foreground'>
                         {execution.task_id}
                       </span>
+                      <div className='flex flex-col gap-1 text-xs text-muted-foreground md:hidden'>
+                        <span>{t('colCreatedAt')}: {formatDateTime(execution.created_at)}</span>
+                        <span>{t('colDuration')}: {formatDuration(execution.duration)} · {t('colRetry')}: {execution.retry_count}/{execution.max_retry}</span>
+                        <span className='line-clamp-2'>{execution.error_message || execution.result || '-'}</span>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -308,7 +313,7 @@ export function TaskExecutionsManager() {
                       {mappedLabel(t, STATUS_LABELS_KEYS, execution.status)}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className='hidden md:table-cell'>
                     <Badge variant='outline'>
                       {mappedLabel(
                         t,
@@ -317,16 +322,16 @@ export function TaskExecutionsManager() {
                       )}
                     </Badge>
                   </TableCell>
-                  <TableCell className='font-mono text-xs text-muted-foreground'>
+                  <TableCell className='hidden md:table-cell font-mono text-xs text-muted-foreground'>
                     {execution.retry_count}/{execution.max_retry}
                   </TableCell>
-                  <TableCell className='font-mono text-xs text-muted-foreground'>
+                  <TableCell className='hidden md:table-cell font-mono text-xs text-muted-foreground'>
                     {formatDuration(execution.duration)}
                   </TableCell>
-                  <TableCell className='max-w-[320px] truncate text-xs text-muted-foreground'>
+                  <TableCell className='hidden md:table-cell max-w-[320px] truncate text-xs text-muted-foreground'>
                     {execution.error_message || execution.result || '-'}
                   </TableCell>
-                  <TableCell className='font-mono text-[11px] text-muted-foreground'>
+                  <TableCell className='hidden md:table-cell font-mono text-[11px] text-muted-foreground'>
                     {formatDateTime(execution.created_at)}
                   </TableCell>
                 </TableRow>
@@ -336,7 +341,7 @@ export function TaskExecutionsManager() {
         </div>
       )}
 
-      <div className='flex items-center justify-between'>
+      <div className='flex flex-wrap items-center justify-between gap-3'>
         <div className='text-xs text-muted-foreground'>
           {t('paginationInfo', {
             total: executionsTotal,

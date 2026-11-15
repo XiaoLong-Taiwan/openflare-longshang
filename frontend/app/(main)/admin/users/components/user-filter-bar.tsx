@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -45,7 +46,7 @@ export function UserFilterBar() {
     fetchUsers,
   } = useAdminUsers();
 
-  const totalPages = Math.ceil(total / pageSize);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const hasSearchFilter = Boolean(
     searchUserId || searchUsername || searchEmail,
   );
@@ -59,7 +60,7 @@ export function UserFilterBar() {
               variant='outline'
               size='sm'
               className={cn(
-                'h-5 border-dashed text-[10px] font-medium shadow-none focus-visible:ring-0',
+                'min-h-11 md:min-h-8 border-dashed font-medium shadow-none',
                 hasSearchFilter && 'bg-primary/5 border-primary/20',
               )}
             >
@@ -80,20 +81,24 @@ export function UserFilterBar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent className='w-56 p-3' align='start'>
             <div className='space-y-2.5'>
-              <input
-                className='w-full h-7 px-2 text-xs border border-dashed rounded-md outline-none focus:border-primary bg-background'
+              <Input
+                aria-label={t('searchUserIdPlaceholder')}
+                inputMode='numeric'
                 placeholder={t('searchUserIdPlaceholder')}
                 value={searchUserId}
                 onChange={(e) => setSearchUserId(e.target.value)}
               />
-              <input
-                className='w-full h-7 px-2 text-xs border border-dashed rounded-md outline-none focus:border-primary bg-background'
+              <Input
+                aria-label={t('searchUsernamePlaceholder')}
+                type='search'
                 placeholder={t('searchUsernamePlaceholder')}
                 value={searchUsername}
                 onChange={(e) => setSearchUsername(e.target.value)}
               />
-              <input
-                className='w-full h-7 px-2 text-xs border border-dashed rounded-md outline-none focus:border-primary bg-background'
+              <Input
+                aria-label={t('searchEmailPlaceholder')}
+                type='search'
+                inputMode='email'
                 placeholder={t('searchEmailPlaceholder')}
                 value={searchEmail}
                 onChange={(e) => setSearchEmail(e.target.value)}
@@ -122,7 +127,7 @@ export function UserFilterBar() {
               variant='outline'
               size='sm'
               className={cn(
-                'h-5 border-dashed text-[10px] font-medium shadow-none focus-visible:ring-0',
+                'min-h-11 md:min-h-8 border-dashed font-medium shadow-none',
                 statusFilter !== 'all' && 'bg-primary/5 border-primary/20',
               )}
             >
@@ -205,7 +210,7 @@ export function UserFilterBar() {
                 setSearchEmail('');
                 setStatusFilter('all');
               }}
-              className='h-5 px-2 lg:px-3 text-[11px] font-medium text-muted-foreground hover:text-foreground'
+              className='min-h-11 md:min-h-8 px-2 lg:px-3 font-medium text-muted-foreground hover:text-foreground'
             >
               <X className='size-3' />
               {t('clearFilters')}
@@ -216,7 +221,7 @@ export function UserFilterBar() {
 
       <Separator className='lg:hidden' />
 
-      <div className='flex items-center gap-1.5 self-end lg:self-auto'>
+      <div className='flex flex-wrap items-center gap-1.5 lg:self-auto'>
         <span className='text-[10px] text-muted-foreground whitespace-nowrap'>
           {t('totalRecords', { total })}
         </span>
@@ -225,7 +230,7 @@ export function UserFilterBar() {
             variant='ghost'
             size='icon'
             aria-label={tCommon('previousPage')}
-            className='h-5.5 w-6 rounded-none rounded-l-md disabled:opacity-30'
+            className='size-11 md:size-8 rounded-none rounded-l-md disabled:opacity-30'
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page <= 1 || loading}
           >
@@ -238,7 +243,7 @@ export function UserFilterBar() {
             variant='ghost'
             size='icon'
             aria-label={tCommon('nextPage')}
-            className='h-5.5 w-6 rounded-none rounded-r-md disabled:opacity-30'
+            className='size-11 md:size-8 rounded-none rounded-r-md disabled:opacity-30'
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page >= totalPages || loading}
           >
@@ -251,7 +256,7 @@ export function UserFilterBar() {
             <Button
               variant='outline'
               size='sm'
-              className='h-6 border-dashed text-[10px] px-2 font-mono shadow-none'
+              className='min-h-11 md:min-h-8 border-dashed px-2 font-mono shadow-none'
               disabled={loading}
             >
               {t('perPage', { count: pageSize })}
@@ -277,7 +282,8 @@ export function UserFilterBar() {
         <Button
           variant='outline'
           size='icon'
-          className='h-6 w-6 border-dashed shadow-none'
+          aria-label={t('refreshData')}
+          className='size-11 md:size-8 border-dashed shadow-none'
           onClick={() => fetchUsers(true)}
           disabled={loading}
           title={t('refreshData')}

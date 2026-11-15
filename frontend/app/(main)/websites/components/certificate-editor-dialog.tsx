@@ -18,9 +18,7 @@ import {
 import { EmptyStateWithBorder } from '@/components/layout/empty';
 import { ErrorInline } from '@/components/layout/error';
 import { LoadingStateWithBorder } from '@/components/layout/loading';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { ManualCertificateFields } from './manual-certificate-fields';
 import type { TlsCertificateItem } from '@/lib/services/openflare';
 import { TlsCertificateService } from '@/lib/services/openflare';
 
@@ -130,37 +128,12 @@ export function CertificateEditorDialog({
             onSubmit={handleSubmit}
           >
             {updateMutation.isError ? (
-              <p className='text-sm text-destructive'>
+              <p role='alert' className='text-sm text-destructive'>
                 {getErrorMessage(updateMutation.error, t('requestFailed'))}
               </p>
             ) : null}
 
-            <div className='grid gap-4 md:grid-cols-2'>
-              <div className='space-y-2'>
-                <Label>{t('name')}</Label>
-                <Input {...form.register('name')} />
-              </div>
-              <div className='space-y-2'>
-                <Label>{t('remark')}</Label>
-                <Input {...form.register('remark')} />
-              </div>
-            </div>
-
-            <div className='space-y-2'>
-              <Label>{t('certPem')}</Label>
-              <Textarea
-                className='min-h-32 font-mono text-xs'
-                {...form.register('cert_pem')}
-              />
-            </div>
-
-            <div className='space-y-2'>
-              <Label>{t('keyPem')}</Label>
-              <Textarea
-                className='min-h-32 font-mono text-xs'
-                {...form.register('key_pem')}
-              />
-            </div>
+            <ManualCertificateFields form={form} />
 
             <DialogFooter className='sm:justify-between'>
               <div>

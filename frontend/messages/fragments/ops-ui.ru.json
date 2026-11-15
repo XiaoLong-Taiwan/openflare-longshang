@@ -1,0 +1,9 @@
+{
+  "dashboard": {
+    "scope": { "explanation": "Определения метрик и актуальность данных" }
+  },
+  "nodes": {
+    "selectedCount": "Выбрано узлов: {count}",
+    "moreActions": "Другие действия"
+  }
+}

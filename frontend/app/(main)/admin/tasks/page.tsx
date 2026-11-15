@@ -20,7 +20,7 @@ function TasksPageContent() {
     router.push(`/admin/tasks?tab=${value}`);
   };
   return (
-    <div className='py-6 space-y-6'>
+    <div className='w-full min-w-0 py-6 space-y-6'>
       <div className='flex items-center gap-2'>
         <Layers className='size-5 text-primary' />
         <div>
@@ -35,7 +35,7 @@ function TasksPageContent() {
         onValueChange={handleTabChange}
         className='w-full'
       >
-        <TabsList variant='line' className='w-fit inline-flex gap-8 mb-6'>
+        <TabsList variant='line' className='w-full justify-start overflow-x-auto gap-4 sm:gap-8 mb-6'>
           <TabsTrigger
             value='tasks'
             className='px-0 pb-2 text-xs font-semibold'

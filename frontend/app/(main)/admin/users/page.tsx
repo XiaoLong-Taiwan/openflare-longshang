@@ -74,9 +74,9 @@ export default function UsersPage() {
   };
 
   return (
-    <div className='py-6 space-y-4'>
+    <div className='w-full min-w-0 py-6 space-y-4'>
       {/* 顶部标题栏 */}
-      <div className='flex items-center justify-between pb-2'>
+      <div className='flex flex-wrap items-center justify-between gap-3 pb-2'>
         <div className='flex items-center gap-2'>
           <UserRound className='size-5 text-primary' />
           <div>
@@ -117,22 +117,22 @@ export default function UsersPage() {
             <Table className='w-full caption-bottom text-sm min-w-full'>
               <TableHeader className='sticky top-0 z-20 bg-background'>
                 <TableRow className='border-b border-dashed hover:bg-transparent'>
-                  <TableHead className='w-[90px] whitespace-nowrap py-2 h-8'>
+                  <TableHead className='hidden md:table-cell w-[90px] whitespace-nowrap py-2 h-8'>
                     ID
                   </TableHead>
                   <TableHead className='w-[120px] whitespace-nowrap py-2 h-8'>
                     {t('colUser')}
                   </TableHead>
-                  <TableHead className='whitespace-nowrap min-w-[160px] py-2 h-8 pl-4'>
+                  <TableHead className='hidden md:table-cell whitespace-nowrap min-w-[160px] py-2 h-8 pl-4'>
                     {t('colEmail')}
                   </TableHead>
-                  <TableHead className='whitespace-nowrap min-w-[140px] py-2 h-8'>
+                  <TableHead className='hidden md:table-cell whitespace-nowrap min-w-[140px] py-2 h-8'>
                     {t('colLastLogin')}
                   </TableHead>
-                  <TableHead className='whitespace-nowrap min-w-[140px] py-2 h-8'>
+                  <TableHead className='hidden lg:table-cell whitespace-nowrap min-w-[140px] py-2 h-8'>
                     {t('colRegisteredAt')}
                   </TableHead>
-                  <TableHead className='whitespace-nowrap min-w-[140px] py-2 h-8'>
+                  <TableHead className='hidden lg:table-cell whitespace-nowrap min-w-[140px] py-2 h-8'>
                     {t('colLastUpdate')}
                   </TableHead>
                   <TableHead className='sticky right-0 text-center bg-background z-10 w-[110px] py-2 h-8'>
@@ -147,10 +147,10 @@ export default function UsersPage() {
                     className='border-dashed hover:bg-muted/30 cursor-pointer group'
                     onClick={() => handleShowDetail(user)}
                   >
-                    <TableCell className='font-mono text-[11px] text-muted-foreground py-1'>
+                    <TableCell className='hidden md:table-cell font-mono text-[11px] text-muted-foreground py-1'>
                       {user.id}
                     </TableCell>
-                    <TableCell className='py-1'>
+                    <TableCell className='max-w-[55vw] whitespace-normal py-2 md:py-1'>
                       <div className='flex items-center gap-2'>
                         <Avatar className='h-7 w-7 rounded-sm border'>
                           <AvatarImage src={user.avatar_url} />
@@ -182,34 +182,40 @@ export default function UsersPage() {
                           </div>
                         </div>
                       </div>
+                      <div className='mt-2 flex flex-col gap-1 break-all text-xs text-muted-foreground md:hidden'>
+                        <span>{user.id} · {user.email || '-'}</span>
+                        <span>{t('colLastLogin')}: {formatDateTime(user.last_login_at)}</span>
+                        <span>{t('status')}: {user.is_active ? t('statusActive') : t('statusDisabled')}</span>
+                      </div>
                     </TableCell>
 
-                    <TableCell className='text-[10px] text-muted-foreground font-mono whitespace-nowrap py-1 pl-4'>
+                    <TableCell className='hidden md:table-cell text-[10px] text-muted-foreground font-mono whitespace-nowrap py-1 pl-4'>
                       {user.email || '-'}
                     </TableCell>
 
-                    <TableCell className='text-[10px] text-muted-foreground font-mono whitespace-nowrap py-1 pl-4'>
+                    <TableCell className='hidden md:table-cell text-[10px] text-muted-foreground font-mono whitespace-nowrap py-1 pl-4'>
                       {formatDateTime(user.last_login_at)}
                     </TableCell>
-                    <TableCell className='text-[10px] text-muted-foreground font-mono whitespace-nowrap py-1'>
+                    <TableCell className='hidden lg:table-cell text-[10px] text-muted-foreground font-mono whitespace-nowrap py-1'>
                       {formatDateTime(user.created_at)}
                     </TableCell>
-                    <TableCell className='text-[10px] text-muted-foreground font-mono whitespace-nowrap py-1'>
+                    <TableCell className='hidden lg:table-cell text-[10px] text-muted-foreground font-mono whitespace-nowrap py-1'>
                       {formatDateTime(user.updated_at)}
                     </TableCell>
                     <TableCell
                       className='sticky right-0 text-center bg-background z-10 py-1'
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className='flex items-center justify-center gap-0.5'>
+                      <div className='flex flex-wrap items-center justify-center gap-1'>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div>
                               <Switch
+                                aria-label={user.is_active ? t('disableAccount') : t('enableAccount')}
                                 checked={user.is_active}
                                 onCheckedChange={() => handleStatusToggle(user)}
                                 disabled={user.is_admin}
-                                className='scale-75'
+                                className='md:scale-75'
                               />
                             </div>
                           </TooltipTrigger>
@@ -227,7 +233,8 @@ export default function UsersPage() {
                             <Button
                               variant='ghost'
                               size='icon'
-                              className='h-6 w-6 text-muted-foreground hover:text-foreground'
+                              aria-label={t('viewDetail')}
+                              className='size-11 md:size-6 text-muted-foreground hover:text-foreground'
                               onClick={() => handleShowDetail(user)}
                             >
                               <Eye className='size-3' />
@@ -243,7 +250,8 @@ export default function UsersPage() {
                             <Button
                               variant='ghost'
                               size='icon'
-                              className='h-6 w-6 text-muted-foreground hover:text-foreground'
+                              aria-label={t('editUser')}
+                              className='size-11 md:size-6 text-muted-foreground hover:text-foreground'
                               onClick={() => setEditTarget(user)}
                             >
                               <Pencil className='size-3' />

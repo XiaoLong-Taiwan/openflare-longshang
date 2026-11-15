@@ -205,25 +205,11 @@ function NodesPage({ nodeFilter }: { nodeFilter: NodeFilter }) {
             {t('title')}
           </h1>
         </div>
-        <div className='flex items-center gap-2'>
-          <Button variant='outline' size='sm' className='h-7 text-xs' asChild>
-            <Link href='/apply-logs'>{t('applyLogs')}</Link>
-          </Button>
-          <Button
-            variant='secondary'
-            size='sm'
-            className='h-7 text-xs'
-            onClick={handleCreate}
-          >
-            <Plus className='size-3.5 mr-1' />
-            {t('create')}
-          </Button>
-        </div>
       </div>
 
       <Card className='border-dashed shadow-none'>
         <CardHeader className='pb-3'>
-          <div className='flex items-center justify-between gap-3'>
+          <div className='flex flex-col gap-4'>
             <div>
               <CardTitle className='text-base font-semibold'>
                 {t('listTitle')}
@@ -232,38 +218,54 @@ function NodesPage({ nodeFilter }: { nodeFilter: NodeFilter }) {
                 {getFilterDescription(nodeFilter, t)}
               </CardDescription>
             </div>
-            <Button
-              variant='outline'
-              size='sm'
-              className='h-7 text-xs'
-              onClick={handleRefresh}
-              disabled={nodesQuery.isFetching}
+            <div className='flex flex-wrap items-center gap-2'>
+              <Button variant='secondary' size='sm' onClick={handleCreate}>
+                <Plus data-icon='inline-start' />
+                {t('create')}
+              </Button>
+              <Button variant='outline' size='sm' asChild>
+                <Link href='/apply-logs'>{t('applyLogs')}</Link>
+              </Button>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={handleRefresh}
+                disabled={nodesQuery.isFetching}
+              >
+                {nodesQuery.isFetching ? (
+                  <Loader2 className='size-3.5 mr-1 animate-spin' />
+                ) : (
+                  <RefreshCw className='size-3.5 mr-1' />
+                )}
+                {t('refreshNow')}
+              </Button>
+            </div>
+            <div
+              className='flex flex-wrap items-center gap-2'
+              aria-live='polite'
             >
-              {nodesQuery.isFetching ? (
-                <Loader2 className='size-3.5 mr-1 animate-spin' />
-              ) : (
-                <RefreshCw className='size-3.5 mr-1' />
-              )}
-              {t('refreshNow')}
-            </Button>
-            <Button
-              variant='outline'
-              size='sm'
-              className='h-7 text-xs'
-              disabled={selectedIds.size === 0 || batchMutation.isPending}
-              onClick={() => batchMutation.mutate('sync')}
-            >
-              {t('batchSync')}
-            </Button>
-            <Button
-              variant='outline'
-              size='sm'
-              className='h-7 text-xs'
-              disabled={selectedIds.size === 0 || batchMutation.isPending}
-              onClick={() => batchMutation.mutate('update')}
-            >
-              {t('batchUpdate')}
-            </Button>
+              <span className='text-sm text-muted-foreground'>
+                {t('selectedCount', { count: selectedIds.size })}
+              </span>
+              <Button
+                variant='outline'
+                size='sm'
+                className='h-7 text-xs'
+                disabled={selectedIds.size === 0 || batchMutation.isPending}
+                onClick={() => batchMutation.mutate('sync')}
+              >
+                {t('batchSync')}
+              </Button>
+              <Button
+                variant='outline'
+                size='sm'
+                className='h-7 text-xs'
+                disabled={selectedIds.size === 0 || batchMutation.isPending}
+                onClick={() => batchMutation.mutate('update')}
+              >
+                {t('batchUpdate')}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className='flex flex-col gap-4'>

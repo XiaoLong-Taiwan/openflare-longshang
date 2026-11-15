@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import {
   Select,
   SelectContent,
@@ -176,40 +177,52 @@ export function CertificateApplyDialog({
             applyMutation.mutate(values);
           })}
         >
-          {error ? <p className='text-sm text-destructive'>{error}</p> : null}
+          {error ? <p role='alert' className='text-sm text-destructive'>{error}</p> : null}
 
-          <div className='grid gap-4 md:grid-cols-2'>
-            <div className='space-y-2'>
-              <Label>{t('name')}</Label>
+          <FieldGroup className='grid gap-4 md:grid-cols-2'>
+            <Field data-invalid={Boolean(form.formState.errors.name)}>
+              <FieldLabel htmlFor='acme-name'>{t('name')}</FieldLabel>
               <Input
+                id='acme-name'
+                aria-invalid={Boolean(form.formState.errors.name)}
+                aria-describedby={form.formState.errors.name ? 'acme-name-error' : undefined}
                 placeholder={t('namePlaceholder')}
                 {...form.register('name')}
               />
-            </div>
-            <div className='space-y-2'>
-              <Label>{t('primaryDomain')}</Label>
+              <FieldError id='acme-name-error' errors={[form.formState.errors.name]} />
+            </Field>
+            <Field data-invalid={Boolean(form.formState.errors.primary_domain)}>
+              <FieldLabel htmlFor='acme-domain'>{t('primaryDomain')}</FieldLabel>
               <Input
+                id='acme-domain'
+                autoCapitalize='none'
+                spellCheck={false}
+                aria-invalid={Boolean(form.formState.errors.primary_domain)}
+                aria-describedby={form.formState.errors.primary_domain ? 'acme-domain-error' : undefined}
                 placeholder={t('primaryDomainPlaceholder')}
                 {...form.register('primary_domain')}
               />
-            </div>
-          </div>
+              <FieldError id='acme-domain-error' errors={[form.formState.errors.primary_domain]} />
+            </Field>
+          </FieldGroup>
 
           <div className='space-y-2'>
-            <Label>{t('otherDomains')}</Label>
+            <Label htmlFor='acme-other-domains'>{t('otherDomains')}</Label>
             <Textarea
+              id='acme-other-domains'
+              aria-describedby='acme-other-domains-hint'
               rows={3}
               placeholder='example.net'
               {...form.register('other_domains')}
             />
-            <p className='text-xs text-muted-foreground'>
+            <p id='acme-other-domains-hint' className='text-xs text-muted-foreground'>
               {t('otherDomainsHint')}
             </p>
           </div>
 
-          <div className='grid gap-4 md:grid-cols-2'>
-            <div className='space-y-2'>
-              <Label>{t('dnsAccount')}</Label>
+          <FieldGroup className='grid gap-4 md:grid-cols-2'>
+            <Field data-invalid={Boolean(form.formState.errors.dns_account_id)}>
+              <FieldLabel htmlFor='acme-dns-account'>{t('dnsAccount')}</FieldLabel>
               <Select
                 value={String(form.watch('dns_account_id') || 0)}
                 onValueChange={(value) =>
@@ -218,7 +231,7 @@ export function CertificateApplyDialog({
                   })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger id='acme-dns-account' aria-invalid={Boolean(form.formState.errors.dns_account_id)} aria-describedby={form.formState.errors.dns_account_id ? 'acme-dns-account-error' : undefined}>
                   <SelectValue placeholder={t('selectDnsAccount')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -230,15 +243,16 @@ export function CertificateApplyDialog({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+              <FieldError id='acme-dns-account-error' errors={[form.formState.errors.dns_account_id]} />
+            </Field>
 
-            <div className='space-y-2'>
-              <Label>{t('keyAlgorithm')}</Label>
+            <Field>
+              <FieldLabel htmlFor='acme-algorithm'>{t('keyAlgorithm')}</FieldLabel>
               <Select
                 value={form.watch('key_algorithm')}
                 onValueChange={(value) => form.setValue('key_algorithm', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger id='acme-algorithm'>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -248,16 +262,20 @@ export function CertificateApplyDialog({
                   <SelectItem value='EC384'>ECC 384</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-          </div>
+            </Field>
+          </FieldGroup>
 
-          <div className='space-y-2'>
-            <Label>{t('remark')}</Label>
+          <Field data-invalid={Boolean(form.formState.errors.remark)}>
+            <FieldLabel htmlFor='acme-remark'>{t('remark')}</FieldLabel>
             <Input
+              id='acme-remark'
+              aria-invalid={Boolean(form.formState.errors.remark)}
+              aria-describedby={form.formState.errors.remark ? 'acme-remark-error' : undefined}
               placeholder={t('remarkPlaceholder')}
               {...form.register('remark')}
             />
-          </div>
+            <FieldError id='acme-remark-error' errors={[form.formState.errors.remark]} />
+          </Field>
 
           <div className='flex items-center justify-between rounded-lg border px-3 py-2'>
             <div>
@@ -267,6 +285,7 @@ export function CertificateApplyDialog({
               </p>
             </div>
             <Switch
+              aria-label={t('autoRenew')}
               checked={form.watch('auto_renew')}
               onCheckedChange={(checked) =>
                 form.setValue('auto_renew', checked)
@@ -280,6 +299,8 @@ export function CertificateApplyDialog({
               variant='ghost'
               className='w-full justify-between rounded-none'
               onClick={() => setShowAdvanced((current) => !current)}
+              aria-expanded={showAdvanced}
+              aria-controls='acme-advanced'
             >
               {t('advanced')}
               <ChevronDown
@@ -287,18 +308,20 @@ export function CertificateApplyDialog({
               />
             </Button>
             {showAdvanced ? (
-              <div className='space-y-4 border-t p-3'>
+              <div id='acme-advanced' className='space-y-4 border-t p-3'>
                 <div className='grid gap-4 md:grid-cols-2'>
                   <div className='space-y-2'>
-                    <Label>{t('dnsServer1')}</Label>
+                    <Label htmlFor='acme-dns1'>{t('dnsServer1')}</Label>
                     <Input
+                      id='acme-dns1'
                       placeholder={t('dnsServerPlaceholder')}
                       {...form.register('dns1')}
                     />
                   </div>
                   <div className='space-y-2'>
-                    <Label>{t('dnsServer2')}</Label>
+                    <Label htmlFor='acme-dns2'>{t('dnsServer2')}</Label>
                     <Input
+                      id='acme-dns2'
                       placeholder={t('dnsServerPlaceholder')}
                       {...form.register('dns2')}
                     />
@@ -313,6 +336,7 @@ export function CertificateApplyDialog({
                       </p>
                     </div>
                     <Switch
+                      aria-label={t('skipCname')}
                       checked={form.watch('disable_cname')}
                       onCheckedChange={(checked) =>
                         form.setValue('disable_cname', checked)
@@ -327,6 +351,7 @@ export function CertificateApplyDialog({
                       </p>
                     </div>
                     <Switch
+                      aria-label={t('skipDns')}
                       checked={form.watch('skip_dns')}
                       onCheckedChange={(checked) =>
                         form.setValue('skip_dns', checked)

@@ -1,0 +1,7 @@
+{
+  "dashboard": { "scope": { "explanation": "指标口径与数据时效说明" } },
+  "nodes": {
+    "selectedCount": "已选择 {count} 个节点",
+    "moreActions": "更多操作"
+  }
+}

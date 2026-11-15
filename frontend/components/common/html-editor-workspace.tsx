@@ -66,7 +66,7 @@ export function HtmlEditorWorkspace({
     <div
       ref={containerRef}
       style={{ '--editor-width': `${editorWidthPercent}%` } as React.CSSProperties}
-      className='w-full min-w-0 border border-border/40 bg-card/60 backdrop-blur-md rounded-lg overflow-hidden flex flex-col shadow-sm h-[calc(100dvh-160px)] min-h-[360px] md:min-h-[520px]'
+      className='w-full min-w-0 border border-border/40 bg-card/60 backdrop-blur-md rounded-lg overflow-hidden flex flex-col shadow-sm h-[calc(100dvh-160px)] min-h-[520px]'
     >
       <div className='flex items-center justify-between px-4 py-2 border-b bg-muted/40 shrink-0 gap-4 flex-wrap'>
         <div className='flex items-center gap-2 min-w-0'>
@@ -88,7 +88,7 @@ export function HtmlEditorWorkspace({
           <TabsTrigger value='preview'>{t('livePreview')}</TabsTrigger>
         </TabsList>
       </Tabs>
-      <div className='flex flex-1 min-h-0 overflow-hidden'>
+      <div className='flex flex-1 min-h-[280px] overflow-hidden'>
         <div
           className={cn('h-full w-full md:w-(--editor-width) overflow-hidden relative min-w-0 bg-background md:border-r border-border/40', mobileView === 'editor' ? 'block' : 'hidden md:block')}
         >

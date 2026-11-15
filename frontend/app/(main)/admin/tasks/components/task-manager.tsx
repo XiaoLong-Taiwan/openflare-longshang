@@ -363,16 +363,16 @@ export function TaskManager() {
           <EmptyStateWithBorder icon={Layers} description={t('noTaskTypes')} />
         ) : (
           <div className='overflow-x-auto rounded-lg border border-dashed'>
-            <Table className='min-w-[820px]'>
+            <Table className='w-full table-fixed md:table-auto md:min-w-[820px]'>
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('colTask')}</TableHead>
-                  <TableHead>{t('taskTypeLabel')}</TableHead>
-                  <TableHead>{t('colQueue')}</TableHead>
-                  <TableHead>{t('colRetry')}</TableHead>
-                  <TableHead>{t('colParameters')}</TableHead>
+                  <TableHead className='hidden md:table-cell'>{t('taskTypeLabel')}</TableHead>
+                  <TableHead className='hidden md:table-cell'>{t('colQueue')}</TableHead>
+                  <TableHead className='hidden md:table-cell'>{t('colRetry')}</TableHead>
+                  <TableHead className='hidden md:table-cell'>{t('colParameters')}</TableHead>
                   <TableHead>{t('colStatus')}</TableHead>
-                  <TableHead className='w-[130px] text-right'>
+                  <TableHead className='w-[110px] md:w-[130px] text-right'>
                     {t('colActions')}
                   </TableHead>
                 </TableRow>
@@ -388,31 +388,34 @@ export function TaskManager() {
                       className='cursor-pointer'
                       onClick={() => setDetailTask(task)}
                     >
-                      <TableCell>
-                        <div className='flex min-w-[220px] items-center gap-2'>
+                      <TableCell className='whitespace-normal'>
+                        <div className='flex min-w-0 md:min-w-[220px] items-center gap-2'>
                           <Icon
                             className={cn('size-4 shrink-0', config.color)}
                           />
                           <div className='min-w-0'>
-                            <div className='truncate font-medium'>
-                              {task.name}
-                            </div>
+                            <Button variant='link' className='h-auto max-w-full whitespace-normal break-all p-0 text-left' onClick={() => setDetailTask(task)}>{task.name}</Button>
                             <div className='truncate text-xs text-muted-foreground'>
                               {task.description || task.type}
                             </div>
                           </div>
                         </div>
+                        <div className='mt-2 flex flex-col gap-1 break-all text-xs text-muted-foreground md:hidden'>
+                          <span>{task.type}</span>
+                          <span>{t('colQueue')}: {task.queue} · {t('colRetry')}: {task.max_retry}</span>
+                          <span>{task.params?.length ?? 0} {t('parameters')}</span>
+                        </div>
                       </TableCell>
-                      <TableCell className='font-mono text-xs text-muted-foreground'>
+                      <TableCell className='hidden md:table-cell font-mono text-xs text-muted-foreground'>
                         {task.type}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className='hidden md:table-cell'>
                         <Badge variant='outline'>{task.queue}</Badge>
                       </TableCell>
-                      <TableCell className='font-mono text-xs'>
+                      <TableCell className='hidden md:table-cell font-mono text-xs'>
                         {task.max_retry}
                       </TableCell>
-                      <TableCell className='text-xs text-muted-foreground'>
+                      <TableCell className='hidden md:table-cell text-xs text-muted-foreground'>
                         {task.params?.length ?? 0} {t('parameters')}
                         {task.supports_time ? ` · ${t('supportsTime')}` : ''}
                       </TableCell>

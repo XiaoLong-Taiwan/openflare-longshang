@@ -1,7 +1,14 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { ChevronDown } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
   Card,
   CardContent,
@@ -55,7 +62,7 @@ export function DashboardMetricScope({
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className='pb-3'>
         <CardTitle>{t('title')}</CardTitle>
         <CardDescription>
           {start && end
@@ -67,7 +74,7 @@ export function DashboardMetricScope({
         </CardDescription>
       </CardHeader>
       <CardContent className='flex flex-col gap-4'>
-        <dl className='grid gap-4 sm:grid-cols-2 xl:grid-cols-4'>
+        <dl className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
           {metrics.map((metric) => (
             <div key={metric.label}>
               <dt className='text-sm text-muted-foreground'>{metric.label}</dt>
@@ -77,27 +84,46 @@ export function DashboardMetricScope({
             </div>
           ))}
         </dl>
-        <p className='text-sm text-muted-foreground'>{t('detailBasis')}</p>
-        <p className='text-sm text-muted-foreground'>
-          {coverage === undefined
-            ? unavailable
-            : t('freshness', {
-                fresh: capacity.fresh_nodes ?? 0,
-                stale: capacity.stale_nodes ?? 0,
-                missing: capacity.missing_nodes ?? 0,
-                seconds: capacity.freshness_threshold_seconds ?? 120,
-              })}
-        </p>
-        <p className='text-sm text-muted-foreground'>
-          {t('latestSnapshot', {
-            time: capacity.latest_snapshot_at
-              ? formatDateTime(capacity.latest_snapshot_at)
-              : unavailable,
-          })}
-        </p>
-        {traffic.summary_fallback ? (
-          <p className='text-sm text-muted-foreground'>{t('fallback')}</p>
-        ) : null}
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <Button
+              variant='ghost'
+              size='sm'
+              className='group w-full justify-between'
+            >
+              {t('explanation')}
+              <ChevronDown
+                data-icon='inline-end'
+                className='group-data-[state=open]:rotate-180'
+              />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className='pt-3'>
+            <div className='flex flex-col gap-3 text-sm text-muted-foreground'>
+              <p>{t('detailBasis')}</p>
+              <p className='text-sm text-muted-foreground'>
+                {coverage === undefined
+                  ? unavailable
+                  : t('freshness', {
+                      fresh: capacity.fresh_nodes ?? 0,
+                      stale: capacity.stale_nodes ?? 0,
+                      missing: capacity.missing_nodes ?? 0,
+                      seconds: capacity.freshness_threshold_seconds ?? 120,
+                    })}
+              </p>
+              <p className='text-sm text-muted-foreground'>
+                {t('latestSnapshot', {
+                  time: capacity.latest_snapshot_at
+                    ? formatDateTime(capacity.latest_snapshot_at)
+                    : unavailable,
+                })}
+              </p>
+              {traffic.summary_fallback ? (
+                <p className='text-sm text-muted-foreground'>{t('fallback')}</p>
+              ) : null}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </CardContent>
     </Card>
   );
