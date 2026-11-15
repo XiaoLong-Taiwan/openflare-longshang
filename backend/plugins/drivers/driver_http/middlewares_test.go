@@ -157,6 +157,13 @@ func (c *memoryCache) Delete(_ context.Context, key string) error {
 	return nil
 }
 
+func (c *memoryCache) Take(ctx context.Context, key string, target any) error {
+	if err := c.Get(ctx, key, target); err != nil {
+		return err
+	}
+	return c.Delete(ctx, key)
+}
+
 func (c *memoryCache) GetOrSet(_ context.Context, key string, target any, _ time.Duration, loader func() (any, error)) error {
 	if err := c.Get(context.Background(), key, target); err == nil {
 		return nil
