@@ -19,21 +19,16 @@ export interface TableDataResponse {
   results: Record<string, unknown>[];
 }
 
-/**
- * 执行自定义 SQL 的响应
- */
-export interface ExecuteSQLResponse {
-  type: 'select' | 'exec';
-  columns?: string[];
-  results?: Record<string, unknown>[];
-  affected_rows: number;
-  execution_time_ms: number;
-}
-
 export interface DatabaseMaintenancePreview {
   database_type: string;
   expired_task_executions: number;
   cache_keys: number;
   cache_bytes: number;
   operations: string[];
+}
+
+export interface DatabaseMaintenanceSelection {
+  cleanup_task_executions: boolean;
+  clear_disk_cache: boolean;
+  optimize_database: boolean;
 }

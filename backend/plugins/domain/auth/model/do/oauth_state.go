@@ -12,6 +12,7 @@ type OAuthStatePayload struct {
 	Purpose     string `json:"purpose"`
 	UserID      uint64 `json:"user_id,omitempty"`
 	SessionHash string `json:"session_hash"`
+	Verifier    string `json:"verifier,omitempty"`
 }
 
 // Encode converts OAuthStatePayload to a JSON string.

@@ -138,6 +138,21 @@
     }
   },
   "nodes": {
+    "detailSections": {
+      "health": "健康事件",
+      "requests": "請求結構",
+      "domains": "網域流量",
+      "domainScope": "沿用存取紀錄，限定目前節點與選定網域。",
+      "allDomains": "全部網域",
+      "requestCount": "請求數",
+      "visitors": "訪客數",
+      "bandwidth": "傳輸量",
+      "paths": "熱門路徑",
+      "statusCodes": "狀態碼",
+      "loading": "正在載入流量資料…",
+      "failed": "流量資料載入失敗。",
+      "empty": "此期間沒有流量資料。"
+    },
     "title": "節點管理",
     "applyLogs": "應用程式記录",
     "create": "新增節點",
@@ -273,6 +288,8 @@
       "errVhostPort": "請輸入有效的 VHost 連接埠"
     },
     "install": {
+      "hostNetworkTitle": "Linux 主機網路",
+      "hostNetworkDescription": "此 Compose 檔案使用主機網路命名空間，無需特權模式。需要 Linux Docker Engine；Docker Desktop 不提供等效的主機網路。主機網路本身不會上報網卡 IP、網卡計數器或監聽連接埠。",
       "edgeTitle": "邊缘節點部署",
       "edgeDesc": "使用 Agent Token 將邊缘節點接入控制端。",
       "relayTitle": "中继部署命令",

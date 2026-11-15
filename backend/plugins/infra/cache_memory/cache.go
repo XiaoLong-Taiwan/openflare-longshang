@@ -9,6 +9,8 @@ import (
 	"Wavelet/pkg/cache/ram"
 	"context"
 	"encoding/json"
+	"errors"
+	"sync"
 	"time"
 )
 
@@ -20,7 +22,10 @@ type ramEntry struct {
 type memoryCacheService struct {
 	ramCache *ram.Cache[string, ramEntry]
 	events   *core.EventBus
+	takeMu   sync.Mutex
 }
+
+var _ contracts.CacheService = (*memoryCacheService)(nil)
 
 func newMemoryCacheService(capacity int, events *core.EventBus) (*memoryCacheService, error) {
 	ramCache, err := ram.New[string, ramEntry](ram.Options{
@@ -77,10 +82,27 @@ func (s *memoryCacheService) Invalidate(ctx context.Context, key string) error {
 	return s.Delete(ctx, key)
 }
 
+func (s *memoryCacheService) Take(_ context.Context, key string, target any) error {
+	s.takeMu.Lock()
+	defer s.takeMu.Unlock()
+	entry, ok := s.ramCache.GetIfPresent(key)
+	s.ramCache.Invalidate(key)
+	if !ok || (!entry.expireAt.IsZero() && !time.Now().Before(entry.expireAt)) {
+		return contracts.ErrCacheMiss
+	}
+	if err := json.Unmarshal(entry.data, target); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *memoryCacheService) GetOrSet(ctx context.Context, key string, target any, ttl time.Duration, loader func() (any, error)) error {
 	err := s.Get(ctx, key, target)
 	if err == nil {
 		return nil
+	}
+	if !errors.Is(err, contracts.ErrCacheMiss) {
+		return err
 	}
 
 	val, err := loader()

@@ -47,6 +47,7 @@ import {
 } from './node-detail-primitives';
 import { NodeEditorDialog } from './node-editor-dialog';
 import { NodeObservability } from './node-observability';
+import { NodeDomainTraffic } from './node-domain-traffic';
 import { NodeStatusBadge } from './node-status-badge';
 import {
   formatRelativeTime,
@@ -356,6 +357,9 @@ export function TunnelNodeDetail({ node }: { node: NodeItem }) {
           />
         }
         manage={manageTab}
+        health={<NodeObservability nodeId={node.id} section='health' />}
+        requests={<NodeObservability nodeId={node.id} section='requests' />}
+        domains={<NodeDomainTraffic key={node.node_id} nodeId={node.node_id} />}
         defaultTab='overview'
       />
 

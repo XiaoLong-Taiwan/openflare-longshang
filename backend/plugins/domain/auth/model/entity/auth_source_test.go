@@ -72,4 +72,11 @@ func TestAuthSourceValidation(t *testing.T) {
 		}
 		assert.Error(t, src.Validate())
 	})
+
+	for _, provider := range []string{"google", "discord", "github"} {
+		t.Run(provider+" provider", func(t *testing.T) {
+			source := entity.AuthSource{Name: provider, Type: provider, ClientID: "id", ClientSecret: "secret", IsActive: true}
+			require.NoError(t, source.Validate())
+		})
+	}
 }

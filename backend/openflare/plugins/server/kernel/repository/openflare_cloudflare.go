@@ -219,6 +219,13 @@ func UpdateCFPointingMemberColumns(ctx context.Context, id uint, changes map[str
 	return DB(ctx).Model(&model.CFPointingMember{}).Where("id = ?", id).Updates(changes).Error
 }
 
+func ClaimCFPointingMemberHealthSync(ctx context.Context, id uint) (bool, error) {
+	result := DB(ctx).Model(&model.CFPointingMember{}).
+		Where("id = ? AND sync_status = ?", id, model.CFMemberSyncOK).
+		Update("sync_status", model.CFMemberSyncPending)
+	return result.RowsAffected > 0, result.Error
+}
+
 // DeleteCFPointingMember deletes a member.
 func DeleteCFPointingMember(ctx context.Context, item *model.CFPointingMember) error {
 	return DB(ctx).Transaction(func(tx *gorm.DB) error {

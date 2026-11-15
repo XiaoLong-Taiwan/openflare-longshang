@@ -13,6 +13,7 @@ export type {
   CreateUserRequest,
   UpdateSystemConfigRequest,
   AuthSource,
+  AuthSourceType,
   AuthSourceRequest,
   ToggleAuthSourceRequest,
   TaskMeta,

@@ -66,6 +66,13 @@ func (m *MockCacheService) Get(_ context.Context, key string, val any) error {
 	return json.Unmarshal(b, val)
 }
 
+func (m *MockCacheService) Take(ctx context.Context, key string, val any) error {
+	if err := m.Get(ctx, key, val); err != nil {
+		return err
+	}
+	return m.Delete(ctx, key)
+}
+
 // Set stores a key-value pair in cache.
 func (m *MockCacheService) Set(_ context.Context, key string, val any, _ time.Duration) error {
 	m.mu.Lock()

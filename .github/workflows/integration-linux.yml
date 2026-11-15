@@ -30,7 +30,7 @@ jobs:
         run: go mod download && go mod verify
       - name: Test related integration packages
         run: |
-          go test -count=1 -timeout=10m \
+          go test -v -count=1 -timeout=10m \
             ./openflare/plugins/agent/agent \
             ./openflare/plugins/agent/localfile \
             ./openflare/plugins/agent/nginx \
@@ -51,8 +51,11 @@ jobs:
             ./openflare/share/edge/heartbeat \
             ./pkg/trace \
             ./plugins/drivers/driver_http \
-            ./plugins/domain/admin/repository \
-            ./plugins/domain/auth/service
+            ./plugins/domain/admin/... \
+            ./plugins/domain/auth/... \
+            ./plugins/domain/upload/... \
+            ./plugins/infra/cache \
+            ./plugins/infra/cache_memory
       - name: Test trace configuration
         run: go test -count=1 ./cmd -run '^TestOTLP(ProtocolPrecedence|HostConfigBinding)$'
 

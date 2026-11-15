@@ -5,7 +5,7 @@ import { BaseService } from '@/lib/services/core';
 import type {
   DBOverview,
   DatabaseMaintenancePreview,
-  ExecuteSQLResponse,
+  DatabaseMaintenanceSelection,
   TableDataResponse,
 } from './types';
 
@@ -43,20 +43,14 @@ export class DbManageService extends BaseService {
     );
   }
 
-  /**
-   * 在数据库中执行自定义 SQL 语句
-   */
-  static async executeSQL(sql: string): Promise<ExecuteSQLResponse> {
-    return this.post<ExecuteSQLResponse>('/query', { sql });
-  }
-
   static async getMaintenancePreview(): Promise<DatabaseMaintenancePreview> {
     return this.get<DatabaseMaintenancePreview>('/maintenance/preview');
   }
 
-  static async runMaintenance(): Promise<string> {
+  static async runMaintenance(selection: DatabaseMaintenanceSelection): Promise<string> {
     return this.post<string>('/maintenance', {
       confirmed: true,
+      ...selection,
     });
   }
 

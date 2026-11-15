@@ -78,10 +78,12 @@ export interface OAuthCallbackResult {
   user?: User;
 }
 
+export type AuthSourceType = 'oidc' | 'google' | 'discord' | 'github';
+
 export interface AuthSource {
   id: string;
   name: string;
-  type: 'oidc';
+  type: AuthSourceType;
   display_name: string;
   is_active: boolean;
   icon_url: string;

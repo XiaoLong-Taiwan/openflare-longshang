@@ -43,6 +43,10 @@ func GetDBConfig() model.DatabaseConfig {
 	return dbConfig
 }
 
+func QuoteTableName(table string) string {
+	return `"` + strings.ReplaceAll(table, `"`, `""`) + `"`
+}
+
 // sqliteDatabasePath resolves the effective SQLite file path from configuration.
 func sqliteDatabasePath() string {
 	name := GetDBConfig().SQLitePath
@@ -50,11 +54,6 @@ func sqliteDatabasePath() string {
 		name = defaultSQLiteDBPath
 	}
 	return name
-}
-
-// QuoteTableName escapes a raw identifier for use inside a quoted SQL fragment.
-func QuoteTableName(table string) string {
-	return `"` + strings.ReplaceAll(table, `"`, `""`) + `"`
 }
 
 // GetSQLiteOverview collects the SQLite runtime overview.
@@ -184,7 +183,6 @@ func ListDatabaseTableNames(ctx context.Context) ([]string, error) {
 	return tables, nil
 }
 
-// CountDatabaseTableRows counts the rows of the quoted table.
 func CountDatabaseTableRows(ctx context.Context, quotedTable string) (int64, error) {
 	gormDB := GetDB(ctx)
 	if gormDB == nil {
@@ -198,13 +196,7 @@ func CountDatabaseTableRows(ctx context.Context, quotedTable string) (int64, err
 	return total, nil
 }
 
-// QueryDatabaseTableRows loads one page of raw rows from the quoted table.
-func QueryDatabaseTableRows(
-	ctx context.Context,
-	quotedTable string,
-	limit int,
-	offset int,
-) ([]string, []map[string]any, error) {
+func QueryDatabaseTableRows(ctx context.Context, quotedTable string, limit int, offset int) ([]string, []map[string]any, error) {
 	gormDB := GetDB(ctx)
 	if gormDB == nil {
 		return nil, nil, errs.ErrDatabaseUninitialized
@@ -214,42 +206,12 @@ func QueryDatabaseTableRows(
 	if err != nil {
 		return nil, nil, errs.NewInvalidInputError(err.Error())
 	}
-	defer func() {
-		_ = rows.Close()
-	}()
+	defer func() { _ = rows.Close() }()
 
 	cols, err := rows.Columns()
 	if err != nil {
 		return nil, nil, err
 	}
-
-	results, err := scanTableRows(rows, cols)
-	if err != nil {
-		return nil, nil, err
-	}
-	return cols, results, nil
-}
-
-// RunSelectSQL executes an arbitrary select-like statement.
-func RunSelectSQL(ctx context.Context, sqlStr string) ([]string, []map[string]any, error) {
-	gormDB := GetDB(ctx)
-	if gormDB == nil {
-		return nil, nil, errs.ErrDatabaseUninitialized
-	}
-
-	rows, err := gormDB.Raw(sqlStr).Rows()
-	if err != nil {
-		return nil, nil, errs.NewInvalidInputError(err.Error())
-	}
-	defer func() {
-		_ = rows.Close()
-	}()
-
-	cols, err := rows.Columns()
-	if err != nil {
-		return nil, nil, err
-	}
-
 	results, err := scanTableRows(rows, cols)
 	if err != nil {
 		return nil, nil, err
@@ -340,7 +302,24 @@ func OptimizeDatabase(ctx context.Context, postgres bool) ([]string, error) {
 	return operations, nil
 }
 
-// RunMutationSQL executes a non-query statement and reports affected rows.
+func RunSelectSQL(ctx context.Context, sqlStr string) ([]string, []map[string]any, error) {
+	gormDB := GetDB(ctx)
+	if gormDB == nil {
+		return nil, nil, errs.ErrDatabaseUninitialized
+	}
+	rows, err := gormDB.Raw(sqlStr).Rows()
+	if err != nil {
+		return nil, nil, errs.NewInvalidInputError(err.Error())
+	}
+	defer func() { _ = rows.Close() }()
+	cols, err := rows.Columns()
+	if err != nil {
+		return nil, nil, err
+	}
+	results, err := scanTableRows(rows, cols)
+	return cols, results, err
+}
+
 func RunMutationSQL(ctx context.Context, sqlStr string) (int64, error) {
 	gormDB := GetDB(ctx)
 	if gormDB == nil {
@@ -353,41 +332,28 @@ func RunMutationSQL(ctx context.Context, sqlStr string) (int64, error) {
 	return tx.RowsAffected, nil
 }
 
-// scanTableRows decodes every row of the result set into a column keyed map.
 func scanTableRows(rows *sql.Rows, cols []string) ([]map[string]any, error) {
 	results := make([]map[string]any, 0)
 	for rows.Next() {
-		row, err := scanRowAsMap(rows, cols)
-		if err != nil {
+		columns := make([]any, len(cols))
+		pointers := make([]any, len(cols))
+		for i := range columns {
+			pointers[i] = &columns[i]
+		}
+		if err := rows.Scan(pointers...); err != nil {
 			return nil, err
+		}
+		row := make(map[string]any, len(cols))
+		for i, column := range cols {
+			if value, ok := columns[i].([]byte); ok {
+				row[column] = string(value)
+			} else {
+				row[column] = columns[i]
+			}
 		}
 		results = append(results, row)
 	}
-	return results, nil
-}
-
-// scanRowAsMap decodes a single row, normalising driver byte slices to strings.
-func scanRowAsMap(rows *sql.Rows, cols []string) (map[string]any, error) {
-	columns := make([]any, len(cols))
-	columnPointers := make([]any, len(cols))
-	for i := range columns {
-		columnPointers[i] = &columns[i]
-	}
-
-	if err := rows.Scan(columnPointers...); err != nil {
-		return nil, err
-	}
-
-	rowMap := make(map[string]any)
-	for i, colName := range cols {
-		val := columns[i]
-		if b, ok := val.([]byte); ok {
-			rowMap[colName] = string(b)
-			continue
-		}
-		rowMap[colName] = val
-	}
-	return rowMap, nil
+	return results, rows.Err()
 }
 
 // GetSQLiteInfo collects the SQLite type/name/version triple.

@@ -150,6 +150,21 @@
       "next": "Next"
     },
     "title": "Nodes",
+    "detailSections": {
+      "health": "Health events",
+      "requests": "Request structure",
+      "domains": "Domain traffic",
+      "domainScope": "Access-log traffic scoped to this node and selected domain.",
+      "allDomains": "All domains",
+      "requestCount": "Requests",
+      "visitors": "Visitors",
+      "bandwidth": "Bandwidth",
+      "paths": "Top paths",
+      "statusCodes": "Status codes",
+      "loading": "Loading traffic data...",
+      "failed": "Traffic data could not be loaded.",
+      "empty": "No traffic data in this window."
+    },
     "applyLogs": "Apply logs",
     "create": "Add node",
     "selectAll": "Select all nodes on this page",
@@ -284,6 +299,8 @@
       "errVhostPort": "Enter a valid VHost port"
     },
     "install": {
+      "hostNetworkTitle": "Linux host network",
+      "hostNetworkDescription": "This Compose file uses the host network namespace without privileged mode. Linux Docker Engine is required; Docker Desktop does not provide equivalent host networking. Host networking does not itself report interface IPs, NIC counters, or listening ports.",
       "edgeTitle": "Edge node deploy",
       "edgeDesc": "Use the Agent Token to join an edge node to the control plane.",
       "relayTitle": "Relay deploy command",

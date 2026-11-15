@@ -158,14 +158,18 @@ export function buildEdgeDockerInstallCommand(
   const image = `ghcr.io/XiaoLong-Taiwan/openflare-longshang-agent:${tag}`;
 
   return [
-    `docker pull ${image}`,
-    `docker rm -f openflare-agent 2>/dev/null || true`,
-    `docker run -d --name openflare-agent --restart unless-stopped \\`,
-    `  -p 80:80 -p 443:443/tcp -p 443:443/udp \\`,
-    `  -v openflare-agent-pages:/data/var/lib/openflare/pages \\`,
-    `  -e OPENFLARE_SERVER_URL=${serverUrl} \\`,
-    `  -e OPENFLARE_AGENT_TOKEN=${agentToken} \\`,
-    `  ${image}`,
+    'services:',
+    '  openflare-agent:',
+    `    image: ${image}`,
+    '    restart: unless-stopped',
+    '    network_mode: host',
+    '    volumes:',
+    '      - openflare-agent-pages:/data/var/lib/openflare/pages',
+    '    environment:',
+    `      OPENFLARE_SERVER_URL: ${JSON.stringify(serverUrl).replace(/\$/g, '$$$$')}`,
+    `      OPENFLARE_AGENT_TOKEN: ${JSON.stringify(agentToken).replace(/\$/g, '$$$$')}`,
+    'volumes:',
+    '  openflare-agent-pages:',
   ].join('\n');
 }
 
@@ -189,12 +193,14 @@ export function buildRelayDockerInstallCommand(
   const image = `ghcr.io/XiaoLong-Taiwan/openflare-longshang-relay:${tag}`;
 
   return [
-    `docker pull ${image}`,
-    `docker rm -f openflare-relay 2>/dev/null || true`,
-    `docker run -d --name openflare-relay --net host --restart unless-stopped \\`,
-    `  -e OPENFLARE_SERVER_URL=${serverUrl} \\`,
-    `  -e OPENFLARE_DISCOVERY_TOKEN=${discoveryToken} \\`,
-    `  ${image}`,
+    'services:',
+    '  openflare-relay:',
+    `    image: ${image}`,
+    '    restart: unless-stopped',
+    '    network_mode: host',
+    '    environment:',
+    `      OPENFLARE_SERVER_URL: ${JSON.stringify(serverUrl).replace(/\$/g, '$$$$')}`,
+    `      OPENFLARE_DISCOVERY_TOKEN: ${JSON.stringify(discoveryToken).replace(/\$/g, '$$$$')}`,
   ].join('\n');
 }
 
@@ -218,12 +224,14 @@ export function buildTunnelDockerInstallCommand(
   const image = `ghcr.io/XiaoLong-Taiwan/openflare-longshangd:${tag}`;
 
   return [
-    `docker pull ${image}`,
-    `docker rm -f openflared 2>/dev/null || true`,
-    `docker run -d --name openflared --restart unless-stopped \\`,
-    `  -e OPENFLARE_SERVER_URL=${serverUrl} \\`,
-    `  -e OPENFLARE_TUNNEL_TOKEN=${tunnelToken} \\`,
-    `  ${image}`,
+    'services:',
+    '  openflared:',
+    `    image: ${image}`,
+    '    restart: unless-stopped',
+    '    network_mode: host',
+    '    environment:',
+    `      OPENFLARE_SERVER_URL: ${JSON.stringify(serverUrl).replace(/\$/g, '$$$$')}`,
+    `      OPENFLARE_TUNNEL_TOKEN: ${JSON.stringify(tunnelToken).replace(/\$/g, '$$$$')}`,
   ].join('\n');
 }
 

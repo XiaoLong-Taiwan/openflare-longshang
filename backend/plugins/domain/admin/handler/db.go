@@ -9,6 +9,7 @@ import (
 	"Wavelet/plugins/domain/admin/errs"
 	"Wavelet/plugins/domain/admin/model"
 	"Wavelet/plugins/domain/admin/service"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -82,46 +83,6 @@ func GetDBTableData(c *gin.Context) {
 	c.JSON(http.StatusOK, response.OK(data))
 }
 
-// ExecuteSQL 执行 SQL 查询
-// @Summary 执行 SQL 查询
-// @Description 在当前数据库中执行任意自定义 SQL，如果是查询语句将返回格式化后的列与数据集，否则返回受影响行数，需要管理员权限
-// @Tags admin
-// @Accept json
-// @Produce json
-// @Security SessionCookie
-// @Param request body model.ExecuteSQLRequest true "SQL 请求参数"
-// @Success 200 {object} response.Any{data=model.ExecuteSQLResponse} "执行完毕"
-// @Failure 400 {object} response.Any "SQL 语句错误"
-// @Failure 401 {object} response.Any "未登录"
-// @Failure 403 {object} response.Any "无管理员权限"
-// @Failure 500 {object} response.Any "内部错误"
-// @Router /api/v1/admin/db-manage/query [post]
-func ExecuteSQL(c *gin.Context) {
-	var req model.ExecuteSQLRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.AbortBadRequest(c, err.Error())
-		return
-	}
-
-	trimmedSQL := strings.TrimSpace(req.SQL)
-	if trimmedSQL == "" {
-		response.AbortBadRequest(c, errs.InvalidSQLStatement)
-		return
-	}
-
-	resp, err := service.ExecuteCustomSQL(c.Request.Context(), trimmedSQL)
-	if err != nil {
-		if errors.Is(err, errs.ErrDatabaseUninitialized) {
-			response.AbortInternal(c, err.Error())
-			return
-		}
-		response.AbortBadRequest(c, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, response.OK(resp))
-}
-
 // PreviewDatabaseMaintenance previews the pending database maintenance operations.
 // @Summary 預覽資料庫維護
 // @Description 顯示即將清理的任務記錄、磁碟快取與資料庫維護操作
@@ -166,16 +127,62 @@ func RunDatabaseMaintenance(c *gin.Context) {
 		response.AbortBadRequest(c, "需要確認資料庫維護操作")
 		return
 	}
+	payload, err := json.Marshal(req)
+	if err != nil {
+		response.AbortInternal(c, err.Error())
+		return
+	}
+	payload, err = (&service.DatabaseMaintenanceHandler{}).ValidatePayload(payload)
+	if err != nil {
+		response.AbortBadRequest(c, err.Error())
+		return
+	}
 
 	taskID, err := service.DispatchTask(c.Request.Context(), model.DispatchTaskRequest{
 		TaskType: service.DatabaseMaintenanceTask,
-		Payload:  "{}",
+		Payload:  string(payload),
 	})
 	if err != nil {
 		response.AbortInternal(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, response.OK(taskID))
+}
+
+// @Summary 执行 SQL 查询
+// @Description 在当前数据库中执行自定义 SQL，需要管理员权限；保留既有 API 相容性。
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Security SessionCookie
+// @Param request body model.ExecuteSQLRequest true "SQL 请求参数"
+// @Success 200 {object} response.Any{data=model.ExecuteSQLResponse} "执行完毕"
+// @Failure 400 {object} response.Any "SQL 语句错误"
+// @Failure 401 {object} response.Any "未登录"
+// @Failure 403 {object} response.Any "无管理员权限"
+// @Failure 500 {object} response.Any "内部错误"
+// @Router /api/v1/admin/db-manage/query [post]
+func ExecuteSQL(c *gin.Context) {
+	var req model.ExecuteSQLRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.AbortBadRequest(c, err.Error())
+		return
+	}
+	statement := strings.TrimSpace(req.SQL)
+	if statement == "" {
+		response.AbortBadRequest(c, errs.InvalidSQLStatement)
+		return
+	}
+	result, err := service.ExecuteCustomSQL(c.Request.Context(), statement)
+	if err != nil {
+		if errors.Is(err, errs.ErrDatabaseUninitialized) {
+			response.AbortInternal(c, err.Error())
+		} else {
+			response.AbortBadRequest(c, err.Error())
+		}
+		return
+	}
+	c.JSON(http.StatusOK, response.OK(result))
 }
 
 // GetDatabaseInfo 获取当前数据库类型及版本信息

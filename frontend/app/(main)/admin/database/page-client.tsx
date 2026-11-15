@@ -1,7 +1,6 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import * as React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
@@ -10,12 +9,10 @@ import {
   Cpu,
   Database,
   Download,
-  FileText,
   HardDrive,
   Layers,
   RefreshCw,
   Server,
-  Terminal,
 } from 'lucide-react';
 
 import {
@@ -27,12 +24,11 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import services from '@/lib/services';
 import type { DBOverview } from '@/lib/services/db-manage';
 
-const sectionFallback = (
-  <div className='h-48 animate-pulse rounded-lg border border-border/40 bg-muted/20' />
-);
+const sectionFallback = <Skeleton className='h-48 w-full' />;
 
 const TableBrowser = dynamic(
   () => import('./components/table-browser').then((mod) => mod.TableBrowser),
@@ -42,11 +38,6 @@ const TableBrowser = dynamic(
 const CacheManager = dynamic(
   () => import('./components/cache-manager').then((mod) => mod.CacheManager),
   { loading: () => sectionFallback },
-);
-
-const SQLConsole = dynamic(
-  () => import('./components/sql-console').then((mod) => mod.SQLConsole),
-  { ssr: false },
 );
 
 const MaintenanceCard = dynamic(
@@ -65,18 +56,14 @@ const formatNumber = (num: number | string) => {
 
 export function DatabasePageClient() {
   const t = useTranslations('admin.database');
-  // 核心状态
   const [overview, setOverview] = useState<DBOverview | null>(null);
   const [tables, setTables] = useState<string[]>([]);
   const [loadingOverview, setLoadingOverview] = useState<boolean>(true);
   const [loadingTables, setLoadingTables] = useState<boolean>(true);
   const [exporting, setExporting] = useState<boolean>(false);
 
-  // 协调子组件刷新与视图切换状态
-  const [showConsole, setShowConsole] = useState<boolean>(false);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
 
-  // 1. 获取运行概览
   const fetchOverview = useCallback(
     async (isSilent = false) => {
       if (!isSilent) setLoadingOverview(true);
@@ -94,7 +81,6 @@ export function DatabasePageClient() {
     [t],
   );
 
-  // 2. 获取表列表
   const fetchTables = useCallback(async () => {
     setLoadingTables(true);
     try {
@@ -109,14 +95,12 @@ export function DatabasePageClient() {
     }
   }, [t]);
 
-  // 3. 协调刷新
   const handleRefreshAll = () => {
     fetchOverview();
     fetchTables();
     setRefreshTrigger((prev) => prev + 1);
   };
 
-  // 4. 导出数据库备份
   const handleExport = async () => {
     setExporting(true);
     try {
@@ -141,13 +125,11 @@ export function DatabasePageClient() {
     }
   };
 
-  // 初始化加载
   useEffect(() => {
     fetchOverview();
     fetchTables();
   }, [fetchOverview, fetchTables]);
 
-  // 渲染概览卡片骨架
   const renderOverviewSkeleton = () => (
     <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4'>
       {Array.from({ length: 6 }).map((_, i) => (
@@ -163,20 +145,8 @@ export function DatabasePageClient() {
     </div>
   );
 
-  // 渲染 SQL 查询控台全屏视图
-  if (showConsole) {
-    return (
-      <SQLConsole
-        dbType={overview?.type}
-        onClose={() => setShowConsole(false)}
-      />
-    );
-  }
-
-  // 正常页面排版布局
   return (
-    <div className='py-6 px-1 space-y-6 w-full'>
-      {/* 顶部控制与标题 */}
+    <div className='flex w-full flex-col gap-6 py-6 px-1'>
       <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 gap-4'>
         <div className='flex items-center gap-2'>
           <Database className='size-5 text-primary' />
@@ -200,12 +170,19 @@ export function DatabasePageClient() {
         </Button>
       </div>
 
-      {/* 1. 概览指标卡片组 */}
-      {loadingOverview
-        ? renderOverviewSkeleton()
-        : overview && (
+      <Tabs defaultValue='overview' className='w-full'>
+        <TabsList variant='line'>
+          <TabsTrigger value='overview'>{t('dbType')}</TabsTrigger>
+          <TabsTrigger value='tables'>{t('sections.tables')}</TabsTrigger>
+          <TabsTrigger value='cache'>{t('sections.cache')}</TabsTrigger>
+          <TabsTrigger value='maintenance'>{t('sections.maintenance')}</TabsTrigger>
+          <TabsTrigger value='storage'>{t('dbBackupExport')}</TabsTrigger>
+        </TabsList>
+        <TabsContent value='overview' className='flex flex-col gap-6'>
+          {loadingOverview
+            ? renderOverviewSkeleton()
+            : overview && (
             <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4'>
-              {/* 卡片1: 数据库类型 */}
               <Card className='shadow-sm border-border/40 bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-all duration-300'>
                 <CardHeader className='flex flex-row items-center justify-between pb-2 space-y-0'>
                   <CardDescription className='text-[10px] font-medium'>
@@ -220,7 +197,6 @@ export function DatabasePageClient() {
                 </CardContent>
               </Card>
 
-              {/* 卡片2: 数据库版本 */}
               <Card className='shadow-sm border-border/40 bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-all duration-300 col-span-1 md:col-span-2 lg:col-span-1'>
                 <CardHeader className='flex flex-row items-center justify-between pb-2 space-y-0'>
                   <CardDescription className='text-[10px] font-medium'>
@@ -238,7 +214,6 @@ export function DatabasePageClient() {
                 </CardContent>
               </Card>
 
-              {/* 卡片3: 数据库名称 */}
               <Card className='shadow-sm border-border/40 bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-all duration-300'>
                 <CardHeader className='flex flex-row items-center justify-between pb-2 space-y-0'>
                   <CardDescription className='text-[10px] font-medium'>
@@ -258,7 +233,6 @@ export function DatabasePageClient() {
                 </CardContent>
               </Card>
 
-              {/* 卡片4: 数据库大小 */}
               <Card className='shadow-sm border-border/40 bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-all duration-300'>
                 <CardHeader className='flex flex-row items-center justify-between pb-2 space-y-0'>
                   <CardDescription className='text-[10px] font-medium'>
@@ -271,7 +245,6 @@ export function DatabasePageClient() {
                 </CardContent>
               </Card>
 
-              {/* 卡片5: 表数量 */}
               <Card className='shadow-sm border-border/40 bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-all duration-300'>
                 <CardHeader className='flex flex-row items-center justify-between pb-2 space-y-0'>
                   <CardDescription className='text-[10px] font-medium'>
@@ -286,7 +259,6 @@ export function DatabasePageClient() {
                 </CardContent>
               </Card>
 
-              {/* 卡片6: 连接数 */}
               <Card className='shadow-sm border-border/40 bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-all duration-300'>
                 <CardHeader className='flex flex-row items-center justify-between pb-2 space-y-0'>
                   <CardDescription className='text-[10px] font-medium'>
@@ -301,82 +273,35 @@ export function DatabasePageClient() {
                 </CardContent>
               </Card>
             </div>
-          )}
-
-      {/* 2. 数据表浏览器区块 */}
-      <TableBrowser
-        tables={tables}
-        loadingTables={loadingTables}
-        refreshTrigger={refreshTrigger}
-      />
-
-      {/* 3. 缓存管理区块 */}
-      <CacheManager refreshTrigger={refreshTrigger} />
-
-      <MaintenanceCard />
-
-      {/* 4. 底部功能卡片区 */}
-      <Card className='border-border/40 bg-card/50 backdrop-blur-sm shadow-sm'>
-        <CardHeader className='pb-3 border-b border-dashed'>
-          <CardTitle className='text-sm font-semibold'>
-            {t('featureArea')}
-          </CardTitle>
-          <CardDescription className='text-[11px]'>
-            {t('featureAreaDesc')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className='pt-4'>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            {/* 功能一: 数据库导出 */}
-            <div className='flex items-center justify-between p-4 border border-dashed rounded-lg hover:bg-muted/20 transition-colors duration-150'>
-              <div className='space-y-1 pr-4'>
-                <p className='text-xs font-semibold flex items-center gap-1.5'>
-                  <Download className='size-4 text-primary' />
-                  {t('dbBackupExport')}
-                </p>
-                <p className='text-[10px] text-muted-foreground'>
-                  {t('dbBackupExportDesc')}
-                </p>
-              </div>
-              <Button
-                size='sm'
-                variant='outline'
-                className='h-8 text-xs gap-1'
-                onClick={handleExport}
-                disabled={exporting}
-              >
-                <RefreshCw
-                  className={`size-3 ${exporting ? 'animate-spin' : ''}`}
-                />
+            )}
+        </TabsContent>
+        <TabsContent value='tables' className='flex flex-col gap-6'>
+          <TableBrowser tables={tables} loadingTables={loadingTables} refreshTrigger={refreshTrigger} />
+        </TabsContent>
+        <TabsContent value='cache'>
+          <CacheManager refreshTrigger={refreshTrigger} />
+        </TabsContent>
+        <TabsContent value='maintenance'>
+          <MaintenanceCard />
+        </TabsContent>
+        <TabsContent value='storage'>
+          <Card>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2'>
+                <Download className='size-5 text-primary' />
+                {t('dbBackupExport')}
+              </CardTitle>
+              <CardDescription>{t('dbBackupExportDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button size='sm' variant='outline' onClick={handleExport} disabled={exporting}>
+                <Download data-icon='inline-start' />
                 {exporting ? t('preparing') : t('startExport')}
               </Button>
-            </div>
-
-            {/* 功能二: SQL 查询终端 */}
-            <div className='flex items-center justify-between p-4 border border-dashed rounded-lg hover:bg-muted/20 transition-colors duration-150'>
-              <div className='space-y-1 pr-4'>
-                <p className='text-xs font-semibold flex items-center gap-1.5'>
-                  <Terminal className='size-4 text-primary' />
-                  {t('sqlQueryConsole')}
-                </p>
-                <p className='text-[10px] text-muted-foreground'>
-                  {t('sqlQueryConsoleDesc')}
-                </p>
-              </div>
-              <Button
-                size='sm'
-                className='h-8 text-xs gap-1 bg-primary text-primary-foreground hover:bg-primary/95'
-                onClick={() => {
-                  setShowConsole(true);
-                }}
-              >
-                <FileText className='size-3.5' />
-                {t('enterConsole')}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -25,7 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { ZoneService, zoneQueryKey } from '@/lib/services/openflare';
+import { ZoneService, zoneCatalogQueryKey } from '@/lib/services/openflare';
 import { formatDateTime } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 
@@ -38,13 +38,26 @@ export default function WebsitesPage() {
   const [search, setSearch] = useState('');
   const [editorOpen, setEditorOpen] = useState(false);
   const zonesQuery = useQuery({
-    queryKey: zoneQueryKey,
-    queryFn: () => ZoneService.list(),
+    queryKey: zoneCatalogQueryKey,
+    queryFn: () => ZoneService.catalog(),
   });
 
   const zones = useMemo(() => {
     const keyword = search.trim().toLowerCase();
-    const list = zonesQuery.data ?? [];
+    const list = (zonesQuery.data ?? []).map(({ zone, domains }) => ({
+      ...zone,
+      domain_count: domains.length,
+      ruleCount: new Set(
+        domains.flatMap((domain) =>
+          domain.proxy_route_id == null ? [] : [domain.proxy_route_id],
+        ),
+      ).size,
+      certificateCount: new Set(
+        domains.flatMap((domain) =>
+          domain.cert_id == null ? [] : [domain.cert_id],
+        ),
+      ).size,
+    }));
     if (!keyword) {
       return list;
     }
@@ -112,6 +125,12 @@ export default function WebsitesPage() {
                   <TableHead className='h-8 min-w-[100px] whitespace-nowrap py-2'>
                     {t('domainCount')}
                   </TableHead>
+                  <TableHead className='h-8 whitespace-nowrap py-2'>
+                    {t('ruleCount')}
+                  </TableHead>
+                  <TableHead className='h-8 whitespace-nowrap py-2'>
+                    {t('certificateCount')}
+                  </TableHead>
                   <TableHead className='h-8 min-w-[140px] whitespace-nowrap py-2'>
                     {t('createdAt')}
                   </TableHead>
@@ -133,11 +152,22 @@ export default function WebsitesPage() {
                     <TableCell className='py-1 font-mono text-[11px] text-muted-foreground'>
                       {zone.id}
                     </TableCell>
-                    <TableCell className='py-1 font-mono text-[11px] font-medium'>
-                      {zone.domain}
+                    <TableCell className='py-3 font-mono text-base font-semibold'>
+                      <Link
+                        href={`/websites/zone?id=${zone.id}`}
+                        className='hover:underline'
+                      >
+                        {zone.domain}
+                      </Link>
                     </TableCell>
                     <TableCell className='py-1 font-mono text-[11px] text-muted-foreground'>
                       {zone.domain_count ?? 0}
+                    </TableCell>
+                    <TableCell className='py-3 text-sm tabular-nums'>
+                      {zone.ruleCount}
+                    </TableCell>
+                    <TableCell className='py-3 text-sm tabular-nums'>
+                      {zone.certificateCount}
                     </TableCell>
                     <TableCell className='py-1 font-mono text-[10px] whitespace-nowrap text-muted-foreground'>
                       {formatDateTime(zone.created_at)}

@@ -118,7 +118,6 @@ func HeartbeatNode(ctx context.Context, authNode *model.OpenFlareNode, payload N
 	}
 
 	previous := *authNode
-	wasOffline := authNode.LastSeenAt == nil || authNode.LastSeenAt.IsZero() || time.Since(*authNode.LastSeenAt) > 60*time.Second
 	updateNow := authNode.UpdateRequested
 	restartOpenrestyNow := authNode.RestartOpenrestyRequested
 	updateChannel := strings.TrimSpace(authNode.UpdateChannel)
@@ -139,15 +138,10 @@ func HeartbeatNode(ctx context.Context, authNode *model.OpenFlareNode, payload N
 		if err := repository.UpdateOpenFlareNodeFields(ctx, authNode, fields...); err != nil {
 			return nil, err
 		}
-		if previous.IP != authNode.IP {
-			if _, dispatchErr := cf.DispatchNodeSync(ctx, authNode.ID, "cloudflare_agent_ip_update"); dispatchErr != nil {
-				logger.ErrorF(ctx, "[Cloudflare] enqueue heartbeat node sync failed: node_id=%d error=%v", authNode.ID, dispatchErr)
-			}
-		}
 	}
-	if wasOffline {
-		if _, dispatchErr := cf.DispatchNodeSync(ctx, authNode.ID, "cloudflare_node_recovered"); dispatchErr != nil {
-			logger.ErrorF(ctx, "[Cloudflare] enqueue recovered node sync failed: node_id=%d error=%v", authNode.ID, dispatchErr)
+	if cloudflareNodeChanged(previous, *authNode) {
+		if _, dispatchErr := cf.DispatchNodeSync(ctx, authNode.ID, "cloudflare_node_changed"); dispatchErr != nil {
+			logger.ErrorF(ctx, "[Cloudflare] enqueue changed node sync failed: node_id=%d error=%v", authNode.ID, dispatchErr)
 		}
 	}
 
@@ -177,6 +171,15 @@ func HeartbeatNode(ctx context.Context, authNode *model.OpenFlareNode, payload N
 		ActiveConfig:  activeConfig,
 		WAFIPGroups:   wafIPGroups,
 	}, nil
+}
+
+func cloudflareNodeChanged(previous, current model.OpenFlareNode) bool {
+	if previous.LastSeenAt != nil && !previous.LastSeenAt.IsZero() && time.Since(*previous.LastSeenAt) > time.Minute && current.LastSeenAt != nil && !current.LastSeenAt.IsZero() {
+		return true
+	}
+	return strings.TrimSpace(previous.IP) != strings.TrimSpace(current.IP) ||
+		previous.Status != current.Status ||
+		(previous.OpenrestyStatus == "unhealthy") != (current.OpenrestyStatus == "unhealthy")
 }
 
 // GetActiveConfig returns the active configuration for an agent.

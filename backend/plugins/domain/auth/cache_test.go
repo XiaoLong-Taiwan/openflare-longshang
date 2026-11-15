@@ -38,6 +38,15 @@ func (m *mockCacheService) Set(ctx context.Context, key string, value any, ttl t
 	return nil
 }
 
+func (m *mockCacheService) Take(ctx context.Context, key string, target any) error {
+	b, ok := m.items[key]
+	delete(m.items, key)
+	if !ok {
+		return contracts.ErrCacheMiss
+	}
+	return json.Unmarshal(b, target)
+}
+
 func (m *mockCacheService) Delete(ctx context.Context, key string) error {
 	delete(m.items, key)
 	return nil

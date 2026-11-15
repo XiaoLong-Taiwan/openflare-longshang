@@ -18,6 +18,8 @@ type CacheService interface {
 	// Get retrieves an item from cache into target. Returns ErrCacheMiss if not found.
 	Get(ctx context.Context, key string, target any) error
 
+	Take(ctx context.Context, key string, target any) error
+
 	// Set stores an item into cache with a specified time-to-live duration.
 	Set(ctx context.Context, key string, value any, ttl time.Duration) error
 

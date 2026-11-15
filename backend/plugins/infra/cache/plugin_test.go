@@ -8,6 +8,9 @@ import (
 	"Wavelet/core/contracts"
 	"Wavelet/plugins/infra/cache"
 	"context"
+	"errors"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -80,4 +83,60 @@ func TestCachePluginOperations(t *testing.T) {
 	assert.ErrorIs(t, err, contracts.ErrCacheMiss)
 
 	require.NoError(t, ctx.Dispose())
+}
+
+func TestTakeAcrossNodes(t *testing.T) {
+	mr := miniredis.RunT(t)
+	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = rdb.Close() })
+	services := make([]contracts.CacheService, 2)
+	for i := range services {
+		ctx := core.NewContext(context.Background())
+		ctx.Config().SetSource(core.NewMapSource(map[string]any{"redis.enabled": true}))
+		require.NoError(t, ctx.Config().Resolve())
+		require.NoError(t, cache.New(cache.WithRedis(rdb), cache.WithKeyPrefix("take:")).Apply(ctx))
+		t.Cleanup(func() { _ = ctx.Dispose() })
+		services[i], _ = core.Inject[contracts.CacheService](ctx)
+	}
+	ctx := context.Background()
+	subscriber := rdb.Subscribe(ctx, "wavelet:cache:invalidation")
+	t.Cleanup(func() { _ = subscriber.Close() })
+	if _, err := subscriber.Receive(ctx); err != nil {
+		t.Fatal(err)
+	}
+	require.NoError(t, services[0].Set(ctx, "broadcast", "value", time.Minute))
+	var consumed string
+	require.NoError(t, services[0].Take(ctx, "broadcast", &consumed))
+	readCtx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	message, err := subscriber.ReceiveMessage(readCtx)
+	if err != nil || message.Payload != "broadcast" {
+		t.Fatalf("Take(broadcast) message = %v, error = %v, want invalidation", message, err)
+	}
+	require.NoError(t, services[0].Set(ctx, "state", "verifier", time.Minute))
+	var out string
+	require.NoError(t, services[1].Get(ctx, "state", &out))
+	var winners atomic.Int32
+	var wg sync.WaitGroup
+	for i := range 32 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var value string
+			if err := services[i%2].Take(ctx, "state", &value); err == nil {
+				winners.Add(1)
+			} else if !errors.Is(err, contracts.ErrCacheMiss) {
+				t.Errorf("Take(state) error = %v, want cache miss", err)
+			}
+		}()
+	}
+	wg.Wait()
+	if winners.Load() != 1 {
+		t.Errorf("Take(state) winners = %d, want 1", winners.Load())
+	}
+	require.NoError(t, services[0].Set(ctx, "expired", "value", time.Second))
+	mr.FastForward(2 * time.Second)
+	if err := services[0].Take(ctx, "expired", &out); !errors.Is(err, contracts.ErrCacheMiss) {
+		t.Errorf("Take(expired with warm RAM) = %v, want cache miss", err)
+	}
 }

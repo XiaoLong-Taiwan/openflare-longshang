@@ -240,32 +240,34 @@ function NodesPage({ nodeFilter }: { nodeFilter: NodeFilter }) {
                 {t('refreshNow')}
               </Button>
             </div>
-            <div
-              className='flex flex-wrap items-center gap-2'
-              aria-live='polite'
-            >
-              <span className='text-sm text-muted-foreground'>
-                {t('selectedCount', { count: selectedIds.size })}
-              </span>
-              <Button
-                variant='outline'
-                size='sm'
-                className='h-7 text-xs'
-                disabled={selectedIds.size === 0 || batchMutation.isPending}
-                onClick={() => batchMutation.mutate('sync')}
+            {selectedIds.size > 0 && (
+              <div
+                className='flex flex-wrap items-center gap-2'
+                aria-live='polite'
               >
-                {t('batchSync')}
-              </Button>
-              <Button
-                variant='outline'
-                size='sm'
-                className='h-7 text-xs'
-                disabled={selectedIds.size === 0 || batchMutation.isPending}
-                onClick={() => batchMutation.mutate('update')}
-              >
-                {t('batchUpdate')}
-              </Button>
-            </div>
+                <span className='text-sm text-muted-foreground'>
+                  {t('selectedCount', { count: selectedIds.size })}
+                </span>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  className='h-7 text-xs'
+                  disabled={selectedIds.size === 0 || batchMutation.isPending}
+                  onClick={() => batchMutation.mutate('sync')}
+                >
+                  {t('batchSync')}
+                </Button>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  className='h-7 text-xs'
+                  disabled={selectedIds.size === 0 || batchMutation.isPending}
+                  onClick={() => batchMutation.mutate('update')}
+                >
+                  {t('batchUpdate')}
+                </Button>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className='flex flex-col gap-4'>

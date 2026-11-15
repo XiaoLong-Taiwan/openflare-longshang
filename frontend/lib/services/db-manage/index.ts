@@ -3,5 +3,5 @@ export type {
   DBOverview,
   DatabaseMaintenancePreview,
   TableDataResponse,
-  ExecuteSQLResponse,
+  DatabaseMaintenanceSelection,
 } from './types';

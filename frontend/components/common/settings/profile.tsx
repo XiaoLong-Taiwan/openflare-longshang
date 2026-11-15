@@ -174,6 +174,22 @@ export function ProfileMain() {
     queryFn: () => AuthService.getAuthSources(),
   });
 
+  const getProviderLabel = (type: string, label?: string) => {
+    if (label) return label;
+    switch (type) {
+      case 'google':
+        return 'Google';
+      case 'discord':
+        return 'Discord';
+      case 'github':
+        return 'GitHub';
+      case 'oidc':
+        return 'OIDC';
+      default:
+        return type || t('thirdPartyBinding');
+    }
+  };
+
   const bindSourceMutation = useMutation({
     mutationFn: async (sourceName: string) => {
       const { authorize_url } = await AuthService.getAuthorizeUrl(
@@ -571,7 +587,10 @@ export function ProfileMain() {
                     >
                       <div className='space-y-0.5'>
                         <span className='font-semibold text-xs text-foreground block'>
-                          {binding.auth_source_label}
+                          {getProviderLabel(
+                            binding.auth_source_type,
+                            binding.auth_source_label,
+                          )}
                         </span>
                         <span className='text-[10px] text-muted-foreground font-mono block truncate max-w-[150px]'>
                           {binding.external_username ||
@@ -584,14 +603,25 @@ export function ProfileMain() {
                         variant='ghost'
                         size='sm'
                         className='text-[11px] text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 rounded-lg h-7 px-2 transition-colors'
+                        disabled={
+                          externalAccountBindingsQuery.data?.length === 1
+                        }
                         onClick={async () => {
-                          await AuthService.deleteExternalAccountBinding(
-                            binding.id,
-                          );
-                          await queryClient.invalidateQueries({
-                            queryKey: ['auth', 'external-accounts'],
-                          });
-                          toast.success(t('bindingRemoved'));
+                          try {
+                            await AuthService.deleteExternalAccountBinding(
+                              binding.id,
+                            );
+                            await queryClient.invalidateQueries({
+                              queryKey: ['auth', 'external-accounts'],
+                            });
+                            toast.success(t('bindingRemoved'));
+                          } catch (error) {
+                            toast.error(
+                              error instanceof Error
+                                ? error.message
+                                : t('bindSourceFailed'),
+                            );
+                          }
                         }}
                       >
                         <Unlink className='size-3 mr-1' />

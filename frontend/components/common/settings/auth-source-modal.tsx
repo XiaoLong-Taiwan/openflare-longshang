@@ -13,9 +13,34 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import services from '@/lib/services';
-import type { AuthSource, AuthSourceRequest } from '@/lib/services/admin';
+import type {
+  AuthSource,
+  AuthSourceRequest,
+  AuthSourceType,
+} from '@/lib/services/admin';
+
+const providerDefaults: Record<
+  AuthSourceType,
+  { discovery: string; scopes: string }
+> = {
+  oidc: { discovery: '', scopes: 'openid profile email' },
+  google: {
+    discovery: 'https://accounts.google.com/.well-known/openid-configuration',
+    scopes: 'openid profile email',
+  },
+  discord: { discovery: '', scopes: 'identify email' },
+  github: { discovery: '', scopes: 'read:user user:email' },
+};
 
 const emptyForm: AuthSourceRequest = {
   name: '',
@@ -122,6 +147,33 @@ export function AuthSourceModal({
             />
           </div>
           <div className='space-y-2'>
+            <Label>{t('providerType')}</Label>
+            <Select
+              value={form.type}
+              disabled={!!source}
+              onValueChange={(type: AuthSourceType) =>
+                setForm((prev) => ({
+                  ...prev,
+                  type,
+                  openid_discovery_url: providerDefaults[type].discovery,
+                  scopes: providerDefaults[type].scopes,
+                }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value='oidc'>OIDC</SelectItem>
+                  <SelectItem value='google'>Google</SelectItem>
+                  <SelectItem value='discord'>Discord</SelectItem>
+                  <SelectItem value='github'>GitHub</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className='space-y-2'>
             <Label>Client ID</Label>
             <Input
               value={form.client_id}
@@ -140,19 +192,21 @@ export function AuthSourceModal({
               placeholder={source ? t('keepOriginalIfEmpty') : ''}
             />
           </div>
-          <div className='space-y-2 md:col-span-2'>
-            <Label>{t('discoveryURL')}</Label>
-            <Input
-              value={form.openid_discovery_url}
-              onChange={(e) =>
-                setForm((prev) => ({
-                  ...prev,
-                  openid_discovery_url: e.target.value,
-                }))
-              }
-              placeholder='https://...'
-            />
-          </div>
+          {form.type === 'oidc' ? (
+            <div className='space-y-2 md:col-span-2'>
+              <Label>{t('discoveryURL')}</Label>
+              <Input
+                value={form.openid_discovery_url}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    openid_discovery_url: e.target.value,
+                  }))
+                }
+                placeholder='https://...'
+              />
+            </div>
+          ) : null}
           <div className='space-y-2'>
             <Label>Scopes</Label>
             <Input

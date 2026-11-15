@@ -122,40 +122,71 @@ func PreviewDatabaseMaintenance(ctx context.Context) (model.DatabaseMaintenanceP
 	}, nil
 }
 
-// RunDatabaseMaintenance performs the confirmed cleanup and database maintenance.
-func RunDatabaseMaintenance(ctx context.Context) (model.DatabaseMaintenanceResult, error) {
-	if err := EmitEvent(ctx, contracts.EventTopicSystemCleanup, contracts.SystemCleanupEvent{
-		TriggeredAt: time.Now().Format(time.RFC3339),
-	}); err != nil {
-		return model.DatabaseMaintenanceResult{}, err
+type databaseMaintenancePayload = model.DatabaseMaintenanceRequest
+
+func RunDatabaseMaintenance(ctx context.Context, request databaseMaintenancePayload) (model.DatabaseMaintenanceResult, error) {
+	result := model.DatabaseMaintenanceResult{}
+	if request.CleanupTaskExecutions != nil && *request.CleanupTaskExecutions {
+		stats, err := repository.CleanupTaskExecutionLogs(ctx, time.Now())
+		if err != nil {
+			return result, err
+		}
+		result.ExpiredTaskExecutions = stats.HighFrequencyDeleted + stats.LowFrequencyDeleted
 	}
-	stats, err := repository.CleanupTaskExecutionLogs(ctx, time.Now())
-	if err != nil {
-		return model.DatabaseMaintenanceResult{}, err
+	if request.ClearDiskCache != nil && *request.ClearDiskCache {
+		if err := pkgcache.Default().Clear(); err != nil {
+			return result, err
+		}
+		result.CacheCleared = true
 	}
-	deleted := stats.HighFrequencyDeleted + stats.LowFrequencyDeleted
-	if err := pkgcache.Default().Clear(); err != nil {
-		return model.DatabaseMaintenanceResult{ExpiredTaskExecutions: deleted}, err
+	if request.OptimizeDatabase != nil && *request.OptimizeDatabase {
+		operations, err := repository.OptimizeDatabase(ctx, GetDBConfig().Enabled)
+		result.Operations = operations
+		if err != nil {
+			return result, err
+		}
+		result.DatabaseOptimized = true
 	}
-	operations, err := repository.OptimizeDatabase(ctx, GetDBConfig().Enabled)
-	if err != nil {
-		return model.DatabaseMaintenanceResult{ExpiredTaskExecutions: deleted, CacheCleared: true, Operations: operations}, err
-	}
-	logger.InfoF(ctx, "資料庫完整維護完成，清理任務記錄 %d 條", deleted)
-	return model.DatabaseMaintenanceResult{
-		ExpiredTaskExecutions: deleted,
-		CacheCleared:          true,
-		DatabaseOptimized:     true,
-		Operations:            operations,
-	}, nil
+	logger.InfoF(ctx, "資料庫維護完成，清理任務記錄 %d 條", result.ExpiredTaskExecutions)
+	return result, nil
 }
 
 // DatabaseMaintenanceHandler handles the full database maintenance task.
 type DatabaseMaintenanceHandler struct{}
 
+func (h *DatabaseMaintenanceHandler) ValidatePayload(payload []byte) ([]byte, error) {
+	var request databaseMaintenancePayload
+	if err := json.Unmarshal(payload, &request); err != nil || !request.Confirmed {
+		return nil, errors.New("confirmed must be true")
+	}
+	if request.CleanupTaskExecutions == nil && request.ClearDiskCache == nil && request.OptimizeDatabase == nil {
+		selected := true
+		request.CleanupTaskExecutions = &selected
+		request.ClearDiskCache = &selected
+		request.OptimizeDatabase = &selected
+	}
+	if (request.CleanupTaskExecutions == nil || !*request.CleanupTaskExecutions) &&
+		(request.ClearDiskCache == nil || !*request.ClearDiskCache) &&
+		(request.OptimizeDatabase == nil || !*request.OptimizeDatabase) {
+		return nil, errors.New("至少需要選擇一項維護範圍")
+	}
+	return json.Marshal(request)
+}
+
 // Execute runs the full database maintenance task.
-func (h *DatabaseMaintenanceHandler) Execute(ctx context.Context, _ []byte) (*contracts.TaskResultDTO, error) {
-	result, err := RunDatabaseMaintenance(ctx)
+func (h *DatabaseMaintenanceHandler) Execute(ctx context.Context, payload []byte) (*contracts.TaskResultDTO, error) {
+	if string(payload) == "{}" {
+		payload = []byte(`{"confirmed":true}`)
+	}
+	validated, err := h.ValidatePayload(payload)
+	if err != nil {
+		return nil, err
+	}
+	var request databaseMaintenancePayload
+	if err := json.Unmarshal(validated, &request); err != nil {
+		return nil, err
+	}
+	result, err := RunDatabaseMaintenance(ctx, request)
 	if err != nil {
 		return nil, err
 	}

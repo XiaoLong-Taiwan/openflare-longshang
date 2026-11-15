@@ -7,6 +7,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -101,12 +103,17 @@ func GetNodeObservability(ctx context.Context, id uint, query NodeQuery) (*NodeV
 	if err != nil {
 		return nil, err
 	}
-	if view, ok := getCachedNodeObservability(node.NodeID); ok {
+	if strings.TrimSpace(node.NodeID) == "" {
+		return nil, gorm.ErrRecordNotFound
+	}
+	hours := normalizeObservabilityHours(query.Hours)
+	limit := normalizeObservabilityLimit(query.Limit)
+	cacheKey := nodeObservabilityCacheKey(node.NodeID, hours, limit, node.NodeType)
+	if view, ok := getCachedNodeObservability(cacheKey); ok {
 		return view, nil
 	}
 
-	limit := normalizeObservabilityLimit(query.Limit)
-	since := now.Add(-normalizeObservabilityWindow(query.Hours))
+	since := now.Add(-time.Duration(hours) * time.Hour)
 
 	profile, err := repository.GetOpenFlareNodeSystemProfile(ctx, node.NodeID)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -132,8 +139,8 @@ func GetNodeObservability(ctx context.Context, id uint, query NodeQuery) (*NodeV
 	if err != nil {
 		return nil, err
 	}
-	distributions := BuildTrafficDistributionsFromAccessLogs(
-		ctx, since, now, defaultTrafficDistributionLimit, accessLogRegions,
+	distributions := buildTrafficDistributionsForNode(
+		ctx, node.NodeID, since, now, defaultTrafficDistributionLimit, accessLogRegions,
 	)
 	trafficSummary := buildTrafficWindowSummaryFromAccessLogs(ctx, node.NodeID, since, now)
 	view := &NodeView{
@@ -159,8 +166,12 @@ func GetNodeObservability(ctx context.Context, id uint, query NodeQuery) (*NodeV
 		}
 		view.RelayDashboard = buildRelayDashboardSnapshot(node, latestFrps)
 	}
-	setCachedNodeObservability(node.NodeID, view)
+	setCachedNodeObservability(cacheKey, view)
 	return view, nil
+}
+
+func nodeObservabilityCacheKey(nodeID string, hours, limit int, nodeType string) string {
+	return nodeID + ":" + nodeType + ":" + strconv.Itoa(hours) + ":" + strconv.Itoa(limit)
 }
 
 func getCachedNodeObservability(nodeID string) (*NodeView, bool) {
@@ -265,6 +276,13 @@ func normalizeObservabilityLimit(limit int) int {
 		return maxObservabilityLimit
 	}
 	return limit
+}
+
+func normalizeObservabilityHours(hours int) int {
+	if hours <= 0 {
+		return int(defaultObservabilityWindow / time.Hour)
+	}
+	return hours
 }
 
 func normalizeObservabilityWindow(hours int) time.Duration {

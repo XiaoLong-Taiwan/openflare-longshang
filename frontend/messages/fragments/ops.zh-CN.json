@@ -138,6 +138,21 @@
     }
   },
   "nodes": {
+    "detailSections": {
+      "health": "健康事件",
+      "requests": "请求结构",
+      "domains": "域名流量",
+      "domainScope": "沿用访问日志，仅统计当前节点与选定域名。",
+      "allDomains": "全部域名",
+      "requestCount": "请求数",
+      "visitors": "访客数",
+      "bandwidth": "传输量",
+      "paths": "热门路径",
+      "statusCodes": "状态码",
+      "loading": "正在加载流量数据…",
+      "failed": "流量数据加载失败。",
+      "empty": "此时间范围没有流量数据。"
+    },
     "pagination": {
       "search": "搜索节点",
       "searchPlaceholder": "名称、节点标识或 IP",
@@ -284,6 +299,8 @@
       "errVhostPort": "请输入有效的 VHost 端口"
     },
     "install": {
+      "hostNetworkTitle": "Linux 主机网络",
+      "hostNetworkDescription": "此 Compose 文件使用主机网络命名空间，无需特权模式。需要 Linux Docker Engine；Docker Desktop 不提供等效的主机网络。主机网络本身不会上报网卡 IP、网卡计数器或监听端口。",
       "edgeTitle": "边缘节点部署",
       "edgeDesc": "使用 Agent Token 将边缘节点接入控制端。",
       "relayTitle": "中继部署命令",

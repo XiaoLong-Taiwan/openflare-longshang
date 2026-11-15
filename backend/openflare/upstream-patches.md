@@ -21,5 +21,8 @@
 - `backend/core/contracts/task.go`、`backend/plugins/drivers/driver_{asynq,inproc}_worker/`：新增通用背景任務合作取消契約與 `canceled` 執行狀態，支援等待任務移除及執行中任務透過 context 停止；此能力不含 OpenFlare 業務，需回流 Wavelet 後移除此登記。
 - `backend/openflare/plugins/agent/localfile/`、`backend/openflare/plugins/agent/state/observability_buffer.go`：將 Agent 觀測緩衝改用暫存檔、fsync、原子替換與目錄同步，損壞輸入改為隔離保留，避免重建時覆蓋或擴散損壞；其中 localfile 原子檔案能力屬通用平台能力，需回流 Wavelet 後移除此登記。
 - `backend/openflare/plugins/server/kernel/repository/logstore/`、`backend/openflare/plugins/server/domain/observability/chwriter/`：通用非同步觀測入隊 hook 回傳容量拒絕結果，避免 heartbeat 在 buffer 滿時錯誤確認；需回流 Wavelet 平台層後移除此登記。
+- `backend/core/contracts/cache.go`、`backend/plugins/infra/cache/`、`backend/plugins/infra/cache_memory/`：新增一次性 `CacheService.Take` 契約，供 OAuth state/PKCE verifier 原子取用並移除；屬通用快取能力，需回流 Wavelet 後移除此登記。
+
+- `backend/plugins/domain/auth/`、`backend/plugins/domain/admin/`：補齊快取契約測試替身、OAuth provider 識別碼精度與缺失檢查、可選維護範圍驗證及舊版請求相容；保留管理員 SQL API 既有契約。均屬通用能力，待回流 Wavelet。
 
 以上为本地待回流补丁，尚未同步至 Wavelet；回流并合并上游后确认修复仍在，再移除此登记。

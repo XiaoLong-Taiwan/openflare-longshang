@@ -326,11 +326,13 @@ export function NodeObservability({
   node,
   variant = 'edge',
   connectionHint,
+  section = 'overview',
 }: {
   nodeId: number;
   node?: NodeItem;
   variant?: NodeObservabilityVariant;
   connectionHint?: string;
+  section?: 'overview' | 'health' | 'requests';
 }) {
   const t = useTranslations('nodes');
   const tc = useTranslations('common');
@@ -458,7 +460,7 @@ export function NodeObservability({
     );
   }
 
-  if (variant === 'compact') {
+  if (variant === 'compact' && section === 'overview') {
     return (
       <div className='space-y-6'>
         <div className='grid gap-4 md:grid-cols-3'>
@@ -602,6 +604,7 @@ export function NodeObservability({
 
   return (
     <div className='space-y-6'>
+      {section === 'overview' ? <>
       <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-4'>
         <SummaryStat
           label={t('obs.diag')}
@@ -830,8 +833,9 @@ export function NodeObservability({
         <NetworkTrendChart points={trends?.network_24h ?? []} />
         <DiskIOTrendChart points={trends?.disk_io_24h ?? []} />
       </div>
+      </> : null}
 
-      <div className='grid gap-6 xl:grid-cols-[0.95fr_1.05fr]'>
+      {section === 'requests' ? (
         <Card className='border-dashed shadow-none'>
           <CardHeader>
             <CardTitle className='text-base font-semibold'>
@@ -902,7 +906,9 @@ export function NodeObservability({
             </div>
           </CardContent>
         </Card>
+      ) : null}
 
+      {section === 'health' ? (
         <HealthEventTimeline
           events={filteredHealthEvents}
           allEventsCount={observability?.health_events.length ?? 0}
@@ -911,9 +917,9 @@ export function NodeObservability({
           onCleanup={() => setCleanupOpen(true)}
           cleanupPending={cleanupMutation.isPending}
         />
-      </div>
+      ) : null}
 
-      <AlertDialog open={cleanupOpen} onOpenChange={setCleanupOpen}>
+      {section === 'health' ? <AlertDialog open={cleanupOpen} onOpenChange={setCleanupOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('obs.cleanupTitle')}</AlertDialogTitle>
@@ -936,7 +942,7 @@ export function NodeObservability({
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
+      </AlertDialog> : null}
     </div>
   );
 }

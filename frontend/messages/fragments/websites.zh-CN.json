@@ -9,6 +9,8 @@
     "emptyList": "暂无 Zone，点击右上角「新增 Zone」开始录入。",
     "rootDomain": "根域",
     "domainCount": "域名数",
+    "ruleCount": "已绑定规则数",
+    "certificateCount": "已绑定证书数",
     "createdAt": "创建时间",
     "updatedAt": "更新时间",
     "actions": "操作",

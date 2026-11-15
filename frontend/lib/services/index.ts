@@ -197,7 +197,8 @@ export { DbManageService } from './db-manage';
 export type {
   DBOverview,
   TableDataResponse,
-  ExecuteSQLResponse,
+  DatabaseMaintenancePreview,
+  DatabaseMaintenanceSelection,
 } from './db-manage';
 
 export { PushService } from './push';

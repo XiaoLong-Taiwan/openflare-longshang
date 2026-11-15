@@ -467,7 +467,9 @@ export function SecurityTab({ configs, systemConfigsQuery }: SecurityTabProps) {
                   </div>
                   <div className='text-xs text-muted-foreground font-mono'>
                     {t('identifier')}: {source.name} · {t('type')}:{' '}
-                    {source.type.toUpperCase()}
+                    {source.type === 'oidc'
+                      ? 'OIDC'
+                      : source.type.charAt(0).toUpperCase() + source.type.slice(1)}
                   </div>
                 </div>
                 <div className='flex items-center gap-4'>

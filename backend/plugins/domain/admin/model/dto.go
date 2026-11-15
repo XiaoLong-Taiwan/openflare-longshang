@@ -84,18 +84,16 @@ type TableDataResponse struct {
 	Results []map[string]interface{} `json:"results"`
 }
 
-// ExecuteSQLRequest 执行自定义 SQL 请求结构体
 type ExecuteSQLRequest struct {
 	SQL string `json:"sql" binding:"required"`
 }
 
-// ExecuteSQLResponse 执行自定义 SQL 响应结构体
 type ExecuteSQLResponse struct {
-	Type            string                   `json:"type"` // "select" 或 "exec"
-	Columns         []string                 `json:"columns,omitempty"`
-	Results         []map[string]interface{} `json:"results,omitempty"`
-	AffectedRows    int64                    `json:"affected_rows"`
-	ExecutionTimeMs int64                    `json:"execution_time_ms"`
+	Type            string           `json:"type"`
+	Columns         []string         `json:"columns,omitempty"`
+	Results         []map[string]any `json:"results,omitempty"`
+	AffectedRows    int64            `json:"affected_rows"`
+	ExecutionTimeMs int64            `json:"execution_time_ms"`
 }
 
 // DatabaseInfoResponse 数据库信息响应结构体
@@ -124,7 +122,10 @@ type DatabaseMaintenanceResult struct {
 
 // DatabaseMaintenanceRequest confirms a destructive maintenance request.
 type DatabaseMaintenanceRequest struct {
-	Confirmed bool `json:"confirmed" binding:"eq=true"`
+	Confirmed             bool  `json:"confirmed" binding:"eq=true"`
+	CleanupTaskExecutions *bool `json:"cleanup_task_executions,omitempty"`
+	ClearDiskCache        *bool `json:"clear_disk_cache,omitempty"`
+	OptimizeDatabase      *bool `json:"optimize_database,omitempty"`
 }
 
 // SystemStatusResponse 系统状态响应结构体

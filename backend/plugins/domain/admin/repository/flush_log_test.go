@@ -162,6 +162,10 @@ func (c *readFailCache) Get(context.Context, string, any) error {
 	return errors.New("cache unavailable")
 }
 
+func (c *readFailCache) Take(context.Context, string, any) error {
+	return errors.New("cache unavailable")
+}
+
 func (c *readFailCache) Set(_ context.Context, key string, value any, _ time.Duration) error {
 	c.writes = append(c.writes, fmt.Sprintf("%s=%v", key, value))
 	return nil

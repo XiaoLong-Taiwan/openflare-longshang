@@ -16,6 +16,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Card,
   CardContent,
@@ -33,6 +34,11 @@ export function MaintenanceCard() {
   );
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [selection, setSelection] = useState({
+    cleanup_task_executions: true,
+    clear_disk_cache: true,
+    optimize_database: true,
+  });
 
   const loadPreview = useCallback(async () => {
     setLoading(true);
@@ -54,7 +60,7 @@ export function MaintenanceCard() {
   const runMaintenance = async () => {
     setRunning(true);
     try {
-      const taskID = await services.dbManage.runMaintenance();
+      const taskID = await services.dbManage.runMaintenance(selection);
       toast.success(t('maintenance.queued'), {
         description: t('maintenance.queuedDesc', { taskID }),
       });
@@ -84,16 +90,20 @@ export function MaintenanceCard() {
             {t('maintenance.loading')}
           </p>
         ) : preview ? (
-          <div className='grid grid-cols-1 gap-2 text-sm md:grid-cols-3'>
-            <p>
-              {t('maintenance.expiredTasks', {
-                count: preview.expired_task_executions,
-              })}
-            </p>
-            <p>{t('maintenance.cacheItems', { count: preview.cache_keys })}</p>
-            <p>
-              {t('maintenance.databaseType', { type: preview.database_type })}
-            </p>
+          <div className='flex flex-col gap-3 text-sm'>
+            <p>{t('maintenance.databaseType', { type: preview.database_type })}</p>
+            <label className='flex items-start gap-2'>
+              <Checkbox checked={selection.cleanup_task_executions} onCheckedChange={(checked) => setSelection((prev) => ({ ...prev, cleanup_task_executions: checked === true }))} />
+              <span>{t('maintenance.expiredTasks', { count: preview.expired_task_executions })}</span>
+            </label>
+            <label className='flex items-start gap-2'>
+              <Checkbox checked={selection.clear_disk_cache} onCheckedChange={(checked) => setSelection((prev) => ({ ...prev, clear_disk_cache: checked === true }))} />
+              <span>{t('maintenance.cacheItems', { count: preview.cache_keys })}</span>
+            </label>
+            <label className='flex items-start gap-2'>
+              <Checkbox checked={selection.optimize_database} onCheckedChange={(checked) => setSelection((prev) => ({ ...prev, optimize_database: checked === true }))} />
+              <span>{t('maintenance.optimizeDatabase')}</span>
+            </label>
           </div>
         ) : null}
         <AlertDialog>
@@ -113,7 +123,12 @@ export function MaintenanceCard() {
                 {t('maintenance.confirmTitle')}
               </AlertDialogTitle>
               <AlertDialogDescription>
-                {t('maintenance.confirmDescription')}
+                <span className='block'>{t('maintenance.confirmDescription')}</span>
+                <span className='mt-2 block'>
+                  {selection.cleanup_task_executions ? `${t('maintenance.expiredTasks', { count: preview?.expired_task_executions ?? 0 })}; ` : ''}
+                  {selection.clear_disk_cache ? `${t('maintenance.cacheItems', { count: preview?.cache_keys ?? 0 })}; ` : ''}
+                  {selection.optimize_database ? t('maintenance.optimizeDatabase') : ''}
+                </span>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -123,7 +138,7 @@ export function MaintenanceCard() {
               <Button
                 variant='destructive'
                 onClick={() => void runMaintenance()}
-                disabled={running}
+                disabled={running || !Object.values(selection).some(Boolean)}
               >
                 {running ? (
                   <Loader2 className='animate-spin' data-icon='inline-start' />

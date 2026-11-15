@@ -152,6 +152,7 @@ func (p *Plugin) Apply(ctx *core.Context) error {
 }
 
 type cacheServiceImpl struct {
+	takeMu        sync.Mutex
 	ramCache      *ram.Cache[string, ramEntry]
 	redisClient   redis.UniversalClient
 	keyPrefix     string
@@ -162,6 +163,8 @@ type cacheServiceImpl struct {
 	stopCh   chan struct{}
 	pubsub   *redis.PubSub
 }
+
+var _ contracts.CacheService = (*cacheServiceImpl)(nil)
 
 func (s *cacheServiceImpl) prefixedKey(key string) string {
 	if s.keyPrefix != "" {
@@ -278,6 +281,31 @@ func (s *cacheServiceImpl) Delete(ctx context.Context, key string) error {
 
 func (s *cacheServiceImpl) Invalidate(ctx context.Context, key string) error {
 	return s.Delete(ctx, key)
+}
+
+func (s *cacheServiceImpl) Take(ctx context.Context, key string, target any) error {
+	if s.redisClient != nil {
+		data, err := s.redisClient.GetDel(ctx, s.prefixedKey(key)).Bytes()
+		s.ramCache.Invalidate(key)
+		if errors.Is(err, redis.Nil) {
+			return contracts.ErrCacheMiss
+		}
+		if err != nil {
+			return err
+		}
+		if err := s.redisClient.Publish(ctx, s.pubSubChannel, key).Err(); err != nil {
+			return err
+		}
+		return json.Unmarshal(data, target)
+	}
+	s.takeMu.Lock()
+	defer s.takeMu.Unlock()
+	entry, ok := s.ramCache.GetIfPresent(key)
+	s.ramCache.Invalidate(key)
+	if !ok || (!entry.expireAt.IsZero() && !time.Now().Before(entry.expireAt)) {
+		return contracts.ErrCacheMiss
+	}
+	return json.Unmarshal(entry.data, target)
 }
 
 func (s *cacheServiceImpl) GetOrSet(ctx context.Context, key string, target any, ttl time.Duration, loader func() (any, error)) error {

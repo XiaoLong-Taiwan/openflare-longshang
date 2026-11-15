@@ -39,6 +39,9 @@ func (AuthSource) TableName() string {
 // Normalize 对认证源字段进行标准化处理
 func (source *AuthSource) Normalize() {
 	source.Type = strings.ToLower(strings.TrimSpace(source.Type))
+	if source.Type == consts.AuthSourceTypeOIDC && strings.EqualFold(source.Name, "google") && strings.Contains(strings.ToLower(source.OpenIDDiscoveryURL), "accounts.google.com") {
+		source.Type = "google"
+	}
 	source.Name = strings.TrimSpace(source.Name)
 	source.DisplayName = strings.TrimSpace(source.DisplayName)
 	source.ClientID = strings.TrimSpace(source.ClientID)
@@ -52,6 +55,18 @@ func (source *AuthSource) Normalize() {
 	if source.Type == consts.AuthSourceTypeOIDC && source.Scopes == "" {
 		source.Scopes = "openid profile email"
 	}
+	if source.Type == "google" {
+		source.OpenIDDiscoveryURL = "https://accounts.google.com/.well-known/openid-configuration"
+		if source.Scopes == "" {
+			source.Scopes = "openid profile email"
+		}
+	}
+	if source.Scopes == "" && source.Type == "discord" {
+		source.Scopes = "identify email"
+	}
+	if source.Scopes == "" && source.Type == "github" {
+		source.Scopes = "read:user user:email"
+	}
 }
 
 // Validate 校验认证源字段合法性
@@ -63,10 +78,10 @@ func (source *AuthSource) Validate() error {
 	if !authSourceNamePattern.MatchString(source.Name) {
 		return errors.New(consts.ErrAuthSourceNameInvalid)
 	}
-	if source.Type != consts.AuthSourceTypeOIDC {
+	if source.Type != consts.AuthSourceTypeOIDC && source.Type != "google" && source.Type != "discord" && source.Type != "github" {
 		return errors.New(consts.ErrAuthSourceTypeUnsupported)
 	}
-	if source.OpenIDDiscoveryURL == "" {
+	if (source.Type == consts.AuthSourceTypeOIDC || source.Type == "google") && source.OpenIDDiscoveryURL == "" {
 		//nolint:staticcheck // descriptive error constant
 		return errors.New(consts.ErrAuthSourceDiscoveryURLRequired)
 	}

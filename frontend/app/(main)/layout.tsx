@@ -52,7 +52,7 @@ export default function MainLayout({
 
   return (
     <SidebarProvider
-      className='h-dvh min-h-0 overflow-hidden'
+      className='app-safe-area h-dvh min-h-0 overflow-hidden'
       style={
         {
           '--header-height': '60px',

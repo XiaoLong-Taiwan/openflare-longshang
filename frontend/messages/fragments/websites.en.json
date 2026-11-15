@@ -9,6 +9,8 @@
     "emptyList": "No Zones yet. Click “Add Zone” in the top right to get started.",
     "rootDomain": "Root domain",
     "domainCount": "Domains",
+    "ruleCount": "Linked rules",
+    "certificateCount": "Linked certificates",
     "createdAt": "Created",
     "updatedAt": "Updated",
     "actions": "Actions",

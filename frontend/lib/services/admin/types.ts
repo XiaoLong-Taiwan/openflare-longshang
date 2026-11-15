@@ -373,10 +373,12 @@ export interface UpdateUserRequest {
 /**
  * 认证源信息
  */
+export type AuthSourceType = 'oidc' | 'google' | 'discord' | 'github';
+
 export interface AuthSource {
   id: string;
   name: string;
-  type: 'oidc';
+  type: AuthSourceType;
   display_name: string;
   is_active: boolean;
   client_id: string;
@@ -391,7 +393,7 @@ export interface AuthSource {
 
 export interface AuthSourceRequest {
   name: string;
-  type: 'oidc';
+  type: AuthSourceType;
   display_name: string;
   is_active: boolean;
   client_id: string;

@@ -539,6 +539,7 @@
       "cancel": "取消",
       "saving": "儲存中...",
       "save": "儲存"
+      ,"providerType": "認證供應商"
     }
   },
   "admin": {
@@ -1116,6 +1117,8 @@
       "activeConnections": "活跃连接數",
       "featureArea": "功能區",
       "featureAreaDesc": "資料库匯出及自定义進階 SQL 执行终端",
+      "enableSQLConsole": "啟用 SQL 控制台入口",
+      "sections": { "tables": "資料表", "cache": "快取", "maintenance": "資料庫維護" },
       "dbBackupExport": "資料库備份匯出",
       "dbBackupExportDesc": "直接匯出並下載物理資料库镜像檔案（SQLite 匯出 .db，PostgreSQL 匯出為打包的 .sql 文本檔案）",
       "preparing": "正在准備...",
@@ -1212,10 +1215,11 @@
         "previewFailed": "載入維護預覽失敗",
         "expiredTasks": "過期任務記錄：{count} 筆",
         "cacheItems": "磁碟快取：{count} 個項目",
+        "optimizeDatabase": "回收資料庫空間並維護索引",
         "databaseType": "資料庫：{type}",
         "run": "預覽後執行維護",
         "confirmTitle": "確認執行資料庫維護？",
-        "confirmDescription": "此操作會刪除七天前的任務記錄、清空磁碟快取，並執行資料庫空間回收與索引維護，完成後無法復原。",
+        "confirmDescription": "僅執行下方已勾選的維護項目，清理完成後無法復原。",
         "cancel": "取消",
         "running": "維護中...",
         "confirm": "確認執行",

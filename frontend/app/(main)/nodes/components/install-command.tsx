@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { type NodeItem, StatusService } from '@/lib/services/openflare';
 
 import {
@@ -208,6 +209,10 @@ export function InstallCommand({
                 {dockerCommand}
               </pre>
             </div>
+            <Alert>
+              <AlertTitle>{t('hostNetworkTitle')}</AlertTitle>
+              <AlertDescription>{t('hostNetworkDescription')}</AlertDescription>
+            </Alert>
           </>
         )}
       </CardContent>

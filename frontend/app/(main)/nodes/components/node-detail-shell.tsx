@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { type ReactNode, useCallback, useMemo } from 'react';
+import { type ReactNode, useCallback } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { ArrowLeft, ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -20,7 +20,7 @@ import { NodeKpiCard } from './node-detail-primitives';
 import { NodeStatusBadge } from './node-status-badge';
 import type { StatusTone } from './node-utils';
 
-export type NodeDetailTabId = 'overview' | 'manage';
+export type NodeDetailTabId = 'overview' | 'manage' | 'health' | 'requests' | 'domains';
 
 export type NodeDetailTabConfig = {
   id: NodeDetailTabId;
@@ -34,14 +34,14 @@ export type NodeDetailKpi = {
   icon?: LucideIcon;
 };
 
-const TAB_IDS: NodeDetailTabId[] = ['overview', 'manage'];
+const TAB_IDS: NodeDetailTabId[] = ['overview', 'health', 'requests', 'domains', 'manage'];
 
 function resolveTab(value: string | null): NodeDetailTabId | null {
   if (value === 'overview' || value === 'dashboard') {
     return 'overview';
   }
-  if (value === 'manage') {
-    return 'manage';
+  if (value === 'manage' || value === 'health' || value === 'requests' || value === 'domains') {
+    return value;
   }
   return null;
 }
@@ -55,6 +55,9 @@ export function NodeDetailShell({
   kpis,
   overview,
   manage,
+  health,
+  requests,
+  domains,
   defaultTab = 'overview',
 }: {
   title: string;
@@ -65,17 +68,23 @@ export function NodeDetailShell({
   kpis: NodeDetailKpi[];
   overview: ReactNode;
   manage: ReactNode;
+  health?: ReactNode;
+  requests?: ReactNode;
+  domains?: ReactNode;
   defaultTab?: NodeDetailTabId;
 }) {
   const t = useTranslations('nodes');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const panels: Partial<Record<NodeDetailTabId, ReactNode>> = { overview, manage, health, requests, domains };
+  const tabIds = TAB_IDS.filter((id) => id === 'overview' || id === 'manage' || panels[id] != null);
 
-  const activeTab = useMemo(() => {
+  const activeTab = (() => {
     const tab = searchParams.get('tab');
-    return resolveTab(tab) ?? defaultTab;
-  }, [defaultTab, searchParams]);
+    const resolved = resolveTab(tab);
+    return resolved && panels[resolved] != null ? resolved : defaultTab;
+  })();
 
   const setActiveTab = useCallback(
     (tab: NodeDetailTabId) => {
@@ -178,9 +187,9 @@ export function NodeDetailShell({
         <div className='space-y-3 pb-1'>
           <TabsList
             variant='line'
-            className='h-auto w-full justify-start gap-6 bg-transparent p-0'
+            className='h-auto w-full flex-wrap justify-start gap-6 bg-transparent p-0'
           >
-            {TAB_IDS.map((tabId) => (
+            {tabIds.map((tabId) => (
               <TabsTrigger
                 key={tabId}
                 value={tabId}
@@ -189,7 +198,11 @@ export function NodeDetailShell({
                   'data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground',
                 )}
               >
-                {tabId === 'overview' ? t('tabOverview') : t('tabManage')}
+                {tabId === 'overview'
+                  ? t('tabOverview')
+                  : tabId === 'manage'
+                    ? t('tabManage')
+                    : t(`detailSections.${tabId}`)}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -201,6 +214,11 @@ export function NodeDetailShell({
         <TabsContent value='manage' className='mt-6 outline-none'>
           {activeTab === 'manage' ? manage : null}
         </TabsContent>
+        {(['health', 'requests', 'domains'] as const).map((id) => panels[id] != null ? (
+          <TabsContent key={id} value={id} className='mt-6 outline-none'>
+            {activeTab === id ? panels[id] : null}
+          </TabsContent>
+        ) : null)}
       </Tabs>
     </div>
   );

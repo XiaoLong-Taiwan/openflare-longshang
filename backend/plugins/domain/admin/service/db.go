@@ -49,9 +49,6 @@ func GetClickHouseConfig() model.ClickHouseConfig {
 	return chConfig
 }
 
-// selectSQLKeywords marks statements that return a result set instead of a row count.
-var selectSQLKeywords = []string{"select", "show", "explain", "describe", "pragma"}
-
 // DatabaseOverview collects the runtime overview of the active database.
 func DatabaseOverview(ctx context.Context) (model.DBOverviewResponse, error) {
 	if !GetDBConfig().Enabled {
@@ -95,7 +92,6 @@ func DatabaseTableData(ctx context.Context, req model.GetTableDataRequest) (mode
 	}, nil
 }
 
-// truncateCellValues caps oversized string cells before they reach the console grid.
 func truncateCellValues(rows []map[string]any) []map[string]any {
 	for _, row := range rows {
 		for column, value := range row {
@@ -107,40 +103,26 @@ func truncateCellValues(rows []map[string]any) []map[string]any {
 	return rows
 }
 
-// ExecuteCustomSQL runs an arbitrary statement issued from the console SQL runner.
 func ExecuteCustomSQL(ctx context.Context, trimmedSQL string) (model.ExecuteSQLResponse, error) {
 	startTime := time.Now()
-
 	if isSelectStatement(trimmedSQL) {
 		cols, results, err := repository.RunSelectSQL(ctx, trimmedSQL)
 		if err != nil {
 			return model.ExecuteSQLResponse{}, err
 		}
-		return model.ExecuteSQLResponse{
-			Type:            "select",
-			Columns:         cols,
-			Results:         results,
-			AffectedRows:    int64(len(results)),
-			ExecutionTimeMs: time.Since(startTime).Milliseconds(),
-		}, nil
+		return model.ExecuteSQLResponse{Type: "select", Columns: cols, Results: results, AffectedRows: int64(len(results)), ExecutionTimeMs: time.Since(startTime).Milliseconds()}, nil
 	}
-
 	affectedRows, err := repository.RunMutationSQL(ctx, trimmedSQL)
 	if err != nil {
 		return model.ExecuteSQLResponse{}, err
 	}
-	return model.ExecuteSQLResponse{
-		Type:            "exec",
-		AffectedRows:    affectedRows,
-		ExecutionTimeMs: time.Since(startTime).Milliseconds(),
-	}, nil
+	return model.ExecuteSQLResponse{Type: "exec", AffectedRows: affectedRows, ExecutionTimeMs: time.Since(startTime).Milliseconds()}, nil
 }
 
-// isSelectStatement reports whether the statement yields a result set.
 func isSelectStatement(trimmedSQL string) bool {
 	lowerSQL := strings.ToLower(trimmedSQL)
-	for _, kw := range selectSQLKeywords {
-		if strings.HasPrefix(lowerSQL, kw) {
+	for _, keyword := range []string{"select", "show", "explain", "describe", "pragma"} {
+		if strings.HasPrefix(lowerSQL, keyword) {
 			return true
 		}
 	}

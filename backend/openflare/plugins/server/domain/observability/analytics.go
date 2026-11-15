@@ -204,10 +204,20 @@ func BuildTrafficDistributionsFromAccessLogs(
 	limit int,
 	accessLogRegions []*model.OpenFlareAccessLogRegionCount,
 ) TrafficDistributions {
+	return buildTrafficDistributionsForNode(ctx, "", since, until, limit, accessLogRegions)
+}
+
+func buildTrafficDistributionsForNode(
+	ctx context.Context,
+	nodeID string,
+	since, until time.Time,
+	limit int,
+	accessLogRegions []*model.OpenFlareAccessLogRegionCount,
+) TrafficDistributions {
 	statusCodes := make(distributionAccumulator)
 	topDomains := make(distributionAccumulator)
 
-	query := model.OpenFlareAccessLogQuery{Since: since, Until: until}
+	query := model.OpenFlareAccessLogQuery{NodeID: nodeID, Since: since, Until: until}
 	if statusRows, err := repository.ValueCountsOpenFlareAccessLogs(ctx, query, "status_code", limit); err == nil {
 		for _, row := range statusRows {
 			if strings.TrimSpace(row.Value) == "" || row.Count <= 0 {

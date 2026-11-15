@@ -767,7 +767,7 @@ const docTemplate = `{
                         "SessionCookie": []
                     }
                 ],
-                "description": "在当前数据库中执行任意自定义 SQL，如果是查询语句将返回格式化后的列与数据集，否则返回受影响行数，需要管理员权限",
+                "description": "在当前数据库中执行自定义 SQL，需要管理员权限；保留既有 API 相容性。",
                 "consumes": [
                     "application/json"
                 ],
@@ -18529,7 +18529,16 @@ const docTemplate = `{
         "model.DatabaseMaintenanceRequest": {
             "type": "object",
             "properties": {
+                "cleanup_task_executions": {
+                    "type": "boolean"
+                },
+                "clear_disk_cache": {
+                    "type": "boolean"
+                },
                 "confirmed": {
+                    "type": "boolean"
+                },
+                "optimize_database": {
                     "type": "boolean"
                 }
             }
@@ -18587,11 +18596,10 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "type": "object",
-                        "additionalProperties": true
+                        "additionalProperties": {}
                     }
                 },
                 "type": {
-                    "description": "\"select\" 或 \"exec\"",
                     "type": "string"
                 }
             }

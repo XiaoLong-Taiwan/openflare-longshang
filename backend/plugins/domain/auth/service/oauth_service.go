@@ -12,8 +12,13 @@ import (
 	"Wavelet/plugins/domain/auth/model/dto"
 	"Wavelet/plugins/domain/auth/model/entity"
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -151,6 +156,12 @@ func (s *OAuthService) BuildOAuthConfig(ctx context.Context, source *entity.Auth
 		return nil, nil, errors.New(consts.ErrAuthSourceRequired)
 	}
 
+	if source.Type == "google" && source.OpenIDDiscoveryURL == "" {
+		source.OpenIDDiscoveryURL = "https://accounts.google.com/.well-known/openid-configuration"
+	}
+	if source.Type != "oidc" && source.Type != "google" {
+		return oauthProviderConfig(source, redirectURL), nil, nil
+	}
 	if source.OpenIDDiscoveryURL == "" {
 		return nil, nil, errors.New(consts.ErrDiscoveryURLRequired)
 	}
@@ -191,37 +202,49 @@ func containsScope(scopes []string, scope string) bool {
 }
 
 // BuildAuthorizeURL generates the redirect authorize URL for the source and state.
-func (s *OAuthService) BuildAuthorizeURL(ctx context.Context, source *entity.AuthSource, state string) (string, error) {
+func (s *OAuthService) BuildAuthorizeURL(ctx context.Context, source *entity.AuthSource, state, verifier string) (string, error) {
 	redirectURL, err := s.GetFrontendLoginRedirectURL(ctx)
 	if err != nil {
 		return "", err
 	}
-	authConfig, verifier, err := s.BuildOAuthConfig(ctx, source, redirectURL)
+	authConfig, idTokenVerifier, err := s.BuildOAuthConfig(ctx, source, redirectURL)
 	if err != nil {
 		return "", err
 	}
-	if verifier != nil {
-		return authConfig.AuthCodeURL(state, oidc.Nonce(state)), nil
+	if idTokenVerifier != nil {
+		return authConfig.AuthCodeURL(state, oauth2.SetAuthURLParam("code_challenge", pkceChallenge(verifier)), oauth2.SetAuthURLParam("code_challenge_method", "S256"), oidc.Nonce(state)), nil
 	}
-	return authConfig.AuthCodeURL(state), nil
+	return authConfig.AuthCodeURL(state, oauth2.SetAuthURLParam("code_challenge", pkceChallenge(verifier)), oauth2.SetAuthURLParam("code_challenge_method", "S256")), nil
 }
 
 // BuildOAuthUserInfo exchanges the auth code and retrieves user identity claims.
 func (s *OAuthService) BuildOAuthUserInfo(ctx context.Context, source *entity.AuthSource, code, nonce, redirectURL string) (*contracts.OAuthUserInfoDTO, error) {
-	authConfig, verifier, err := s.BuildOAuthConfig(ctx, source, redirectURL)
+	return s.BuildOAuthUserInfoWithVerifier(ctx, source, code, nonce, redirectURL, "")
+}
+
+func (s *OAuthService) BuildOAuthUserInfoWithVerifier(ctx context.Context, source *entity.AuthSource, code, nonce, redirectURL, verifier string) (*contracts.OAuthUserInfoDTO, error) {
+	authConfig, idTokenVerifier, err := s.BuildOAuthConfig(ctx, source, redirectURL)
 	if err != nil {
 		return nil, err
 	}
 
-	token, err := authConfig.Exchange(ctx, code)
+	options := []oauth2.AuthCodeOption{}
+	if verifier != "" {
+		options = append(options, oauth2.SetAuthURLParam("code_verifier", verifier))
+	}
+	token, err := authConfig.Exchange(ctx, code, options...)
 	if err != nil {
 		return nil, err
 	}
 
 	userInfo := &contracts.OAuthUserInfoDTO{Active: true}
-	if verifier != nil {
-		if verifyErr := s.verifyIDToken(ctx, verifier, token, nonce, userInfo); verifyErr != nil {
+	if idTokenVerifier != nil {
+		if verifyErr := s.verifyIDToken(ctx, idTokenVerifier, token, nonce, userInfo); verifyErr != nil {
 			return nil, verifyErr
+		}
+	} else {
+		if err := s.fetchProviderUserInfo(ctx, source, token, userInfo); err != nil {
+			return nil, err
 		}
 	}
 
@@ -239,6 +262,86 @@ func (s *OAuthService) BuildOAuthUserInfo(ctx context.Context, source *entity.Au
 	}
 
 	return userInfo, nil
+}
+
+func oauthProviderConfig(source *entity.AuthSource, redirectURL string) *oauth2.Config {
+	endpoint := oauth2.Endpoint{}
+	scopes := strings.Fields(source.Scopes)
+	switch source.Type {
+	case "discord":
+		endpoint = oauth2.Endpoint{AuthURL: "https://discord.com/oauth2/authorize", TokenURL: "https://discord.com/api/oauth2/token"}
+		if len(scopes) == 0 {
+			scopes = []string{"identify", "email"}
+		}
+	case "github":
+		endpoint = oauth2.Endpoint{AuthURL: "https://github.com/login/oauth/authorize", TokenURL: "https://github.com/login/oauth/access_token"}
+		if len(scopes) == 0 {
+			scopes = []string{"read:user", "user:email"}
+		}
+	}
+	return &oauth2.Config{ClientID: source.ClientID, ClientSecret: source.ClientSecret, RedirectURL: redirectURL, Scopes: scopes, Endpoint: endpoint}
+}
+
+func pkceChallenge(verifier string) string {
+	hash := sha256.Sum256([]byte(verifier))
+	return base64.RawURLEncoding.EncodeToString(hash[:])
+}
+
+func (s *OAuthService) fetchProviderUserInfo(ctx context.Context, source *entity.AuthSource, token *oauth2.Token, userInfo *contracts.OAuthUserInfoDTO) error {
+	endpoint := ""
+	if source.Type == "discord" {
+		endpoint = "https://discord.com/api/users/@me"
+	}
+	if source.Type == "github" {
+		endpoint = "https://api.github.com/user"
+	}
+	if endpoint == "" {
+		return errors.New("unsupported OAuth provider")
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Authorization", "Bearer "+token.AccessToken)
+	request.Header.Set("Accept", "application/json")
+	client, _ := ctx.Value(oauth2.HTTPClient).(*http.Client)
+	if client == nil {
+		client = &http.Client{Timeout: 15 * time.Second}
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("OAuth user info returned status %d", response.StatusCode)
+	}
+	data, err := io.ReadAll(io.LimitReader(response.Body, 1<<20))
+	if err != nil {
+		return err
+	}
+	var claims map[string]any
+	decoder := json.NewDecoder(strings.NewReader(string(data)))
+	decoder.UseNumber()
+	if err := decoder.Decode(&claims); err != nil {
+		return err
+	}
+	userInfo.Sub = oauthClaimString(claims["id"])
+	if userInfo.Sub == "" {
+		return errors.New("OAuth user info is missing an identifier")
+	}
+	if source.Type == "github" {
+		userInfo.Username, _ = claims["login"].(string)
+		userInfo.Name, _ = claims["name"].(string)
+		userInfo.Email, _ = claims["email"].(string)
+		userInfo.AvatarURL, _ = claims["avatar_url"].(string)
+	} else {
+		userInfo.Username, _ = claims["username"].(string)
+		userInfo.Name = userInfo.Username
+		userInfo.Email, _ = claims["email"].(string)
+		userInfo.AvatarURL, _ = claims["avatar"].(string)
+	}
+	return nil
 }
 
 func (s *OAuthService) verifyIDToken(ctx context.Context, verifier *oidc.IDTokenVerifier, token *oauth2.Token, nonce string, userInfo *contracts.OAuthUserInfoDTO) error {

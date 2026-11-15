@@ -16,6 +16,8 @@ import (
 	"Wavelet/plugins/domain/auth/model/entity"
 	"Wavelet/plugins/domain/auth/service"
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -109,11 +111,17 @@ func (h *OAuthHandler) GetLoginURL(c *gin.Context) {
 	}
 
 	state := uuid.NewString()
+	verifier, err := newPKCEVerifier()
+	if err != nil {
+		response.AbortInternal(c, err.Error())
+		return
+	}
 	payloadValue, err := (do.OAuthStatePayload{
 		SourceName:  source.Name,
 		Purpose:     consts.OAuthPurposeLogin,
 		UserID:      userID,
 		SessionHash: sessionHash,
+		Verifier:    verifier,
 	}).Encode()
 	if err != nil {
 		response.AbortInternal(c, err.Error())
@@ -127,7 +135,7 @@ func (h *OAuthHandler) GetLoginURL(c *gin.Context) {
 		}
 	}
 
-	authorizeURL, err := h.oauthSvc.BuildAuthorizeURL(ctx, source, state)
+	authorizeURL, err := h.oauthSvc.BuildAuthorizeURL(ctx, source, state, verifier)
 	if err != nil {
 		response.AbortBadRequest(c, err.Error())
 		return
@@ -190,11 +198,17 @@ func (h *OAuthHandler) Authorize(c *gin.Context) {
 	}
 
 	state := uuid.NewString()
+	verifier, err := newPKCEVerifier()
+	if err != nil {
+		response.AbortInternal(c, err.Error())
+		return
+	}
 	payloadValue, err := (do.OAuthStatePayload{
 		SourceName:  source.Name,
 		Purpose:     purpose,
 		UserID:      userID,
 		SessionHash: sessionHash,
+		Verifier:    verifier,
 	}).Encode()
 	if err != nil {
 		response.AbortInternal(c, err.Error())
@@ -208,7 +222,7 @@ func (h *OAuthHandler) Authorize(c *gin.Context) {
 		}
 	}
 
-	authorizeURL, err := h.oauthSvc.BuildAuthorizeURL(ctx, source, state)
+	authorizeURL, err := h.oauthSvc.BuildAuthorizeURL(ctx, source, state, verifier)
 	if err != nil {
 		response.AbortBadRequest(c, err.Error())
 		return
@@ -243,12 +257,10 @@ func (h *OAuthHandler) Callback(c *gin.Context) {
 		response.AbortBadRequest(c, consts.ErrInvalidState)
 		return
 	}
-	if err := cache.Get(ctx, stateKey, &payloadRaw); err != nil {
+	if err := cache.Take(ctx, stateKey, &payloadRaw); err != nil {
 		response.AbortBadRequest(c, consts.ErrInvalidState)
 		return
 	}
-	_ = cache.Delete(ctx, stateKey)
-
 	payload, err := do.DecodeOAuthStatePayload(payloadRaw)
 	if err != nil {
 		response.AbortBadRequest(c, err.Error())
@@ -301,7 +313,7 @@ func (h *OAuthHandler) Callback(c *gin.Context) {
 		return
 	}
 
-	userInfo, err := h.oauthSvc.BuildOAuthUserInfo(ctx, source, req.Code, req.State, redirectURL)
+	userInfo, err := h.oauthSvc.BuildOAuthUserInfoWithVerifier(ctx, source, req.Code, req.State, redirectURL, payload.Verifier)
 	if err != nil {
 		response.AbortInternal(c, err.Error())
 		return
@@ -320,6 +332,14 @@ func (h *OAuthHandler) Callback(c *gin.Context) {
 	}
 
 	h.handleCallbackLogin(ctx, c, source, userInfo)
+}
+
+func newPKCEVerifier() (string, error) {
+	data := make([]byte, 32)
+	if _, err := rand.Read(data); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(data), nil
 }
 
 func (h *OAuthHandler) handleCallbackBind(ctx context.Context, c *gin.Context, source *entity.AuthSource, userInfo *contracts.OAuthUserInfoDTO) {
