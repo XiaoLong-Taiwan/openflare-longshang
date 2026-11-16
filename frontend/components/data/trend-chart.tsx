@@ -77,6 +77,7 @@ export function TrendChart({
       },
       tooltip: {
         trigger: 'axis',
+        confine: true,
         backgroundColor: 'rgba(15, 23, 42, 0.92)',
         borderWidth: 0,
         textStyle: {
@@ -190,7 +191,7 @@ export function TrendChart({
   }
 
   return (
-    <div className='space-y-4'>
+    <div className='min-w-0 space-y-4'>
       {showSummary ? (
         <div className='flex flex-wrap gap-3'>
           {series.map((item) => {
@@ -199,7 +200,7 @@ export function TrendChart({
             return (
               <div
                 key={item.label}
-                className='min-w-[140px] rounded-2xl border bg-card px-4 py-3'
+                className='min-w-0 flex-1 basis-32 rounded-2xl border bg-card px-3 py-3 [overflow-wrap:anywhere]'
               >
                 <div className='flex items-center gap-2'>
                   <span
@@ -224,7 +225,7 @@ export function TrendChart({
         </div>
       ) : null}
 
-      <div className='overflow-hidden rounded-[28px] border bg-linear-to-b from-white/3 to-transparent px-4 py-4 dark:from-white/3'>
+      <div className='min-w-0 overflow-hidden rounded-[28px] border bg-linear-to-b from-white/3 to-transparent px-1 py-4 sm:px-4 dark:from-white/3'>
         <ReactECharts
           option={option}
           notMerge

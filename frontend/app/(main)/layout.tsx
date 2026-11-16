@@ -65,7 +65,7 @@ export default function MainLayout({
           isFullWidth={isFullWidth}
           onToggleFullWidth={setIsFullWidth}
         />
-        <div className='flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain bg-background'>
+        <div className='main-scroll-container flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain bg-background'>
           <div
             className={`w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12 min-w-0 transition-all duration-300 ease-in-out ${!isFullWidth ? 'max-w-[1320px]' : 'max-w-full'}`}
           >

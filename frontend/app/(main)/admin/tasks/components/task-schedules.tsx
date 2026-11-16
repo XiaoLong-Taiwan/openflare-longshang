@@ -265,8 +265,8 @@ export function TaskSchedulesManager() {
   return (
     <div className='space-y-6'>
       <br />
-      <div className='flex items-center justify-between'>
-        <div className='flex items-center gap-2'>
+      <div className='flex flex-wrap items-center justify-between gap-3'>
+        <div className='flex flex-wrap items-center gap-2'>
           <Button
             variant='outline'
             size='sm'
@@ -309,90 +309,140 @@ export function TaskSchedulesManager() {
         <EmptyStateWithBorder icon={Clock} description={t('noSchedules')} />
       ) : (
         <div className='rounded-lg border bg-card'>
-          <Table className='w-full table-fixed md:table-auto md:min-w-[800px]'>
-            <TableHeader>
-              <TableRow className='hover:bg-transparent'>
-                <TableHead className='md:w-[180px]'>
-                  {t('colScheduleName')}
-                </TableHead>
-                <TableHead className='hidden md:table-cell w-[160px]'>
-                  {t('colAssociatedTask')}
-                </TableHead>
-                <TableHead className='hidden md:table-cell w-[120px]'>{t('colCron')}</TableHead>
-                <TableHead className='hidden md:table-cell min-w-[200px]'>
-                  {t('colPayload')}
-                </TableHead>
-                <TableHead className='w-[100px] text-center'>
-                  {t('colEnabled')}
-                </TableHead>
-                <TableHead className='w-[100px] md:w-[120px] text-right'>
-                  {t('colActions')}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {schedules.map((schedule) => (
-                <TableRow key={schedule.id}>
-                  <TableCell className='whitespace-normal break-all font-medium'>
+          <div className='flex flex-col divide-y lg:hidden'>
+            {schedules.map((schedule) => (
+              <div
+                key={schedule.id}
+                className='flex min-w-0 flex-col gap-2 p-4'
+              >
+                <div className='flex items-start justify-between gap-3'>
+                  <span className='min-w-0 font-medium [overflow-wrap:anywhere]'>
                     {schedule.name}
-                    <div className='mt-2 flex flex-col gap-1 text-xs text-muted-foreground md:hidden'>
-                      <span>{getTaskName(schedule.task_type)}</span>
-                      <span>{t('colCron')}: {schedule.cron}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className='hidden md:table-cell'>
-                    <div className='flex flex-col gap-0.5'>
-                      <span className='text-xs font-semibold'>
-                        {getTaskName(schedule.task_type)}
-                      </span>
-                      <span className='font-mono text-[10px] text-muted-foreground'>
-                        {schedule.task_type}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className='hidden md:table-cell font-mono text-xs text-blue-600 dark:text-blue-400 font-semibold'>
-                    {schedule.cron}
-                  </TableCell>
-                  <TableCell className='hidden md:table-cell max-w-[300px] truncate'>
-                    <code className='text-xs bg-muted/60 px-1 py-0.5 rounded font-mono'>
-                      {schedule.payload || '{}'}
-                    </code>
-                  </TableCell>
-                  <TableCell className='text-center'>
-                    <div className='flex justify-center'>
-                      <Switch
-                        aria-label={`${t('colEnabled')}: ${schedule.name}`}
-                        checked={schedule.is_active}
-                        onCheckedChange={() => handleToggleActive(schedule)}
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell className='text-right'>
-                    <div className='flex flex-wrap items-center justify-end gap-1.5'>
-                      <Button
-                        variant='ghost'
-                        size='icon'
-                        aria-label={`${t('editSchedule')}: ${schedule.name}`}
-                        className='size-11 md:size-7 text-muted-foreground hover:text-foreground'
-                        onClick={() => openEditDialog(schedule)}
-                      >
-                        <Edit2 className='size-3.5' />
-                      </Button>
-                      <Button
-                        variant='ghost'
-                        size='icon'
-                        aria-label={`${t('deleteScheduleTitle')}: ${schedule.name}`}
-                        className='size-11 md:size-7 text-destructive hover:text-destructive/90'
-                        onClick={() => openDeleteDialog(schedule.id)}
-                      >
-                        <Trash2 className='size-3.5' />
-                      </Button>
-                    </div>
-                  </TableCell>
+                  </span>
+                  <Switch
+                    aria-label={`${t('colEnabled')}: ${schedule.name}`}
+                    checked={schedule.is_active}
+                    onCheckedChange={() => handleToggleActive(schedule)}
+                  />
+                </div>
+                <span className='text-xs text-muted-foreground [overflow-wrap:anywhere]'>
+                  {getTaskName(schedule.task_type)}
+                </span>
+                <span className='font-mono text-xs'>
+                  {t('colCron')}: {schedule.cron}
+                </span>
+                <code className='line-clamp-2 text-xs text-muted-foreground [overflow-wrap:anywhere]'>
+                  {schedule.payload || '{}'}
+                </code>
+                <div className='flex flex-wrap justify-end gap-2'>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => openEditDialog(schedule)}
+                  >
+                    {t('editSchedule')}
+                  </Button>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => openDeleteDialog(schedule.id)}
+                  >
+                    {t('deleteScheduleTitle')}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className='hidden lg:block'>
+            <Table className='w-full table-fixed md:table-auto md:min-w-[800px]'>
+              <TableHeader>
+                <TableRow className='hover:bg-transparent'>
+                  <TableHead className='md:w-[180px]'>
+                    {t('colScheduleName')}
+                  </TableHead>
+                  <TableHead className='hidden md:table-cell w-[160px]'>
+                    {t('colAssociatedTask')}
+                  </TableHead>
+                  <TableHead className='hidden md:table-cell w-[120px]'>
+                    {t('colCron')}
+                  </TableHead>
+                  <TableHead className='hidden md:table-cell min-w-[200px]'>
+                    {t('colPayload')}
+                  </TableHead>
+                  <TableHead className='w-[100px] text-center'>
+                    {t('colEnabled')}
+                  </TableHead>
+                  <TableHead className='w-[100px] md:w-[120px] text-right'>
+                    {t('colActions')}
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {schedules.map((schedule) => (
+                  <TableRow key={schedule.id}>
+                    <TableCell className='whitespace-normal break-all font-medium'>
+                      {schedule.name}
+                      <div className='mt-2 flex flex-col gap-1 text-xs text-muted-foreground md:hidden'>
+                        <span>{getTaskName(schedule.task_type)}</span>
+                        <span>
+                          {t('colCron')}: {schedule.cron}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className='hidden md:table-cell'>
+                      <div className='flex flex-col gap-0.5'>
+                        <span className='text-xs font-semibold'>
+                          {getTaskName(schedule.task_type)}
+                        </span>
+                        <span className='font-mono text-[10px] text-muted-foreground'>
+                          {schedule.task_type}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className='hidden md:table-cell font-mono text-xs text-blue-600 dark:text-blue-400 font-semibold'>
+                      {schedule.cron}
+                    </TableCell>
+                    <TableCell className='hidden md:table-cell max-w-[300px] truncate'>
+                      <code className='text-xs bg-muted/60 px-1 py-0.5 rounded font-mono'>
+                        {schedule.payload || '{}'}
+                      </code>
+                    </TableCell>
+                    <TableCell className='text-center'>
+                      <div className='flex justify-center'>
+                        <Switch
+                          aria-label={`${t('colEnabled')}: ${schedule.name}`}
+                          checked={schedule.is_active}
+                          onCheckedChange={() => handleToggleActive(schedule)}
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className='text-right'>
+                      <div className='flex flex-wrap items-center justify-end gap-1.5'>
+                        <Button
+                          variant='ghost'
+                          size='icon'
+                          aria-label={`${t('editSchedule')}: ${schedule.name}`}
+                          className='size-11 md:size-7 text-muted-foreground hover:text-foreground'
+                          onClick={() => openEditDialog(schedule)}
+                        >
+                          <Edit2 className='size-3.5' />
+                        </Button>
+                        <Button
+                          variant='ghost'
+                          size='icon'
+                          aria-label={`${t('deleteScheduleTitle')}: ${schedule.name}`}
+                          className='size-11 md:size-7 text-destructive hover:text-destructive/90'
+                          onClick={() => openDeleteDialog(schedule.id)}
+                        >
+                          <Trash2 className='size-3.5' />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
 

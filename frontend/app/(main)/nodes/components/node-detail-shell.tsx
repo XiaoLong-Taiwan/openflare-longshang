@@ -20,7 +20,12 @@ import { NodeKpiCard } from './node-detail-primitives';
 import { NodeStatusBadge } from './node-status-badge';
 import type { StatusTone } from './node-utils';
 
-export type NodeDetailTabId = 'overview' | 'manage' | 'health' | 'requests' | 'domains';
+export type NodeDetailTabId =
+  | 'overview'
+  | 'manage'
+  | 'health'
+  | 'requests'
+  | 'domains';
 
 export type NodeDetailTabConfig = {
   id: NodeDetailTabId;
@@ -34,13 +39,24 @@ export type NodeDetailKpi = {
   icon?: LucideIcon;
 };
 
-const TAB_IDS: NodeDetailTabId[] = ['overview', 'health', 'requests', 'domains', 'manage'];
+const TAB_IDS: NodeDetailTabId[] = [
+  'overview',
+  'health',
+  'requests',
+  'domains',
+  'manage',
+];
 
 function resolveTab(value: string | null): NodeDetailTabId | null {
   if (value === 'overview' || value === 'dashboard') {
     return 'overview';
   }
-  if (value === 'manage' || value === 'health' || value === 'requests' || value === 'domains') {
+  if (
+    value === 'manage' ||
+    value === 'health' ||
+    value === 'requests' ||
+    value === 'domains'
+  ) {
     return value;
   }
   return null;
@@ -77,8 +93,16 @@ export function NodeDetailShell({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const panels: Partial<Record<NodeDetailTabId, ReactNode>> = { overview, manage, health, requests, domains };
-  const tabIds = TAB_IDS.filter((id) => id === 'overview' || id === 'manage' || panels[id] != null);
+  const panels: Partial<Record<NodeDetailTabId, ReactNode>> = {
+    overview,
+    manage,
+    health,
+    requests,
+    domains,
+  };
+  const tabIds = TAB_IDS.filter(
+    (id) => id === 'overview' || id === 'manage' || panels[id] != null,
+  );
 
   const activeTab = (() => {
     const tab = searchParams.get('tab');
@@ -165,7 +189,7 @@ export function NodeDetailShell({
           </div>
 
           {kpis.length > 0 ? (
-            <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-4'>
+            <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-4'>
               {kpis.map((kpi) => (
                 <NodeKpiCard
                   key={kpi.label}
@@ -214,11 +238,13 @@ export function NodeDetailShell({
         <TabsContent value='manage' className='mt-6 outline-none'>
           {activeTab === 'manage' ? manage : null}
         </TabsContent>
-        {(['health', 'requests', 'domains'] as const).map((id) => panels[id] != null ? (
-          <TabsContent key={id} value={id} className='mt-6 outline-none'>
-            {activeTab === id ? panels[id] : null}
-          </TabsContent>
-        ) : null)}
+        {(['health', 'requests', 'domains'] as const).map((id) =>
+          panels[id] != null ? (
+            <TabsContent key={id} value={id} className='mt-6 outline-none'>
+              {activeTab === id ? panels[id] : null}
+            </TabsContent>
+          ) : null,
+        )}
       </Tabs>
     </div>
   );

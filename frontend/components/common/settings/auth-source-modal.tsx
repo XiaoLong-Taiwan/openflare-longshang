@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
@@ -12,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -68,6 +71,26 @@ export function AuthSourceModal({
   const t = useTranslations('settings.authSourceModal');
   const [form, setForm] = useState<AuthSourceRequest>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const systemConfigsQuery = useQuery({
+    queryKey: ['admin', 'system-configs'],
+    queryFn: () => services.adminSystemConfig.listSystemConfigs('system'),
+    enabled: isOpen,
+  });
+  const serverAddress = systemConfigsQuery.data?.find(
+    (config) => config.key === 'server_address',
+  )?.value;
+  const callbackURL = systemConfigsQuery.isSuccess
+    ? `${(serverAddress || (typeof window !== 'undefined' ? window.location.origin : '')).replace(/\/+$/, '')}/login`
+    : '';
+
+  const copyCallbackURL = async () => {
+    try {
+      await navigator.clipboard.writeText(callbackURL);
+      toast.success(t('callbackCopied'));
+    } catch {
+      toast.error(t('callbackCopyFailed'));
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -114,7 +137,7 @@ export function AuthSourceModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className='max-w-xl'>
+      <DialogContent className='max-h-[90dvh] max-w-xl overflow-y-auto'>
         <DialogHeader>
           <DialogTitle>
             {source ? t('editAuthSource') : t('addAuthSource')}
@@ -125,6 +148,37 @@ export function AuthSourceModal({
         </DialogHeader>
 
         <div className='grid gap-4 md:grid-cols-2 pt-2'>
+          <Field className='min-w-0 md:col-span-2'>
+            <FieldLabel htmlFor='auth-source-callback-url'>
+              {t('callbackURL')}
+            </FieldLabel>
+            <div className='flex min-w-0 flex-col gap-2 sm:flex-row'>
+              <Input
+                id='auth-source-callback-url'
+                value={callbackURL}
+                readOnly
+                aria-describedby='auth-source-callback-description'
+                className='min-w-0 flex-1'
+                onFocus={(event) => event.currentTarget.select()}
+              />
+              <Button
+                type='button'
+                variant='outline'
+                disabled={!callbackURL}
+                onClick={copyCallbackURL}
+              >
+                <Copy data-icon='inline-start' />
+                {t('copyCallbackURL')}
+              </Button>
+            </div>
+            <FieldDescription id='auth-source-callback-description'>
+              {systemConfigsQuery.isError
+                ? t('callbackLoadFailed')
+                : systemConfigsQuery.isPending
+                  ? t('callbackLoading')
+                  : t('callbackURLDesc')}
+            </FieldDescription>
+          </Field>
           <div className='space-y-2'>
             <Label>{t('identifier')}</Label>
             <Input

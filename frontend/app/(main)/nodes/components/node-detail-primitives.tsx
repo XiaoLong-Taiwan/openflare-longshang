@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { ResponsiveSection } from '@/components/common/responsive-section';
 
 export function NodeInfoRow({
   label,
@@ -46,7 +47,7 @@ export function NodeKpiCard({
   icon?: LucideIcon;
 }) {
   return (
-    <div className='rounded-xl border bg-card/60 px-4 py-3.5 backdrop-blur-sm'>
+    <div className='min-w-0 rounded-lg border border-border/70 bg-card/60 px-3 py-3'>
       <div className='flex items-center gap-2 text-xs text-muted-foreground'>
         {Icon ? <Icon className='size-3.5 opacity-70' /> : null}
         <span>{label}</span>
@@ -72,25 +73,27 @@ export function NodeSectionCard({
   className?: string;
 }) {
   return (
-    <Card className={cn('min-w-0 border shadow-none', className)}>
-      <CardHeader
-        className={cn(
-          'pb-3',
-          action
-            ? 'flex flex-col items-start gap-3 sm:flex-row sm:justify-between'
-            : '',
-        )}
-      >
-        <div className='flex min-w-0 flex-col gap-1 [overflow-wrap:anywhere]'>
-          <CardTitle className='text-base font-semibold'>{title}</CardTitle>
-          {description ? (
-            <CardDescription>{description}</CardDescription>
-          ) : null}
-        </div>
-        {action}
-      </CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
+    <ResponsiveSection title={title}>
+      <Card className={cn('min-w-0 border shadow-none', className)}>
+        <CardHeader
+          className={cn(
+            'pb-3',
+            action
+              ? 'flex flex-col items-start gap-3 sm:flex-row sm:justify-between'
+              : '',
+          )}
+        >
+          <div className='flex min-w-0 flex-col gap-1 [overflow-wrap:anywhere]'>
+            <CardTitle className='text-base font-semibold'>{title}</CardTitle>
+            {description ? (
+              <CardDescription>{description}</CardDescription>
+            ) : null}
+          </div>
+          {action}
+        </CardHeader>
+        <CardContent>{children}</CardContent>
+      </Card>
+    </ResponsiveSection>
   );
 }
 

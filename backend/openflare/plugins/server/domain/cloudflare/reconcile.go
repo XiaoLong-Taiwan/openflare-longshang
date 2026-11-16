@@ -282,11 +282,15 @@ func markMemberSynced(ctx context.Context, memberID uint, zoneID, recordID, ip s
 	if err != nil {
 		return err
 	}
-	if err = repository.UpdateCFPointingMemberColumns(ctx, memberID, map[string]any{
+	updated, err := repository.CompleteCFPointingMemberSync(ctx, memberID, map[string]any{
 		"cf_zone_id": zoneID, "cf_record_id": recordID, "desired_ip": ip,
 		memberSyncStatusColumn: model.CFMemberSyncOK, memberLastErrorColumn: "", "synced_at": &now,
-	}); err != nil {
+	})
+	if err != nil {
 		return err
+	}
+	if !updated {
+		return nil
 	}
 	if err := repository.DB(ctx).Model(&model.CFPointingGroup{}).Where("id = ?", member.GroupID).Update("active_node_id", activeNodeID).Error; err != nil {
 		return err

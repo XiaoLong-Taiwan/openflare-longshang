@@ -55,6 +55,7 @@ type TaskMeta struct {
 	MaxRetry     int
 	Queue        string
 	Retryable    bool
+	Singleton    bool
 	InternalOnly bool
 	Params       []TaskParam
 }
@@ -76,6 +77,7 @@ func (m TaskMeta) ToDTO() contracts.TaskMetaDTO {
 		MaxRetry:     m.MaxRetry,
 		Queue:        queue,
 		Retryable:    m.Retryable,
+		Singleton:    m.Singleton,
 	}
 }
 

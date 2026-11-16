@@ -130,20 +130,20 @@
 }
 
 @media (max-width: 767px) {
-  [data-slot='button'],
-  [data-slot='sidebar-trigger'],
-  [data-slot='select-trigger'],
-  [data-slot='select-item'] {
+  [data-slot="button"],
+  [data-slot="sidebar-trigger"],
+  [data-slot="select-trigger"],
+  [data-slot="select-item"] {
     min-height: 2.75rem;
   }
 
-  [data-slot='button'][data-size^='icon'],
-  [data-slot='sidebar-trigger'] {
+  [data-slot="button"][data-size^="icon"],
+  [data-slot="sidebar-trigger"] {
     min-width: 2.75rem;
   }
 
-  [data-slot='input'],
-  [data-slot='select-trigger'] {
+  [data-slot="input"],
+  [data-slot="select-trigger"] {
     min-height: 2.75rem;
     font-size: 1rem;
   }
@@ -154,9 +154,36 @@
   padding-right: env(safe-area-inset-right, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
   padding-left: env(safe-area-inset-left, 0px);
+  height: 100dvh;
 }
 
-.app-safe-area [data-slot='sidebar-container'] {
+.main-scroll-container {
+  padding-bottom: var(--task-progress-inset, 0px);
+  scroll-padding-bottom: var(--task-progress-inset, 0px);
+}
+
+.task-progress-floating {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+  right: calc(env(safe-area-inset-right, 0px) + 1rem);
+  max-width: calc(
+    100vw -
+    env(safe-area-inset-left, 0px) -
+    env(safe-area-inset-right, 0px) -
+    2rem
+  );
+}
+
+.task-progress-sheet {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+[data-slot="tabs-list"] {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted-foreground) var(--muted);
+}
+
+.app-safe-area [data-slot="sidebar-container"] {
   top: env(safe-area-inset-top, 0px);
   bottom: env(safe-area-inset-bottom, 0px);
   left: env(safe-area-inset-left, 0px);

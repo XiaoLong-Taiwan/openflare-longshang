@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -124,7 +125,7 @@ export function TableBrowser({
   };
 
   return (
-    <Card className='border-border/40 bg-card/50 backdrop-blur-sm shadow-sm'>
+    <Card className='min-w-0'>
       <CardHeader className='pb-3 border-b border-dashed flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
         <div className='space-y-0.5'>
           <CardTitle className='text-sm font-semibold'>
@@ -135,29 +136,31 @@ export function TableBrowser({
           </CardDescription>
         </div>
 
-        <div className='flex items-center gap-2'>
+        <div className='flex w-full min-w-0 items-center gap-2 md:w-auto'>
           {loadingTables ? (
             <Skeleton className='h-8 w-48' />
           ) : (
             <Select value={selectedTable} onValueChange={handleTableChange}>
               <SelectTrigger
                 aria-label={t('selectTable')}
-                className='h-8 w-[200px] text-xs bg-background border-border/40'
+                className='w-full min-w-0 md:w-64'
               >
                 <SelectValue placeholder={t('selectTable')} />
               </SelectTrigger>
               <SelectContent className='max-h-[300px]'>
-                {tables.map((t) => (
-                  <SelectItem key={t} value={t} className='text-xs font-mono'>
-                    {t}
-                  </SelectItem>
-                ))}
+                <SelectGroup>
+                  {tables.map((t) => (
+                    <SelectItem key={t} value={t} className='text-xs font-mono'>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
           )}
         </div>
       </CardHeader>
-      <CardContent className='pt-4'>
+      <CardContent className='min-w-0 pt-4'>
         {loadingData && !tableData ? (
           <div className='space-y-3 py-6'>
             <Skeleton className='h-6 w-full' />
@@ -226,7 +229,7 @@ export function TableBrowser({
                 </span>{' '}
                 {t('records')}
               </div>
-              <div className='flex items-center gap-2'>
+              <div className='flex flex-wrap items-center gap-2'>
                 <Button
                   variant='outline'
                   size='sm'

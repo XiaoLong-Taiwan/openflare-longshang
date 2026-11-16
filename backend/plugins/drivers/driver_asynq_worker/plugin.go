@@ -459,6 +459,7 @@ func (s *taskServiceImpl) ListTasks() []contracts.TaskMetaDTO {
 			Timeout:      m.Timeout,
 			Queue:        m.Queue,
 			Retryable:    m.Retryable,
+			Singleton:    m.Singleton,
 		})
 	}
 	return res
@@ -508,6 +509,7 @@ func (s *taskServiceImpl) GetTaskMeta(taskType string) (contracts.TaskMetaDTO, b
 		Timeout:      m.Timeout,
 		Queue:        m.Queue,
 		Retryable:    m.Retryable,
+		Singleton:    m.Singleton,
 	}, true
 }
 

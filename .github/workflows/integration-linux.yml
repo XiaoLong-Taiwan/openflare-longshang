@@ -51,6 +51,8 @@ jobs:
             ./openflare/share/edge/heartbeat \
             ./pkg/trace \
             ./plugins/drivers/driver_http \
+            ./plugins/drivers/driver_asynq_worker \
+            ./plugins/drivers/driver_asynq_cron \
             ./plugins/domain/admin/... \
             ./plugins/domain/auth/... \
             ./plugins/domain/upload/... \

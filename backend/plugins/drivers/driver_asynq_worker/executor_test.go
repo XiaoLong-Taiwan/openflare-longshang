@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/hibiken/asynq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,6 +31,8 @@ func init() {
 type mockDBService struct {
 	db *gorm.DB
 }
+
+var testMiniRedis *miniredis.Miniredis
 
 func (m *mockDBService) GORM() *gorm.DB {
 	return m.db
@@ -79,13 +82,14 @@ const testTaskType = "test:mock_task"
 
 func setupTest(t *testing.T) func() {
 	testDB, mr, cleanup := testhelper.SetupTestEnvironment(t)
+	testMiniRedis = mr
 	setDBService(&mockDBService{db: testDB})
 	rdb := redis.NewClient(&redis.Options{Addr: mr.Addr()})
 	SetRedisClient(rdb)
 
-	AsynqClient = asynq.NewClient(asynq.RedisClientOpt{
-		Addr: mr.Addr(),
-	})
+	RedisOpt = asynq.RedisClientOpt{Addr: mr.Addr()}
+	ResetAsynqClient()
+	AsynqClient = asynq.NewClient(asynq.RedisClientOpt{Addr: mr.Addr()})
 	// 注册测试用 handler
 	RegisterHandler(testTaskType, successHandler())
 	return func() {
@@ -93,6 +97,12 @@ func setupTest(t *testing.T) func() {
 			_ = AsynqClient.Close()
 			AsynqClient = nil
 		}
+		if AsynqInspector != nil {
+			_ = AsynqInspector.Close()
+			AsynqInspector = nil
+		}
+		RedisOpt = nil
+		testMiniRedis = nil
 		_ = rdb.Close()
 		setDBService(nil)
 		SetRedisClient(nil)

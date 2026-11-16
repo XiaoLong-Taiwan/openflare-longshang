@@ -4,6 +4,7 @@
   },
   "nodes": {
     "selectedCount": "{count} nodes selected",
-    "moreActions": "More actions"
+    "moreActions": "More actions",
+    "trendDetails": "Trend previews and detailed charts"
   }
 }

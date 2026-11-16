@@ -108,21 +108,30 @@ export default function CloudflarePage() {
 
   return (
     <div className='flex w-full flex-col gap-6 py-6 px-1'>
-      <div className='flex items-center justify-between gap-3'>
-        <div className='flex items-center gap-2'>
+      <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+        <div className='flex min-w-0 items-center gap-2'>
           <Cloud className='size-5 text-primary' />
           <h1 className='text-2xl font-semibold tracking-tight'>
             {t('title')}
           </h1>
         </div>
-        <div className='flex items-center gap-2'>
-          <Button asChild variant='outline' size='sm'>
+        <div className='flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end'>
+          <Button
+            asChild
+            variant='outline'
+            size='sm'
+            className='min-w-0 flex-1 sm:flex-none'
+          >
             <Link href='/cloudflare/settings'>
               <Settings data-icon='inline-start' />
               {t('connectionSettings')}
             </Link>
           </Button>
-          <Button size='sm' onClick={() => setCreateOpen(true)}>
+          <Button
+            size='sm'
+            className='min-w-0 flex-1 sm:flex-none'
+            onClick={() => setCreateOpen(true)}
+          >
             <Plus data-icon='inline-start' />
             {t('addGroup')}
           </Button>

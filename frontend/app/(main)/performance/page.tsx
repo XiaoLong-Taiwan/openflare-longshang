@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { useAuth } from '@/components/providers/auth-provider';
+import { ResponsiveSection } from '@/components/common/responsive-section';
 import { EmptyStateWithBorder } from '@/components/layout/empty';
 import { ErrorInline } from '@/components/layout/error';
 import { LoadingStateWithBorder } from '@/components/layout/loading';
@@ -150,7 +151,7 @@ export default function PerformancePage() {
   }
 
   return (
-    <div className='flex flex-col gap-6 py-6 px-1'>
+    <div className='flex w-full min-w-0 flex-col gap-6 py-6 px-1'>
       <div className='flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between'>
         <div className='flex items-center gap-2'>
           <Gauge className='size-5 text-primary' />
@@ -169,377 +170,386 @@ export default function PerformancePage() {
         </Button>
       </div>
 
-      <Card className='border-dashed shadow-none'>
-        <CardHeader className='flex flex-row items-center justify-between'>
-          <div>
-            <CardTitle className='text-base'>{t('runtimeTitle')}</CardTitle>
-            <CardDescription>{t('runtimeDesc')}</CardDescription>
-          </div>
-          <Button
-            size='sm'
-            disabled={savingSection === 'runtime'}
-            onClick={() =>
-              saveMutation.mutate({
-                section: 'runtime',
-                validator: (fields) => validateRuntimeFields(fields, t),
-                entries: entriesFromKeys(fields, [
-                  'openresty_default_server_return_status',
-                  'openresty_worker_processes',
-                  'openresty_resolvers',
-                  'openresty_worker_connections',
-                  'openresty_worker_rlimit_nofile',
-                  'openresty_events_use',
-                  'openresty_events_multi_accept_enabled',
-                  'openresty_keepalive_timeout',
-                  'openresty_keepalive_requests',
-                  'openresty_client_header_timeout',
-                  'openresty_client_body_timeout',
-                  'openresty_client_max_body_size',
-                  'openresty_large_client_header_buffers',
-                  'openresty_send_timeout',
-                ]),
-              })
-            }
-          >
-            {savingSection === 'runtime' ? (
-              <Loader2 className='size-4 animate-spin mr-1' />
-            ) : (
-              <Save className='size-3.5 mr-1' />
-            )}
-            {tc('save')}
-          </Button>
-        </CardHeader>
-        <CardContent className='grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
-          <FieldInput
-            label={t('fields.workerProcesses')}
-            value={fields.openresty_worker_processes}
-            onChange={(v) => updateField('openresty_worker_processes', v)}
-          />
-          <FieldInput
-            label={t('fields.workerConnections')}
-            value={fields.openresty_worker_connections}
-            onChange={(v) => updateField('openresty_worker_connections', v)}
-            type='number'
-          />
-          <FieldInput
-            label={t('fields.workerRlimitNofile')}
-            value={fields.openresty_worker_rlimit_nofile}
-            onChange={(v) => updateField('openresty_worker_rlimit_nofile', v)}
-            type='number'
-          />
-          <div className='flex flex-col gap-1.5'>
-            <Label>{t('fields.eventsUse')}</Label>
-            <Select
-              value={fields.openresty_events_use}
-              onValueChange={(v) => updateField('openresty_events_use', v)}
+      <ResponsiveSection title={t('runtimeTitle')} defaultOpen>
+        <Card className='min-w-0 border-dashed shadow-none'>
+          <CardHeader className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+            <div>
+              <CardTitle className='text-base'>{t('runtimeTitle')}</CardTitle>
+              <CardDescription>{t('runtimeDesc')}</CardDescription>
+            </div>
+            <Button
+              size='sm'
+              disabled={savingSection === 'runtime'}
+              onClick={() =>
+                saveMutation.mutate({
+                  section: 'runtime',
+                  validator: (fields) => validateRuntimeFields(fields, t),
+                  entries: entriesFromKeys(fields, [
+                    'openresty_default_server_return_status',
+                    'openresty_worker_processes',
+                    'openresty_resolvers',
+                    'openresty_worker_connections',
+                    'openresty_worker_rlimit_nofile',
+                    'openresty_events_use',
+                    'openresty_events_multi_accept_enabled',
+                    'openresty_keepalive_timeout',
+                    'openresty_keepalive_requests',
+                    'openresty_client_header_timeout',
+                    'openresty_client_body_timeout',
+                    'openresty_client_max_body_size',
+                    'openresty_large_client_header_buffers',
+                    'openresty_send_timeout',
+                  ]),
+                })
+              }
             >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='epoll'>epoll</SelectItem>
-                <SelectItem value='kqueue'>kqueue</SelectItem>
-                <SelectItem value='poll'>poll</SelectItem>
-                <SelectItem value='select'>select</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <ToggleRow
-            label={t('fields.multiAccept')}
-            checked={fields.openresty_events_multi_accept_enabled}
-            onChange={(v) =>
-              updateField('openresty_events_multi_accept_enabled', v)
-            }
-          />
-          <FieldInput
-            label={t('fields.keepaliveTimeout')}
-            value={fields.openresty_keepalive_timeout}
-            onChange={(v) => updateField('openresty_keepalive_timeout', v)}
-            type='number'
-          />
-          <FieldInput
-            label={t('fields.keepaliveRequests')}
-            value={fields.openresty_keepalive_requests}
-            onChange={(v) => updateField('openresty_keepalive_requests', v)}
-            type='number'
-          />
-          <FieldInput
-            label={t('fields.clientHeaderTimeout')}
-            value={fields.openresty_client_header_timeout}
-            onChange={(v) => updateField('openresty_client_header_timeout', v)}
-            type='number'
-          />
-          <FieldInput
-            label={t('fields.clientBodyTimeout')}
-            value={fields.openresty_client_body_timeout}
-            onChange={(v) => updateField('openresty_client_body_timeout', v)}
-            type='number'
-          />
-          <FieldInput
-            label={t('fields.clientMaxBodySize')}
-            value={fields.openresty_client_max_body_size}
-            onChange={(v) => updateField('openresty_client_max_body_size', v)}
-          />
-          <FieldInput
-            label={t('fields.largeClientHeaderBuffers')}
-            value={fields.openresty_large_client_header_buffers}
-            onChange={(v) =>
-              updateField('openresty_large_client_header_buffers', v)
-            }
-          />
-          <FieldInput
-            label={t('fields.sendTimeout')}
-            value={fields.openresty_send_timeout}
-            onChange={(v) => updateField('openresty_send_timeout', v)}
-            type='number'
-          />
-          <FieldInput
-            label={t('fields.resolvers')}
-            value={fields.openresty_resolvers}
-            onChange={(v) => updateField('openresty_resolvers', v)}
-            placeholder='1.1.1.1 8.8.8.8'
-          />
-          <FieldInput
-            label={t('fields.defaultServerReturnStatus')}
-            value={fields.openresty_default_server_return_status}
-            onChange={(v) =>
-              updateField('openresty_default_server_return_status', v)
-            }
-            type='number'
-          />
-        </CardContent>
-      </Card>
-
-      <Card className='border-dashed shadow-none'>
-        <CardHeader className='flex flex-row items-center justify-between'>
-          <div>
-            <CardTitle className='text-base'>{t('proxyTitle')}</CardTitle>
-            <CardDescription>{t('proxyDesc')}</CardDescription>
-          </div>
-          <Button
-            size='sm'
-            disabled={savingSection === 'proxy'}
-            onClick={() =>
-              saveMutation.mutate({
-                section: 'proxy',
-                validator: (fields) => validateProxyFields(fields, t),
-                entries: entriesFromKeys(fields, [
-                  'openresty_proxy_connect_timeout',
-                  'openresty_proxy_send_timeout',
-                  'openresty_proxy_read_timeout',
-                  'openresty_websocket_enabled',
-                  'openresty_http3_enabled',
-                  'openresty_proxy_request_buffering_enabled',
-                  'openresty_proxy_buffering_enabled',
-                  'openresty_proxy_buffers',
-                  'openresty_proxy_buffer_size',
-                  'openresty_proxy_busy_buffers_size',
-                ]),
-              })
-            }
-          >
-            {savingSection === 'proxy' ? (
-              <Loader2 className='size-4 animate-spin mr-1' />
-            ) : (
-              <Save className='size-3.5 mr-1' />
-            )}
-            {tc('save')}
-          </Button>
-        </CardHeader>
-        <CardContent className='grid gap-4 md:grid-cols-2'>
-          <FieldInput
-            label={t('fields.proxyConnectTimeout')}
-            value={fields.openresty_proxy_connect_timeout}
-            onChange={(v) => updateField('openresty_proxy_connect_timeout', v)}
-            type='number'
-          />
-          <FieldInput
-            label={t('fields.proxySendTimeout')}
-            value={fields.openresty_proxy_send_timeout}
-            onChange={(v) => updateField('openresty_proxy_send_timeout', v)}
-            type='number'
-          />
-          <FieldInput
-            label={t('fields.proxyReadTimeout')}
-            value={fields.openresty_proxy_read_timeout}
-            onChange={(v) => updateField('openresty_proxy_read_timeout', v)}
-            type='number'
-          />
-          <ToggleRow
-            label={t('fields.websocket')}
-            checked={fields.openresty_websocket_enabled}
-            onChange={(v) => updateField('openresty_websocket_enabled', v)}
-          />
-          <ToggleRow
-            label={t('fields.http3')}
-            checked={fields.openresty_http3_enabled}
-            onChange={(v) => updateField('openresty_http3_enabled', v)}
-          />
-          <ToggleRow
-            label={t('fields.proxyRequestBuffering')}
-            checked={fields.openresty_proxy_request_buffering_enabled}
-            onChange={(v) =>
-              updateField('openresty_proxy_request_buffering_enabled', v)
-            }
-          />
-          <ToggleRow
-            label={t('fields.proxyBuffering')}
-            checked={fields.openresty_proxy_buffering_enabled}
-            onChange={(v) =>
-              updateField('openresty_proxy_buffering_enabled', v)
-            }
-          />
-          <FieldInput
-            label={t('fields.proxyBuffers')}
-            value={fields.openresty_proxy_buffers}
-            onChange={(v) => updateField('openresty_proxy_buffers', v)}
-          />
-          <FieldInput
-            label={t('fields.proxyBufferSize')}
-            value={fields.openresty_proxy_buffer_size}
-            onChange={(v) => updateField('openresty_proxy_buffer_size', v)}
-          />
-          <FieldInput
-            label={t('fields.proxyBusyBuffersSize')}
-            value={fields.openresty_proxy_busy_buffers_size}
-            onChange={(v) =>
-              updateField('openresty_proxy_busy_buffers_size', v)
-            }
-          />
-        </CardContent>
-      </Card>
-
+              {savingSection === 'runtime' ? (
+                <Loader2 className='size-4 animate-spin mr-1' />
+              ) : (
+                <Save className='size-3.5 mr-1' />
+              )}
+              {tc('save')}
+            </Button>
+          </CardHeader>
+          <CardContent className='grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
+            <FieldInput
+              label={t('fields.workerProcesses')}
+              value={fields.openresty_worker_processes}
+              onChange={(v) => updateField('openresty_worker_processes', v)}
+            />
+            <FieldInput
+              label={t('fields.workerConnections')}
+              value={fields.openresty_worker_connections}
+              onChange={(v) => updateField('openresty_worker_connections', v)}
+              type='number'
+            />
+            <FieldInput
+              label={t('fields.workerRlimitNofile')}
+              value={fields.openresty_worker_rlimit_nofile}
+              onChange={(v) => updateField('openresty_worker_rlimit_nofile', v)}
+              type='number'
+            />
+            <div className='flex flex-col gap-1.5'>
+              <Label>{t('fields.eventsUse')}</Label>
+              <Select
+                value={fields.openresty_events_use}
+                onValueChange={(v) => updateField('openresty_events_use', v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='epoll'>epoll</SelectItem>
+                  <SelectItem value='kqueue'>kqueue</SelectItem>
+                  <SelectItem value='poll'>poll</SelectItem>
+                  <SelectItem value='select'>select</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <ToggleRow
+              label={t('fields.multiAccept')}
+              checked={fields.openresty_events_multi_accept_enabled}
+              onChange={(v) =>
+                updateField('openresty_events_multi_accept_enabled', v)
+              }
+            />
+            <FieldInput
+              label={t('fields.keepaliveTimeout')}
+              value={fields.openresty_keepalive_timeout}
+              onChange={(v) => updateField('openresty_keepalive_timeout', v)}
+              type='number'
+            />
+            <FieldInput
+              label={t('fields.keepaliveRequests')}
+              value={fields.openresty_keepalive_requests}
+              onChange={(v) => updateField('openresty_keepalive_requests', v)}
+              type='number'
+            />
+            <FieldInput
+              label={t('fields.clientHeaderTimeout')}
+              value={fields.openresty_client_header_timeout}
+              onChange={(v) =>
+                updateField('openresty_client_header_timeout', v)
+              }
+              type='number'
+            />
+            <FieldInput
+              label={t('fields.clientBodyTimeout')}
+              value={fields.openresty_client_body_timeout}
+              onChange={(v) => updateField('openresty_client_body_timeout', v)}
+              type='number'
+            />
+            <FieldInput
+              label={t('fields.clientMaxBodySize')}
+              value={fields.openresty_client_max_body_size}
+              onChange={(v) => updateField('openresty_client_max_body_size', v)}
+            />
+            <FieldInput
+              label={t('fields.largeClientHeaderBuffers')}
+              value={fields.openresty_large_client_header_buffers}
+              onChange={(v) =>
+                updateField('openresty_large_client_header_buffers', v)
+              }
+            />
+            <FieldInput
+              label={t('fields.sendTimeout')}
+              value={fields.openresty_send_timeout}
+              onChange={(v) => updateField('openresty_send_timeout', v)}
+              type='number'
+            />
+            <FieldInput
+              label={t('fields.resolvers')}
+              value={fields.openresty_resolvers}
+              onChange={(v) => updateField('openresty_resolvers', v)}
+              placeholder='1.1.1.1 8.8.8.8'
+            />
+            <FieldInput
+              label={t('fields.defaultServerReturnStatus')}
+              value={fields.openresty_default_server_return_status}
+              onChange={(v) =>
+                updateField('openresty_default_server_return_status', v)
+              }
+              type='number'
+            />
+          </CardContent>
+        </Card>
+      </ResponsiveSection>
+      <ResponsiveSection title={t('proxyTitle')}>
+        <Card className='min-w-0 border-dashed shadow-none'>
+          <CardHeader className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+            <div>
+              <CardTitle className='text-base'>{t('proxyTitle')}</CardTitle>
+              <CardDescription>{t('proxyDesc')}</CardDescription>
+            </div>
+            <Button
+              size='sm'
+              disabled={savingSection === 'proxy'}
+              onClick={() =>
+                saveMutation.mutate({
+                  section: 'proxy',
+                  validator: (fields) => validateProxyFields(fields, t),
+                  entries: entriesFromKeys(fields, [
+                    'openresty_proxy_connect_timeout',
+                    'openresty_proxy_send_timeout',
+                    'openresty_proxy_read_timeout',
+                    'openresty_websocket_enabled',
+                    'openresty_http3_enabled',
+                    'openresty_proxy_request_buffering_enabled',
+                    'openresty_proxy_buffering_enabled',
+                    'openresty_proxy_buffers',
+                    'openresty_proxy_buffer_size',
+                    'openresty_proxy_busy_buffers_size',
+                  ]),
+                })
+              }
+            >
+              {savingSection === 'proxy' ? (
+                <Loader2 className='size-4 animate-spin mr-1' />
+              ) : (
+                <Save className='size-3.5 mr-1' />
+              )}
+              {tc('save')}
+            </Button>
+          </CardHeader>
+          <CardContent className='grid gap-4 md:grid-cols-2'>
+            <FieldInput
+              label={t('fields.proxyConnectTimeout')}
+              value={fields.openresty_proxy_connect_timeout}
+              onChange={(v) =>
+                updateField('openresty_proxy_connect_timeout', v)
+              }
+              type='number'
+            />
+            <FieldInput
+              label={t('fields.proxySendTimeout')}
+              value={fields.openresty_proxy_send_timeout}
+              onChange={(v) => updateField('openresty_proxy_send_timeout', v)}
+              type='number'
+            />
+            <FieldInput
+              label={t('fields.proxyReadTimeout')}
+              value={fields.openresty_proxy_read_timeout}
+              onChange={(v) => updateField('openresty_proxy_read_timeout', v)}
+              type='number'
+            />
+            <ToggleRow
+              label={t('fields.websocket')}
+              checked={fields.openresty_websocket_enabled}
+              onChange={(v) => updateField('openresty_websocket_enabled', v)}
+            />
+            <ToggleRow
+              label={t('fields.http3')}
+              checked={fields.openresty_http3_enabled}
+              onChange={(v) => updateField('openresty_http3_enabled', v)}
+            />
+            <ToggleRow
+              label={t('fields.proxyRequestBuffering')}
+              checked={fields.openresty_proxy_request_buffering_enabled}
+              onChange={(v) =>
+                updateField('openresty_proxy_request_buffering_enabled', v)
+              }
+            />
+            <ToggleRow
+              label={t('fields.proxyBuffering')}
+              checked={fields.openresty_proxy_buffering_enabled}
+              onChange={(v) =>
+                updateField('openresty_proxy_buffering_enabled', v)
+              }
+            />
+            <FieldInput
+              label={t('fields.proxyBuffers')}
+              value={fields.openresty_proxy_buffers}
+              onChange={(v) => updateField('openresty_proxy_buffers', v)}
+            />
+            <FieldInput
+              label={t('fields.proxyBufferSize')}
+              value={fields.openresty_proxy_buffer_size}
+              onChange={(v) => updateField('openresty_proxy_buffer_size', v)}
+            />
+            <FieldInput
+              label={t('fields.proxyBusyBuffersSize')}
+              value={fields.openresty_proxy_busy_buffers_size}
+              onChange={(v) =>
+                updateField('openresty_proxy_busy_buffers_size', v)
+              }
+            />
+          </CardContent>
+        </Card>
+      </ResponsiveSection>
       <div className='grid gap-6 xl:grid-cols-2'>
-        <Card className='border-dashed shadow-none'>
-          <CardHeader className='flex flex-row items-center justify-between'>
-            <div>
-              <CardTitle className='text-base'>{t('gzipTitle')}</CardTitle>
-              <CardDescription>{t('gzipDesc')}</CardDescription>
-            </div>
-            <Button
-              size='sm'
-              disabled={savingSection === 'gzip'}
-              onClick={() =>
-                saveMutation.mutate({
-                  section: 'gzip',
-                  validator: (fields) => validateGzipFields(fields, t),
-                  entries: entriesFromKeys(fields, [
-                    'openresty_gzip_enabled',
-                    'openresty_gzip_min_length',
-                    'openresty_gzip_comp_level',
-                  ]),
-                })
-              }
-            >
-              {tc('save')}
-            </Button>
-          </CardHeader>
-          <CardContent className='flex flex-col gap-4'>
-            <ToggleRow
-              label={t('fields.gzip')}
-              checked={fields.openresty_gzip_enabled}
-              onChange={(v) => updateField('openresty_gzip_enabled', v)}
-            />
-            <FieldInput
-              label={t('fields.gzipMinLength')}
-              value={fields.openresty_gzip_min_length}
-              onChange={(v) => updateField('openresty_gzip_min_length', v)}
-              type='number'
-            />
-            <FieldInput
-              label={t('fields.gzipCompLevel')}
-              value={fields.openresty_gzip_comp_level}
-              onChange={(v) => updateField('openresty_gzip_comp_level', v)}
-              type='number'
-            />
-          </CardContent>
-        </Card>
-
-        <Card className='border-dashed shadow-none'>
-          <CardHeader className='flex flex-row items-center justify-between'>
-            <div>
-              <CardTitle className='text-base'>{t('cacheTitle')}</CardTitle>
-              <CardDescription>{t('cacheDesc')}</CardDescription>
-            </div>
-            <Button
-              size='sm'
-              disabled={savingSection === 'cache'}
-              onClick={() =>
-                saveMutation.mutate({
-                  section: 'cache',
-                  validator: (fields) => validateCacheFields(fields, t),
-                  entries: entriesFromKeys(fields, [
-                    'openresty_cache_enabled',
-                    'openresty_cache_path',
-                    'openresty_cache_levels',
-                    'openresty_cache_inactive',
-                    'openresty_cache_max_size',
-                    'openresty_cache_key_template',
-                    'openresty_cache_lock_enabled',
-                    'openresty_cache_lock_timeout',
-                    'openresty_cache_use_stale',
-                  ]),
-                })
-              }
-            >
-              {tc('save')}
-            </Button>
-          </CardHeader>
-          <CardContent className='flex flex-col gap-4'>
-            <ToggleRow
-              label={t('fields.cacheEnabled')}
-              checked={fields.openresty_cache_enabled}
-              onChange={(v) => updateField('openresty_cache_enabled', v)}
-            />
-            <FieldInput
-              label={t('fields.proxyCachePath')}
-              value={fields.openresty_cache_path}
-              onChange={(v) => updateField('openresty_cache_path', v)}
-              disabled={!fields.openresty_cache_enabled}
-            />
-            <FieldInput
-              label={t('fields.cacheLevels')}
-              value={fields.openresty_cache_levels}
-              onChange={(v) => updateField('openresty_cache_levels', v)}
-              disabled={!fields.openresty_cache_enabled}
-            />
-            <FieldInput
-              label={t('fields.cacheInactive')}
-              value={fields.openresty_cache_inactive}
-              onChange={(v) => updateField('openresty_cache_inactive', v)}
-              disabled={!fields.openresty_cache_enabled}
-            />
-            <FieldInput
-              label={t('fields.cacheMaxSize')}
-              value={fields.openresty_cache_max_size}
-              onChange={(v) => updateField('openresty_cache_max_size', v)}
-              disabled={!fields.openresty_cache_enabled}
-            />
-            <FieldInput
-              label={t('fields.cacheKeyTemplate')}
-              value={fields.openresty_cache_key_template}
-              onChange={(v) => updateField('openresty_cache_key_template', v)}
-              disabled={!fields.openresty_cache_enabled}
-            />
-            <ToggleRow
-              label={t('fields.cacheLock')}
-              checked={fields.openresty_cache_lock_enabled}
-              onChange={(v) => updateField('openresty_cache_lock_enabled', v)}
-            />
-            <FieldInput
-              label={t('fields.cacheLockTimeout')}
-              value={fields.openresty_cache_lock_timeout}
-              onChange={(v) => updateField('openresty_cache_lock_timeout', v)}
-              disabled={!fields.openresty_cache_enabled}
-            />
-            <FieldInput
-              label={t('fields.cacheUseStale')}
-              value={fields.openresty_cache_use_stale}
-              onChange={(v) => updateField('openresty_cache_use_stale', v)}
-              disabled={!fields.openresty_cache_enabled}
-            />
-          </CardContent>
-        </Card>
+        <ResponsiveSection title={t('gzipTitle')}>
+          <Card className='min-w-0 border-dashed shadow-none'>
+            <CardHeader className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+              <div>
+                <CardTitle className='text-base'>{t('gzipTitle')}</CardTitle>
+                <CardDescription>{t('gzipDesc')}</CardDescription>
+              </div>
+              <Button
+                size='sm'
+                disabled={savingSection === 'gzip'}
+                onClick={() =>
+                  saveMutation.mutate({
+                    section: 'gzip',
+                    validator: (fields) => validateGzipFields(fields, t),
+                    entries: entriesFromKeys(fields, [
+                      'openresty_gzip_enabled',
+                      'openresty_gzip_min_length',
+                      'openresty_gzip_comp_level',
+                    ]),
+                  })
+                }
+              >
+                {tc('save')}
+              </Button>
+            </CardHeader>
+            <CardContent className='flex flex-col gap-4'>
+              <ToggleRow
+                label={t('fields.gzip')}
+                checked={fields.openresty_gzip_enabled}
+                onChange={(v) => updateField('openresty_gzip_enabled', v)}
+              />
+              <FieldInput
+                label={t('fields.gzipMinLength')}
+                value={fields.openresty_gzip_min_length}
+                onChange={(v) => updateField('openresty_gzip_min_length', v)}
+                type='number'
+              />
+              <FieldInput
+                label={t('fields.gzipCompLevel')}
+                value={fields.openresty_gzip_comp_level}
+                onChange={(v) => updateField('openresty_gzip_comp_level', v)}
+                type='number'
+              />
+            </CardContent>
+          </Card>
+        </ResponsiveSection>
+        <ResponsiveSection title={t('cacheTitle')}>
+          <Card className='min-w-0 border-dashed shadow-none'>
+            <CardHeader className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+              <div>
+                <CardTitle className='text-base'>{t('cacheTitle')}</CardTitle>
+                <CardDescription>{t('cacheDesc')}</CardDescription>
+              </div>
+              <Button
+                size='sm'
+                disabled={savingSection === 'cache'}
+                onClick={() =>
+                  saveMutation.mutate({
+                    section: 'cache',
+                    validator: (fields) => validateCacheFields(fields, t),
+                    entries: entriesFromKeys(fields, [
+                      'openresty_cache_enabled',
+                      'openresty_cache_path',
+                      'openresty_cache_levels',
+                      'openresty_cache_inactive',
+                      'openresty_cache_max_size',
+                      'openresty_cache_key_template',
+                      'openresty_cache_lock_enabled',
+                      'openresty_cache_lock_timeout',
+                      'openresty_cache_use_stale',
+                    ]),
+                  })
+                }
+              >
+                {tc('save')}
+              </Button>
+            </CardHeader>
+            <CardContent className='flex flex-col gap-4'>
+              <ToggleRow
+                label={t('fields.cacheEnabled')}
+                checked={fields.openresty_cache_enabled}
+                onChange={(v) => updateField('openresty_cache_enabled', v)}
+              />
+              <FieldInput
+                label={t('fields.proxyCachePath')}
+                value={fields.openresty_cache_path}
+                onChange={(v) => updateField('openresty_cache_path', v)}
+                disabled={!fields.openresty_cache_enabled}
+              />
+              <FieldInput
+                label={t('fields.cacheLevels')}
+                value={fields.openresty_cache_levels}
+                onChange={(v) => updateField('openresty_cache_levels', v)}
+                disabled={!fields.openresty_cache_enabled}
+              />
+              <FieldInput
+                label={t('fields.cacheInactive')}
+                value={fields.openresty_cache_inactive}
+                onChange={(v) => updateField('openresty_cache_inactive', v)}
+                disabled={!fields.openresty_cache_enabled}
+              />
+              <FieldInput
+                label={t('fields.cacheMaxSize')}
+                value={fields.openresty_cache_max_size}
+                onChange={(v) => updateField('openresty_cache_max_size', v)}
+                disabled={!fields.openresty_cache_enabled}
+              />
+              <FieldInput
+                label={t('fields.cacheKeyTemplate')}
+                value={fields.openresty_cache_key_template}
+                onChange={(v) => updateField('openresty_cache_key_template', v)}
+                disabled={!fields.openresty_cache_enabled}
+              />
+              <ToggleRow
+                label={t('fields.cacheLock')}
+                checked={fields.openresty_cache_lock_enabled}
+                onChange={(v) => updateField('openresty_cache_lock_enabled', v)}
+              />
+              <FieldInput
+                label={t('fields.cacheLockTimeout')}
+                value={fields.openresty_cache_lock_timeout}
+                onChange={(v) => updateField('openresty_cache_lock_timeout', v)}
+                disabled={!fields.openresty_cache_enabled}
+              />
+              <FieldInput
+                label={t('fields.cacheUseStale')}
+                value={fields.openresty_cache_use_stale}
+                onChange={(v) => updateField('openresty_cache_use_stale', v)}
+                disabled={!fields.openresty_cache_enabled}
+              />
+            </CardContent>
+          </Card>
+        </ResponsiveSection>
       </div>
     </div>
   );
@@ -585,7 +595,7 @@ function ToggleRow({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <div className='flex items-center justify-between rounded-lg border border-dashed px-3 py-2'>
+    <div className='flex min-w-0 items-center gap-3 justify-between rounded-lg border border-dashed px-3 py-2'>
       <Label className='text-xs'>{label}</Label>
       <Switch checked={checked} onCheckedChange={onChange} />
     </div>

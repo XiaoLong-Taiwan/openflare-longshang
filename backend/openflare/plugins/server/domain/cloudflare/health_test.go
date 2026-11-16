@@ -144,6 +144,73 @@ func TestHealthClaimOnlySucceedsOnce(t *testing.T) {
 	if err != nil || claimed {
 		t.Errorf("ClaimCFPointingMemberHealthSync(second) = %v, %v, want false, nil", claimed, err)
 	}
+	if err := repository.UpdateCFPointingMemberColumns(ctx, memberID, map[string]any{"sync_status": model.CFMemberSyncOK}); err != nil {
+		t.Fatal(err)
+	}
+	claimed, err = repository.ClaimCFPointingMemberHealthSync(ctx, memberID)
+	if err != nil || !claimed {
+		t.Errorf("ClaimCFPointingMemberHealthSync(recovered) = %v, %v, want true, nil", claimed, err)
+	}
+}
+
+func TestMemberDispatchFailurePreservesRetryableStatus(t *testing.T) {
+	ctx, memberID := setupCloudflareLogicDB(t)
+	if err := repository.UpdateCFPointingMemberColumns(ctx, memberID, map[string]any{"sync_status": model.CFMemberSyncPending}); err != nil {
+		t.Fatal(err)
+	}
+	wantErr := errors.New("queue unavailable")
+	calls := 0
+	t.Cleanup(SetDispatchTaskForTest(func(context.Context, string, []byte, string) (string, error) {
+		calls++
+		if calls == 1 {
+			return "", wantErr
+		}
+		return "retry-task", nil
+	}))
+	if _, err := DispatchMemberSync(ctx, memberID, "test"); !errors.Is(err, wantErr) {
+		t.Fatalf("DispatchMemberSync(queue failure) error = %v, want %v", err, wantErr)
+	}
+	if _, err := DispatchMemberSync(ctx, memberID, "test_retry"); err != nil {
+		t.Errorf("DispatchMemberSync(retry after queue failure) error = %v, want nil", err)
+	}
+	member, err := repository.GetCFPointingMemberByID(ctx, memberID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if member.SyncStatus != model.CFMemberSyncPending {
+		t.Errorf("member.SyncStatus after failed dispatch = %q, want unchanged %q", member.SyncStatus, model.CFMemberSyncPending)
+	}
+}
+
+func TestHealthClaimKeepsPendingStateForWorkerLifecycle(t *testing.T) {
+	ctx, memberID := setupCloudflareLogicDB(t)
+	if err := repository.UpdateCFPointingMemberColumns(ctx, memberID, map[string]any{"sync_status": model.CFMemberSyncOK}); err != nil {
+		t.Fatal(err)
+	}
+	claimed, err := repository.ClaimCFPointingMemberHealthSync(ctx, memberID)
+	if err != nil || !claimed {
+		t.Fatalf("ClaimCFPointingMemberHealthSync() = %v, %v, want true, nil", claimed, err)
+	}
+	member, err := repository.GetCFPointingMemberByID(ctx, memberID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if member.SyncStatus != model.CFMemberSyncPending {
+		t.Errorf("member.SyncStatus after health claim = %q, want %q", member.SyncStatus, model.CFMemberSyncPending)
+	}
+}
+
+func TestHealthClaimSkipsConcurrentWorkerStates(t *testing.T) {
+	ctx, memberID := setupCloudflareLogicDB(t)
+	for _, status := range []string{model.CFMemberSyncPending, model.CFMemberSyncing, model.CFMemberSyncError} {
+		if err := repository.UpdateCFPointingMemberColumns(ctx, memberID, map[string]any{"sync_status": status}); err != nil {
+			t.Fatal(err)
+		}
+		claimed, err := repository.ClaimCFPointingMemberHealthSync(ctx, memberID)
+		if err != nil || claimed {
+			t.Errorf("ClaimCFPointingMemberHealthSync(status=%q) = %v, %v, want false, nil", status, claimed, err)
+		}
+	}
 }
 
 func TestHealthDispatchFailureDoesNotBlockOtherMembers(t *testing.T) {

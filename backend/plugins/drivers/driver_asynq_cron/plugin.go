@@ -163,6 +163,11 @@ func (p *Plugin) Start(_ context.Context) error {
 
 			task := asynq.NewTask(sd.TaskType, payloadBytes)
 			asynqOpts := buildAsynqOptions(sd.Options)
+			if singleton, ok := sd.Options["singleton"].(bool); ok && singleton {
+				payloadBytes = nil
+				task = asynq.NewTask(sd.TaskType, payloadBytes)
+				asynqOpts = append(asynqOpts, asynq.TaskID("singleton:"+sd.TaskType))
+			}
 
 			if _, err := p.scheduler.Register(sd.Spec, task, asynqOpts...); err != nil {
 				return fmt.Errorf("driver_asynq_cron: register schedule %q for task %q failed: %w", sd.Spec, sd.TaskType, err)
@@ -249,6 +254,9 @@ func buildAsynqOptions(opts map[string]any) []asynq.Option {
 
 	if retention, ok := opts["retention"].(time.Duration); ok {
 		res = append(res, asynq.Retention(retention))
+	}
+	if singleton, ok := opts["singleton"].(bool); ok && singleton {
+		res = append(res, asynq.Unique(24*time.Hour))
 	}
 
 	return res

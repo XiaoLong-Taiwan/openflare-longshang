@@ -163,10 +163,10 @@ export default function WebsitesPage() {
                     <TableCell className='py-1 font-mono text-[11px] text-muted-foreground'>
                       {zone.domain_count ?? 0}
                     </TableCell>
-                    <TableCell className='py-3 text-sm tabular-nums'>
+                    <TableCell className='py-3 text-sm font-medium tabular-nums sm:text-base'>
                       {zone.ruleCount}
                     </TableCell>
-                    <TableCell className='py-3 text-sm tabular-nums'>
+                    <TableCell className='py-3 text-sm font-medium tabular-nums sm:text-base'>
                       {zone.certificateCount}
                     </TableCell>
                     <TableCell className='py-1 font-mono text-[10px] whitespace-nowrap text-muted-foreground'>

@@ -206,7 +206,7 @@ export function FileStats() {
     <div className='space-y-6'>
       {/* 四个指标卡片 */}
       <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
-        <Card className='bg-card/25 border-border/40 hover:shadow-md transition-shadow'>
+        <Card className='border-border/60 shadow-none'>
           <CardHeader className='flex flex-row items-center justify-between pb-2 space-y-0'>
             <CardTitle className='text-xs font-semibold tracking-tight text-muted-foreground'>
               {t('stats.totalFiles')}
@@ -226,7 +226,7 @@ export function FileStats() {
           </CardContent>
         </Card>
 
-        <Card className='bg-card/25 border-border/40 hover:shadow-md transition-shadow'>
+        <Card className='border-border/60 shadow-none'>
           <CardHeader className='flex flex-row items-center justify-between pb-2 space-y-0'>
             <CardTitle className='text-xs font-semibold tracking-tight text-muted-foreground'>
               {t('stats.totalSize')}
@@ -243,7 +243,7 @@ export function FileStats() {
           </CardContent>
         </Card>
 
-        <Card className='bg-card/25 border-border/40 hover:shadow-md transition-shadow'>
+        <Card className='border-border/60 shadow-none'>
           <CardHeader className='flex flex-row items-center justify-between pb-2 space-y-0'>
             <CardTitle className='text-xs font-semibold tracking-tight text-muted-foreground'>
               {t('stats.weeklyNewFiles')}
@@ -263,7 +263,7 @@ export function FileStats() {
           </CardContent>
         </Card>
 
-        <Card className='bg-card/25 border-border/40 hover:shadow-md transition-shadow'>
+        <Card className='border-border/60 shadow-none'>
           <CardHeader className='flex flex-row items-center justify-between pb-2 space-y-0'>
             <CardTitle className='text-xs font-semibold tracking-tight text-muted-foreground'>
               {t('stats.weeklyNewSize')}
@@ -282,8 +282,8 @@ export function FileStats() {
       </div>
 
       {/* 7 天新增趋势折线图 */}
-      <Card className='bg-card/20 border-border/40'>
-        <CardHeader className='flex flex-row items-center justify-between'>
+      <Card className='border-border/60 shadow-none'>
+        <CardHeader className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
           <div>
             <CardTitle className='text-sm font-bold'>
               {t('stats.trendTitle')}
@@ -427,9 +427,9 @@ export function FileStats() {
       </Card>
 
       {/* 两个饼图分布 */}
-      <div className='grid gap-6 md:grid-cols-2'>
+      <div className='grid gap-4 lg:grid-cols-2'>
         {/* 饼图 1: 格式数量分布 */}
-        <Card className='bg-card/20 border-border/40 flex flex-col'>
+        <Card className='flex flex-col border-border/60 shadow-none'>
           <CardHeader>
             <CardTitle className='text-sm font-bold'>
               {t('stats.countDistTitle')}
@@ -521,7 +521,7 @@ export function FileStats() {
         </Card>
 
         {/* 饼图 2: 格式容量分布 */}
-        <Card className='bg-card/20 border-border/40 flex flex-col'>
+        <Card className='flex flex-col border-border/60 shadow-none'>
           <CardHeader>
             <CardTitle className='text-sm font-bold'>
               {t('stats.sizeDistTitle')}

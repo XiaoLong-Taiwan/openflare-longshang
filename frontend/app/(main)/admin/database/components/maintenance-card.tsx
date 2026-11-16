@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { AlertTriangle, Loader2, Wrench } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
@@ -32,7 +32,7 @@ export function MaintenanceCard() {
   const [preview, setPreview] = useState<DatabaseMaintenancePreview | null>(
     null,
   );
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
   const [selection, setSelection] = useState({
     cleanup_task_executions: true,
@@ -53,10 +53,6 @@ export function MaintenanceCard() {
     }
   }, [t]);
 
-  useEffect(() => {
-    void loadPreview();
-  }, [loadPreview]);
-
   const runMaintenance = async () => {
     setRunning(true);
     try {
@@ -74,7 +70,7 @@ export function MaintenanceCard() {
   };
 
   return (
-    <Card className='border-border/40 bg-card/50 backdrop-blur-sm shadow-sm'>
+    <Card className='min-w-0 gap-4'>
       <CardHeader className='pb-3 border-b border-dashed'>
         <CardTitle className='flex items-center gap-2 text-sm font-semibold'>
           <Wrench className='size-4 text-primary' />
@@ -85,23 +81,63 @@ export function MaintenanceCard() {
         </CardDescription>
       </CardHeader>
       <CardContent className='flex flex-col gap-4 pt-4'>
+        <Button
+          variant='outline'
+          className='h-auto min-h-9 self-start whitespace-normal'
+          disabled={loading || running}
+          onClick={() => void loadPreview()}
+        >
+          {t('maintenance.loadPreview')}
+        </Button>
         {loading ? (
           <p className='text-sm text-muted-foreground'>
             {t('maintenance.loading')}
           </p>
         ) : preview ? (
           <div className='flex flex-col gap-3 text-sm'>
-            <p>{t('maintenance.databaseType', { type: preview.database_type })}</p>
+            <p>
+              {t('maintenance.databaseType', { type: preview.database_type })}
+            </p>
             <label className='flex items-start gap-2'>
-              <Checkbox checked={selection.cleanup_task_executions} onCheckedChange={(checked) => setSelection((prev) => ({ ...prev, cleanup_task_executions: checked === true }))} />
-              <span>{t('maintenance.expiredTasks', { count: preview.expired_task_executions })}</span>
+              <Checkbox
+                checked={selection.cleanup_task_executions}
+                onCheckedChange={(checked) =>
+                  setSelection((prev) => ({
+                    ...prev,
+                    cleanup_task_executions: checked === true,
+                  }))
+                }
+              />
+              <span>
+                {t('maintenance.expiredTasks', {
+                  count: preview.expired_task_executions,
+                })}
+              </span>
             </label>
             <label className='flex items-start gap-2'>
-              <Checkbox checked={selection.clear_disk_cache} onCheckedChange={(checked) => setSelection((prev) => ({ ...prev, clear_disk_cache: checked === true }))} />
-              <span>{t('maintenance.cacheItems', { count: preview.cache_keys })}</span>
+              <Checkbox
+                checked={selection.clear_disk_cache}
+                onCheckedChange={(checked) =>
+                  setSelection((prev) => ({
+                    ...prev,
+                    clear_disk_cache: checked === true,
+                  }))
+                }
+              />
+              <span>
+                {t('maintenance.cacheItems', { count: preview.cache_keys })}
+              </span>
             </label>
             <label className='flex items-start gap-2'>
-              <Checkbox checked={selection.optimize_database} onCheckedChange={(checked) => setSelection((prev) => ({ ...prev, optimize_database: checked === true }))} />
+              <Checkbox
+                checked={selection.optimize_database}
+                onCheckedChange={(checked) =>
+                  setSelection((prev) => ({
+                    ...prev,
+                    optimize_database: checked === true,
+                  }))
+                }
+              />
               <span>{t('maintenance.optimizeDatabase')}</span>
             </label>
           </div>
@@ -110,8 +146,13 @@ export function MaintenanceCard() {
           <AlertDialogTrigger asChild>
             <Button
               variant='destructive'
-              className='self-start'
-              disabled={loading || running}
+              className='h-auto min-h-9 self-start whitespace-normal'
+              disabled={
+                !preview ||
+                loading ||
+                running ||
+                !Object.values(selection).some(Boolean)
+              }
             >
               <AlertTriangle data-icon='inline-start' />
               {t('maintenance.run')}
@@ -123,11 +164,19 @@ export function MaintenanceCard() {
                 {t('maintenance.confirmTitle')}
               </AlertDialogTitle>
               <AlertDialogDescription>
-                <span className='block'>{t('maintenance.confirmDescription')}</span>
+                <span className='block'>
+                  {t('maintenance.confirmDescription')}
+                </span>
                 <span className='mt-2 block'>
-                  {selection.cleanup_task_executions ? `${t('maintenance.expiredTasks', { count: preview?.expired_task_executions ?? 0 })}; ` : ''}
-                  {selection.clear_disk_cache ? `${t('maintenance.cacheItems', { count: preview?.cache_keys ?? 0 })}; ` : ''}
-                  {selection.optimize_database ? t('maintenance.optimizeDatabase') : ''}
+                  {selection.cleanup_task_executions
+                    ? `${t('maintenance.expiredTasks', { count: preview?.expired_task_executions ?? 0 })}; `
+                    : ''}
+                  {selection.clear_disk_cache
+                    ? `${t('maintenance.cacheItems', { count: preview?.cache_keys ?? 0 })}; `
+                    : ''}
+                  {selection.optimize_database
+                    ? t('maintenance.optimizeDatabase')
+                    : ''}
                 </span>
               </AlertDialogDescription>
             </AlertDialogHeader>

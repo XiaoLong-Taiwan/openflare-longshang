@@ -29,20 +29,39 @@ describe('database maintenance selection', () => {
         <MaintenanceCard />
       </NextIntlClientProvider>,
     );
-    fireEvent.click(await screen.findByRole('checkbox', { name: 'Expired task records: 7' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Disk cache: 3 items' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Preview and run maintenance' }));
+    expect(services.dbManage.getMaintenancePreview).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('button', { name: 'Preview and run maintenance' }),
+    ).toBeDisabled();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Load / refresh maintenance preview',
+      }),
+    );
+    fireEvent.click(
+      await screen.findByRole('checkbox', { name: 'Expired task records: 7' }),
+    );
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Disk cache: 3 items' }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Preview and run maintenance' }),
+    );
     const dialog = screen.getByRole('alertdialog');
     expect(dialog).not.toHaveTextContent('deletes task records');
     expect(dialog).not.toHaveTextContent('clears the disk cache');
     expect(dialog).not.toHaveTextContent('Expired task records: 7');
     expect(dialog).not.toHaveTextContent('Disk cache: 3 items');
-    expect(dialog).toHaveTextContent('Reclaim database space and maintain indexes');
+    expect(dialog).toHaveTextContent(
+      'Reclaim database space and maintain indexes',
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Confirm and run' }));
-    await waitFor(() => expect(services.dbManage.runMaintenance).toHaveBeenCalledWith({
-      cleanup_task_executions: false,
-      clear_disk_cache: false,
-      optimize_database: true,
-    }));
+    await waitFor(() =>
+      expect(services.dbManage.runMaintenance).toHaveBeenCalledWith({
+        cleanup_task_executions: false,
+        clear_disk_cache: false,
+        optimize_database: true,
+      }),
+    );
   });
 });

@@ -34,6 +34,7 @@ type TaskMetaDTO struct {
 	Timeout      time.Duration  `json:"timeout,omitempty"`
 	Queue        string         `json:"queue"`
 	Retryable    bool           `json:"retryable"`
+	Singleton    bool           `json:"singleton,omitempty"`
 	Schedule     string         `json:"schedule,omitempty"`
 }
 

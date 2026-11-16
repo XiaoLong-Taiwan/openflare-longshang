@@ -229,15 +229,15 @@ export default function WafIPGroupsPage() {
   const viewGroup = viewGroupQuery.data ?? viewingGroup;
 
   return (
-    <div className='py-6 px-1 space-y-6'>
-      <div className='flex items-center justify-between gap-3'>
-        <div className='flex items-center gap-2'>
-          <Network className='size-5 text-primary' />
+    <div className='flex w-full flex-col gap-6 py-6 px-1'>
+      <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+        <div className='flex min-w-0 items-center gap-2'>
+          <Network className='size-5 shrink-0 text-primary' />
           <h1 className='text-2xl font-semibold tracking-tight'>
             {t('title')}
           </h1>
         </div>
-        <div className='flex items-center gap-2'>
+        <div className='flex shrink-0 items-center gap-2'>
           <Button
             variant='secondary'
             size='sm'
@@ -252,25 +252,25 @@ export default function WafIPGroupsPage() {
 
       <Card className='border-dashed shadow-none'>
         <CardHeader className='pb-3'>
-          <div className='flex items-center justify-between gap-3'>
-            <div>
+          <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+            <div className='min-w-0'>
               <CardTitle className='text-base font-semibold'>
                 {t('listTitle')}
               </CardTitle>
               <CardDescription>{t('listDesc')}</CardDescription>
             </div>
-            <div className='flex items-center gap-2'>
+            <div className='flex w-full min-w-0 items-center gap-2 sm:w-auto'>
               <Input
                 value={keyword}
                 onChange={(event) => setKeyword(event.target.value)}
                 placeholder={t('searchPlaceholder')}
                 aria-label={t('searchLabel')}
-                className='w-52'
+                className='min-w-0 flex-1 sm:w-52 sm:flex-none'
               />
               <Button
                 variant='outline'
                 size='sm'
-                className='h-7 text-xs'
+                className='h-7 shrink-0 text-xs'
                 onClick={handleRefresh}
                 disabled={groupsQuery.isFetching}
               >
@@ -301,9 +301,7 @@ export default function WafIPGroupsPage() {
           ) : groups.length === 0 ? (
             <EmptyStateWithBorder
               icon={Network}
-              description={
-                debouncedKeyword ? t('noSearchResults') : t('empty')
-              }
+              description={debouncedKeyword ? t('noSearchResults') : t('empty')}
             />
           ) : (
             <IPGroupsTable

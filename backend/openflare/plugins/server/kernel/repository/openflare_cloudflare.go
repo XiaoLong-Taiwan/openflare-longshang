@@ -219,6 +219,12 @@ func UpdateCFPointingMemberColumns(ctx context.Context, id uint, changes map[str
 	return DB(ctx).Model(&model.CFPointingMember{}).Where("id = ?", id).Updates(changes).Error
 }
 
+func CompleteCFPointingMemberSync(ctx context.Context, id uint, changes map[string]any) (bool, error) {
+	result := DB(ctx).Model(&model.CFPointingMember{}).
+		Where("id = ? AND sync_status = ?", id, model.CFMemberSyncing).Updates(changes)
+	return result.RowsAffected > 0, result.Error
+}
+
 func ClaimCFPointingMemberHealthSync(ctx context.Context, id uint) (bool, error) {
 	result := DB(ctx).Model(&model.CFPointingMember{}).
 		Where("id = ? AND sync_status = ?", id, model.CFMemberSyncOK).

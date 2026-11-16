@@ -8,6 +8,7 @@ import (
 	"Wavelet/pkg/idgen"
 	"Wavelet/pkg/logger"
 	"Wavelet/pkg/util"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -161,11 +162,18 @@ func DispatchTask(ctx context.Context, taskType string, payload []byte, triggere
 	if meta == nil {
 		return "", fmt.Errorf(errUnknownTaskType, taskType)
 	}
+	if meta.Singleton {
+		if len(bytes.TrimSpace(payload)) > 0 && string(bytes.TrimSpace(payload)) != "{}" && string(bytes.TrimSpace(payload)) != "null" {
+			return "", errors.New("singleton tasks require an empty payload")
+		}
+		payload = nil
+	}
 
-	// 生成唯一的 TaskID
 	taskID := generateTaskID(taskType, triggeredBy)
+	if meta.Singleton {
+		taskID = singletonTaskID(meta.AsynqTask)
+	}
 
-	// 创建任务执行记录
 	execution := &TaskExecution{
 		TaskID:      taskID,
 		TaskType:    meta.AsynqTask,
@@ -178,12 +186,12 @@ func DispatchTask(ctx context.Context, taskType string, payload []byte, triggere
 		TriggeredBy: triggeredBy,
 	}
 
-	if err := createTaskExecution(ctx, execution); err != nil {
-		return "", fmt.Errorf(errCreateTaskExecutionFailed, err)
-	}
-
 	// 入队 Asynq
-	taskInfo := asynq.NewTask(meta.AsynqTask, injectTaskTraceContext(ctx, payload))
+	queuePayload := injectTaskTraceContext(ctx, payload)
+	if meta.Singleton {
+		queuePayload = nil
+	}
+	taskInfo := asynq.NewTask(meta.AsynqTask, queuePayload)
 	options := []asynq.Option{
 		asynq.TaskID(taskID),
 		asynq.MaxRetry(meta.MaxRetry),
@@ -192,15 +200,47 @@ func DispatchTask(ctx context.Context, taskType string, payload []byte, triggere
 	if meta.Timeout > 0 {
 		options = append(options, asynq.Timeout(meta.Timeout))
 	}
+	if meta.Singleton {
+		options = append(options, asynq.Unique(24*time.Hour))
+	}
 	if _, err := GetAsynqClient().Enqueue(taskInfo, options...); err != nil {
-		// 入队失败，更新执行记录状态
-		execution.Status = TaskExecutionStatusFailed
-		execution.ErrorMessage = fmt.Sprintf("入队失败: %v", err)
-		now := time.Now()
-		execution.StartedAt = &now
-		execution.FinishedAt = &now
-		_ = updateTaskExecution(ctx, execution)
-		return "", fmt.Errorf(errTaskEnqueueFailed, err)
+		if errors.Is(err, asynq.ErrDuplicateTask) {
+			return "", err
+		}
+		if !meta.Singleton || !errors.Is(err, asynq.ErrTaskIDConflict) {
+			return "", fmt.Errorf(errTaskEnqueueFailed, err)
+		}
+		info, infoErr := GetAsynqInspector().GetTaskInfo(meta.Queue, taskID)
+		if infoErr == nil && info.State != asynq.TaskStateCompleted && info.State != asynq.TaskStateArchived {
+			return "", asynq.ErrDuplicateTask
+		}
+		if infoErr != nil && !errors.Is(infoErr, asynq.ErrTaskNotFound) {
+			return "", infoErr
+		}
+		if infoErr == nil {
+			if info.State == asynq.TaskStateCompleted || info.State == asynq.TaskStateArchived {
+				if deleteErr := GetAsynqInspector().DeleteTask(meta.Queue, taskID); deleteErr != nil {
+					return "", errors.Join(err, deleteErr)
+				}
+			} else {
+				return "", asynq.ErrDuplicateTask
+			}
+		}
+		if _, enqueueErr := GetAsynqClient().Enqueue(taskInfo, options...); enqueueErr != nil {
+			return "", fmt.Errorf(errTaskEnqueueFailed, enqueueErr)
+		}
+	}
+
+	if meta.Singleton {
+		if err := resetSingletonTaskExecution(ctx, execution); err != nil {
+			_ = GetAsynqInspector().DeleteTask(meta.Queue, taskID)
+			if errors.Is(err, errSingletonExecutionActive) {
+				return "", asynq.ErrDuplicateTask
+			}
+			return "", fmt.Errorf(errCreateTaskExecutionFailed, err)
+		}
+	} else if err := createTaskExecution(ctx, execution); err != nil {
+		return "", fmt.Errorf(errCreateTaskExecutionFailed, err)
 	}
 
 	if err := appendTaskExecutionLog(ctx, taskID, fmt.Sprintf("[系统] 任务已成功入队，等待调度执行 (队列: %s, 最大重试次数: %d)", meta.Queue, meta.MaxRetry)); err != nil {
@@ -227,6 +267,10 @@ func RetryTask(ctx context.Context, id uint64) (string, error) {
 
 	// 生成新的 TaskID
 	newTaskID := generateRetryTaskID(execution.TaskID, execution.RetryCount+1)
+	meta := GetTaskMeta(execution.TaskType)
+	if meta != nil && meta.Singleton {
+		newTaskID = singletonTaskID(meta.AsynqTask)
+	}
 
 	// 创建新的执行记录
 	newExecution := &TaskExecution{
@@ -240,12 +284,10 @@ func RetryTask(ctx context.Context, id uint64) (string, error) {
 		Payload:     execution.Payload,
 		TriggeredBy: contracts.TaskTriggerRetry,
 	}
-
-	if err := createTaskExecution(ctx, newExecution); err != nil {
-		return "", fmt.Errorf(errCreateRetryExecutionFailed, err)
+	if meta != nil && meta.Singleton {
+		newExecution.RetryCount = execution.RetryCount + 1
 	}
 
-	meta := GetTaskMeta(execution.TaskType)
 	queueName := QueueDefault
 	if meta != nil {
 		queueName = meta.Queue
@@ -261,16 +303,62 @@ func RetryTask(ctx context.Context, id uint64) (string, error) {
 	if meta != nil && meta.Timeout > 0 {
 		options = append(options, asynq.Timeout(meta.Timeout))
 	}
-	if _, err := GetAsynqClient().Enqueue(taskInfo, options...); err != nil {
-		newExecution.Status = TaskExecutionStatusFailed
-		newExecution.ErrorMessage = fmt.Sprintf("重试入队失败: %v", err)
-		now := time.Now()
-		newExecution.StartedAt = &now
-		newExecution.FinishedAt = &now
-		_ = updateTaskExecution(ctx, newExecution)
-		return "", fmt.Errorf(errRetryTaskEnqueueFailed, err)
+	if meta != nil && meta.Singleton {
+		taskInfo = asynq.NewTask(execution.TaskType, nil)
+		options = append(options, asynq.TaskID(newTaskID))
 	}
-
+	if _, err := GetAsynqClient().Enqueue(taskInfo, options...); err != nil {
+		if errors.Is(err, asynq.ErrDuplicateTask) {
+			if meta == nil || !meta.Singleton {
+				return "", err
+			}
+			info, infoErr := GetAsynqInspector().GetTaskInfo(queueName, newTaskID)
+			if infoErr != nil {
+				if !errors.Is(infoErr, asynq.ErrTaskNotFound) {
+					return "", infoErr
+				}
+			} else if info.State != asynq.TaskStateCompleted && info.State != asynq.TaskStateArchived {
+				return "", err
+			} else if deleteErr := GetAsynqInspector().DeleteTask(queueName, newTaskID); deleteErr != nil {
+				return "", errors.Join(err, deleteErr)
+			}
+			options = options[:len(options)-1]
+			if _, enqueueErr := GetAsynqClient().Enqueue(taskInfo, options...); enqueueErr != nil {
+				return "", fmt.Errorf(errRetryTaskEnqueueFailed, enqueueErr)
+			}
+		}
+		if meta != nil && meta.Singleton && errors.Is(err, asynq.ErrTaskIDConflict) {
+			info, infoErr := GetAsynqInspector().GetTaskInfo(queueName, newTaskID)
+			if infoErr == nil && info.State != asynq.TaskStateCompleted && info.State != asynq.TaskStateArchived {
+				return "", asynq.ErrDuplicateTask
+			}
+			if infoErr != nil && !errors.Is(infoErr, asynq.ErrTaskNotFound) {
+				return "", infoErr
+			}
+			if infoErr == nil {
+				if deleteErr := GetAsynqInspector().DeleteTask(queueName, newTaskID); deleteErr != nil {
+					return "", errors.Join(err, deleteErr)
+				}
+				options = options[:len(options)-1]
+			}
+			if _, enqueueErr := GetAsynqClient().Enqueue(taskInfo, options...); enqueueErr != nil {
+				return "", fmt.Errorf(errRetryTaskEnqueueFailed, enqueueErr)
+			}
+		} else {
+			return "", fmt.Errorf(errRetryTaskEnqueueFailed, err)
+		}
+	}
+	if meta != nil && meta.Singleton {
+		if existing, lookupErr := getTaskExecutionByTaskID(ctx, newTaskID); lookupErr == nil && existing.ID == id {
+			return newTaskID, nil
+		}
+		if err := resetSingletonTaskExecution(ctx, newExecution); err != nil {
+			_ = GetAsynqInspector().DeleteTask(queueName, newTaskID)
+			return "", fmt.Errorf(errCreateRetryExecutionFailed, err)
+		}
+	} else if err := createTaskExecution(ctx, newExecution); err != nil {
+		return "", fmt.Errorf(errCreateRetryExecutionFailed, err)
+	}
 	if err := appendTaskExecutionLog(ctx, newTaskID, fmt.Sprintf("[系统] 手动触发重试，已重新创建任务并入队 (原任务ID: %s, 重试次数: %d/%d)", execution.TaskID, execution.RetryCount+1, execution.MaxRetry)); err != nil {
 		logger.ErrorF(ctx, "[TaskExecutor] 追加重试日志失败 taskID=%s: %v", newTaskID, err)
 	}
@@ -350,6 +438,9 @@ func ProcessTask(ctx context.Context, t *asynq.Task) error {
 		execution, err = getOrCreateTaskExecution(ctx, taskID, t, taskPayload, now)
 		if err == nil {
 			updateExecutionOnStart(ctx, execution, now)
+		} else {
+			logger.ErrorF(ctx, "[TaskExecutor] 載入任務執行記錄失敗 taskID=%s: %v", taskID, err)
+			return err
 		}
 	}
 
@@ -564,6 +655,10 @@ func handleSuccessfulTask(ctx context.Context, execution *TaskExecution, t *asyn
 // generateTaskID 生成任务 ID
 func generateTaskID(taskType, triggeredBy string) string {
 	return fmt.Sprintf("%s_%s_%d", triggeredBy, taskType, idgen.NextUint64ID())
+}
+
+func singletonTaskID(taskType string) string {
+	return "singleton:" + taskType
 }
 
 // generateRetryTaskID 生成重试任务 ID

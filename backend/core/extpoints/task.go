@@ -21,6 +21,7 @@ type TaskDefinition struct {
 	Category     string
 	SupportsTime bool
 	Retryable    bool
+	Singleton    bool
 	Queue        string
 	Params       []contracts.TaskParamDTO
 	Handler      any
@@ -95,6 +96,13 @@ func WithTaskRetryable(retryable bool) TaskOption {
 	}
 }
 
+// WithTaskSingleton limits a task to one pending or running queue entry.
+func WithTaskSingleton(singleton bool) TaskOption {
+	return func(td *TaskDefinition) {
+		td.Singleton = singleton
+	}
+}
+
 // WithTaskParams sets the task parameter definitions.
 func WithTaskParams(params ...contracts.TaskParamDTO) TaskOption {
 	return func(td *TaskDefinition) {
@@ -125,6 +133,7 @@ func WithTaskMeta(meta contracts.TaskMetaDTO) TaskOption {
 			td.Queue = meta.Queue
 		}
 		td.Retryable = meta.Retryable
+		td.Singleton = meta.Singleton
 		if meta.MaxRetry > 0 {
 			td.Retry = meta.MaxRetry
 		}
@@ -206,6 +215,7 @@ func (td TaskDefinition) ToDTO() contracts.TaskMetaDTO {
 		Timeout:      td.Timeout,
 		Queue:        queue,
 		Retryable:    retryable,
+		Singleton:    td.Singleton,
 	}
 }
 

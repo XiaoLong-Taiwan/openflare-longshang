@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 )
 
 const (
@@ -19,6 +20,8 @@ const (
 	taskExecutionLogExpiration     = 24 * time.Hour
 	taskExecutionLogMaxLines       = 1000
 )
+
+var errSingletonExecutionActive = errors.New("singleton execution is already active")
 
 func taskExecutionLogRedisKey(taskID string) string {
 	return taskExecutionLogRedisKeyPrefix + taskID
@@ -29,6 +32,29 @@ func createTaskExecution(ctx context.Context, execution *TaskExecution) error {
 		execution.ID = idgen.NextUint64ID()
 	}
 	return getDB(ctx).Create(execution).Error
+}
+
+func resetSingletonTaskExecution(ctx context.Context, execution *TaskExecution) error {
+	var existing TaskExecution
+	err := getDB(ctx).Where("task_id = ?", execution.TaskID).First(&existing).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return createTaskExecution(ctx, execution)
+	}
+	if err != nil {
+		return err
+	}
+	if existing.Status == TaskExecutionStatusPending || existing.Status == TaskExecutionStatusRunning {
+		return errSingletonExecutionActive
+	}
+	execution.ID = existing.ID
+	execution.CreatedAt = existing.CreatedAt
+	if existing.Status == TaskExecutionStatusFailed && execution.RetryCount == 0 {
+		execution.RetryCount = existing.RetryCount
+	}
+	if existing.Log != "" {
+		execution.Log = existing.Log + "\n"
+	}
+	return updateTaskExecution(ctx, execution)
 }
 
 func updateTaskExecution(ctx context.Context, execution *TaskExecution) error {

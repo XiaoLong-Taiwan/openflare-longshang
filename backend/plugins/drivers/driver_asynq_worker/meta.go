@@ -26,17 +26,18 @@ type TaskParam struct {
 //
 // TaskMeta 保留完整名称以避免与通用 Meta 混淆
 type TaskMeta struct {
-	Type         string      `json:"type"`
-	AsynqTask    string      `json:"asynq_task"`
-	Name         string      `json:"name"`
-	Description  string      `json:"description"`
-	Category     string      `json:"category,omitempty"`
-	SupportsTime bool        `json:"supports_time"`
-	MaxRetry     int         `json:"max_retry"`
+	Type         string        `json:"type"`
+	AsynqTask    string        `json:"asynq_task"`
+	Name         string        `json:"name"`
+	Description  string        `json:"description"`
+	Category     string        `json:"category,omitempty"`
+	SupportsTime bool          `json:"supports_time"`
+	MaxRetry     int           `json:"max_retry"`
 	Timeout      time.Duration `json:"timeout,omitempty"`
-	Queue        string      `json:"queue"`
-	Retryable    bool        `json:"retryable"` // 是否支持手动重试
-	Params       []TaskParam `json:"params,omitempty"`
+	Queue        string        `json:"queue"`
+	Retryable    bool          `json:"retryable"` // 是否支持手动重试
+	Singleton    bool          `json:"singleton,omitempty"`
+	Params       []TaskParam   `json:"params,omitempty"`
 }
 
 var (
@@ -129,6 +130,7 @@ func toInternalTaskMeta(dto contracts.TaskMetaDTO) TaskMeta {
 		Timeout:      dto.Timeout,
 		Queue:        dto.Queue,
 		Retryable:    dto.Retryable,
+		Singleton:    dto.Singleton,
 		Params:       params,
 	}
 }

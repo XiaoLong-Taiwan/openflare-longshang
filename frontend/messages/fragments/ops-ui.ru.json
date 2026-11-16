@@ -4,6 +4,7 @@
   },
   "nodes": {
     "selectedCount": "Выбрано узлов: {count}",
-    "moreActions": "Другие действия"
+    "moreActions": "Другие действия",
+    "trendDetails": "Обзор трендов и подробные графики"
   }
 }

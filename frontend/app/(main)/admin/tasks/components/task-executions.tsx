@@ -212,7 +212,7 @@ export function TaskExecutionsManager() {
               handleStatusChange(value as TaskExecutionStatus | 'all')
             }
           >
-            <SelectTrigger size='sm' className='w-[120px]'>
+            <SelectTrigger size='sm' className='w-full sm:w-[120px]'>
               <SelectValue placeholder={t('colStatus')} />
             </SelectTrigger>
             <SelectContent>
@@ -227,7 +227,7 @@ export function TaskExecutionsManager() {
             value={executionTaskType}
             onValueChange={handleTaskTypeChange}
           >
-            <SelectTrigger size='sm' className='w-[180px]'>
+            <SelectTrigger size='sm' className='w-full sm:w-[180px]'>
               <SelectValue placeholder={t('taskTypeFilter')} />
             </SelectTrigger>
             <SelectContent>
@@ -272,72 +272,130 @@ export function TaskExecutionsManager() {
         <EmptyStateWithBorder icon={Activity} description={t('noExecutions')} />
       ) : (
         <div className='rounded-lg border bg-card'>
-          <Table className='w-full table-fixed md:table-auto md:min-w-[900px]'>
-            <TableHeader>
-              <TableRow className='hover:bg-transparent'>
-                <TableHead className='md:w-[180px]'>{t('colTask')}</TableHead>
-                <TableHead className='w-[100px]'>{t('colStatus')}</TableHead>
-                <TableHead className='hidden md:table-cell w-[110px]'>{t('colTrigger')}</TableHead>
-                <TableHead className='hidden md:table-cell w-[120px]'>{t('colRetry')}</TableHead>
-                <TableHead className='hidden md:table-cell w-[120px]'>{t('colDuration')}</TableHead>
-                <TableHead className='hidden md:table-cell min-w-[220px]'>
-                  {t('colResult')}
-                </TableHead>
-                <TableHead className='hidden md:table-cell w-[170px]'>{t('colCreatedAt')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {executions.map((execution) => (
-                <TableRow
-                  key={execution.id}
-                  className='cursor-pointer'
-                  onClick={() => openExecutionDetail(execution)}
-                >
-                  <TableCell className='whitespace-normal break-all'>
-                    <div className='flex flex-col gap-1'>
-                      <Button variant='link' className='h-auto justify-start whitespace-normal break-all p-0 text-left' onClick={() => openExecutionDetail(execution)}>
-                        {execution.task_name || execution.task_type}
-                      </Button>
-                      <span className='font-mono text-[11px] text-muted-foreground'>
-                        {execution.task_id}
-                      </span>
-                      <div className='flex flex-col gap-1 text-xs text-muted-foreground md:hidden'>
-                        <span>{t('colCreatedAt')}: {formatDateTime(execution.created_at)}</span>
-                        <span>{t('colDuration')}: {formatDuration(execution.duration)} · {t('colRetry')}: {execution.retry_count}/{execution.max_retry}</span>
-                        <span className='line-clamp-2'>{execution.error_message || execution.result || '-'}</span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={statusVariant(execution.status)}>
-                      {mappedLabel(t, STATUS_LABELS_KEYS, execution.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className='hidden md:table-cell'>
-                    <Badge variant='outline'>
-                      {mappedLabel(
-                        t,
-                        TRIGGER_LABELS_KEYS,
-                        execution.triggered_by,
-                      )}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className='hidden md:table-cell font-mono text-xs text-muted-foreground'>
-                    {execution.retry_count}/{execution.max_retry}
-                  </TableCell>
-                  <TableCell className='hidden md:table-cell font-mono text-xs text-muted-foreground'>
-                    {formatDuration(execution.duration)}
-                  </TableCell>
-                  <TableCell className='hidden md:table-cell max-w-[320px] truncate text-xs text-muted-foreground'>
-                    {execution.error_message || execution.result || '-'}
-                  </TableCell>
-                  <TableCell className='hidden md:table-cell font-mono text-[11px] text-muted-foreground'>
-                    {formatDateTime(execution.created_at)}
-                  </TableCell>
+          <div className='flex flex-col divide-y lg:hidden'>
+            {executions.map((execution) => (
+              <button
+                type='button'
+                key={execution.id}
+                onClick={() => openExecutionDetail(execution)}
+                className='flex min-w-0 flex-col gap-2 p-4 text-left hover:bg-muted/50 focus-visible:outline-ring'
+              >
+                <div className='flex flex-wrap items-start justify-between gap-2'>
+                  <span className='min-w-0 font-medium [overflow-wrap:anywhere]'>
+                    {execution.task_name || execution.task_type}
+                  </span>
+                  <Badge variant={statusVariant(execution.status)}>
+                    {mappedLabel(t, STATUS_LABELS_KEYS, execution.status)}
+                  </Badge>
+                </div>
+                <span className='break-all font-mono text-xs text-muted-foreground'>
+                  {execution.task_id}
+                </span>
+                <span className='text-xs text-muted-foreground'>
+                  {formatDateTime(execution.created_at)} ·{' '}
+                  {formatDuration(execution.duration)}
+                </span>
+                <span className='text-xs text-muted-foreground'>
+                  {mappedLabel(t, TRIGGER_LABELS_KEYS, execution.triggered_by)}{' '}
+                  · {t('colRetry')}: {execution.retry_count}/
+                  {execution.max_retry}
+                </span>
+                <span className='line-clamp-2 text-sm [overflow-wrap:anywhere]'>
+                  {execution.error_message || execution.result || '-'}
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className='hidden lg:block'>
+            <Table className='w-full table-fixed md:table-auto md:min-w-[900px]'>
+              <TableHeader>
+                <TableRow className='hover:bg-transparent'>
+                  <TableHead className='md:w-[180px]'>{t('colTask')}</TableHead>
+                  <TableHead className='w-[100px]'>{t('colStatus')}</TableHead>
+                  <TableHead className='hidden md:table-cell w-[110px]'>
+                    {t('colTrigger')}
+                  </TableHead>
+                  <TableHead className='hidden md:table-cell w-[120px]'>
+                    {t('colRetry')}
+                  </TableHead>
+                  <TableHead className='hidden md:table-cell w-[120px]'>
+                    {t('colDuration')}
+                  </TableHead>
+                  <TableHead className='hidden md:table-cell min-w-[220px]'>
+                    {t('colResult')}
+                  </TableHead>
+                  <TableHead className='hidden md:table-cell w-[170px]'>
+                    {t('colCreatedAt')}
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {executions.map((execution) => (
+                  <TableRow
+                    key={execution.id}
+                    className='cursor-pointer'
+                    onClick={() => openExecutionDetail(execution)}
+                  >
+                    <TableCell className='whitespace-normal break-all'>
+                      <div className='flex flex-col gap-1'>
+                        <Button
+                          variant='link'
+                          className='h-auto justify-start whitespace-normal break-all p-0 text-left'
+                          onClick={() => openExecutionDetail(execution)}
+                        >
+                          {execution.task_name || execution.task_type}
+                        </Button>
+                        <span className='font-mono text-[11px] text-muted-foreground'>
+                          {execution.task_id}
+                        </span>
+                        <div className='flex flex-col gap-1 text-xs text-muted-foreground md:hidden'>
+                          <span>
+                            {t('colCreatedAt')}:{' '}
+                            {formatDateTime(execution.created_at)}
+                          </span>
+                          <span>
+                            {t('colDuration')}:{' '}
+                            {formatDuration(execution.duration)} ·{' '}
+                            {t('colRetry')}: {execution.retry_count}/
+                            {execution.max_retry}
+                          </span>
+                          <span className='line-clamp-2'>
+                            {execution.error_message || execution.result || '-'}
+                          </span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant(execution.status)}>
+                        {mappedLabel(t, STATUS_LABELS_KEYS, execution.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className='hidden md:table-cell'>
+                      <Badge variant='outline'>
+                        {mappedLabel(
+                          t,
+                          TRIGGER_LABELS_KEYS,
+                          execution.triggered_by,
+                        )}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className='hidden md:table-cell font-mono text-xs text-muted-foreground'>
+                      {execution.retry_count}/{execution.max_retry}
+                    </TableCell>
+                    <TableCell className='hidden md:table-cell font-mono text-xs text-muted-foreground'>
+                      {formatDuration(execution.duration)}
+                    </TableCell>
+                    <TableCell className='hidden md:table-cell max-w-[320px] truncate text-xs text-muted-foreground'>
+                      {execution.error_message || execution.result || '-'}
+                    </TableCell>
+                    <TableCell className='hidden md:table-cell font-mono text-[11px] text-muted-foreground'>
+                      {formatDateTime(execution.created_at)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
 
@@ -349,7 +407,7 @@ export function TaskExecutionsManager() {
             totalPages,
           })}
         </div>
-        <div className='flex items-center gap-2'>
+        <div className='flex flex-wrap items-center gap-2'>
           <Button
             variant='outline'
             size='sm'

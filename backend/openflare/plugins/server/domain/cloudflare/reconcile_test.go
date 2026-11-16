@@ -24,6 +24,7 @@ type fakeClient struct {
 	updated      *RecordInput
 	deleted      []string
 	deleteErrors map[string]error
+	onCreate     func() error
 }
 
 func (client *fakeClient) VerifyToken(context.Context) error { return nil }
@@ -38,6 +39,11 @@ func (client *fakeClient) ListARecords(context.Context, string, string) ([]DNSRe
 }
 func (client *fakeClient) CreateARecord(_ context.Context, _ string, input RecordInput) (*DNSRecord, error) {
 	client.created = append(client.created, input)
+	if client.onCreate != nil {
+		if err := client.onCreate(); err != nil {
+			return nil, err
+		}
+	}
 	return &DNSRecord{ID: fmt.Sprintf("record-created-%d", len(client.created)), Name: input.Name, Content: input.Content, Proxied: input.Proxied}, nil
 }
 func (client *fakeClient) UpdateARecord(_ context.Context, _, id string, input RecordInput) (*DNSRecord, error) {
@@ -116,6 +122,25 @@ func TestReconcileMemberCreatesMissingARecord(t *testing.T) {
 	}
 	if member.SyncStatus != model.CFMemberSyncOK || member.CFRecordID != "record-created-1" || member.DesiredIP != "203.0.113.10" {
 		t.Errorf("reconciled member = %+v", member)
+	}
+}
+
+func TestReconcileMemberDoesNotOverwriteConcurrentPendingUpdate(t *testing.T) {
+	ctx, memberID := setupCloudflareLogicDB(t)
+	fake := &fakeClient{}
+	fake.onCreate = func() error {
+		return repository.UpdateCFPointingMemberColumns(ctx, memberID, map[string]any{memberSyncStatusColumn: model.CFMemberSyncPending})
+	}
+	t.Cleanup(SetClientFactoryForTest(func(string) Client { return fake }))
+	if err := ReconcileMember(ctx, memberID); err != nil {
+		t.Fatal(err)
+	}
+	member, err := repository.GetCFPointingMemberByID(ctx, memberID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if member.SyncStatus != model.CFMemberSyncPending {
+		t.Errorf("ReconcileMember(concurrent update) status = %q, want %q", member.SyncStatus, model.CFMemberSyncPending)
 	}
 }
 

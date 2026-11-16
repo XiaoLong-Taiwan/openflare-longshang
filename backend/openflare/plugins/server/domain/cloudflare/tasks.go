@@ -102,6 +102,7 @@ var SyncAllGroupsMeta = task.TaskMeta{
 	Type: TaskTypeSyncAllGroups, AsynqTask: SyncAllGroupsTask,
 	Name: "Cloudflare 分组健康同步", Description: "检查并同步全部启用的 Cloudflare 指向分组",
 	SupportsTime: false, MaxRetry: 1, Queue: task.QueueDefault, Retryable: true, InternalOnly: true,
+	Singleton: true,
 }
 
 // SyncMemberPayload identifies one member.
@@ -141,6 +142,28 @@ func (handler *SyncAllGroupsTaskHandler) Execute(ctx context.Context, payload []
 			return nil, listErr
 		}
 		for _, member := range members {
+			if member.SyncStatus == model.CFMemberSyncing {
+				continue
+			}
+			if member.SyncStatus != model.CFMemberSyncError && member.SyncStatus != model.CFMemberSyncPending {
+				state, stateErr := repository.GetCFPointingMemberContext(ctx, member.ID)
+				if stateErr != nil {
+					return nil, stateErr
+				}
+				targets, targetErr := memberTargets(state)
+				if targetErr != nil {
+					failed = true
+					task.AppendLog(ctx, "分组健康同步失败: member_id=%d error=%v", member.ID, targetErr)
+					continue
+				}
+				records, recordErr := repository.ListCFPointingManagedRecords(ctx, member.ID)
+				if recordErr != nil {
+					return nil, recordErr
+				}
+				if !healthTargetsChanged(state, targets, records) {
+					continue
+				}
+			}
 			if err = ReconcileMember(ctx, member.ID); err != nil {
 				failed = true
 				task.AppendLog(ctx, "分组健康同步失败: member_id=%d error=%v", member.ID, err)

@@ -66,7 +66,7 @@ func checkHealth(ctx context.Context) error {
 				continue
 			}
 			if _, err := DispatchMemberSync(ctx, member.ID, "cloudflare_health_changed"); err != nil {
-				if restoreErr := repository.UpdateCFPointingMemberColumns(ctx, member.ID, map[string]any{memberSyncStatusColumn: member.SyncStatus}); restoreErr != nil {
+				if restoreErr := repository.UpdateCFPointingMemberColumns(ctx, member.ID, map[string]any{memberSyncStatusColumn: model.CFMemberSyncOK}); restoreErr != nil {
 					logger.ErrorF(ctx, "[Cloudflare] restore member status failed: member_id=%d error=%v", member.ID, restoreErr)
 				}
 				failures = append(failures, err)

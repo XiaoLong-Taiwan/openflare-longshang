@@ -523,6 +523,13 @@
       "retentionClickhouseDesc": "ClickHouse 記錄保留天數"
     },
     "authSourceModal": {
+      "callbackURL": "回呼 / 重新導向 URL",
+      "callbackURLDesc": "請將此網址登記至 OAuth 供應商。所有認證源共用 /login；優先使用 server_address，未設定時使用目前網站來源。",
+      "copyCallbackURL": "複製網址",
+      "callbackCopied": "已複製回呼網址",
+      "callbackCopyFailed": "複製失敗，請選取網址後手動複製。",
+      "callbackLoading": "正在載入回呼網址…",
+      "callbackLoadFailed": "無法載入伺服器位址，請關閉並重新開啟此視窗重試。",
       "authSourceSaved": "認證源已儲存",
       "saveAuthSourceFailed": "儲存認證源失敗",
       "editAuthSource": "編輯認證源",
@@ -538,8 +545,8 @@
       "enableAuthSourceDesc": "啟用後会立即顯示在登入页和帳號绑定中。",
       "cancel": "取消",
       "saving": "儲存中...",
-      "save": "儲存"
-      ,"providerType": "認證供應商"
+      "save": "儲存",
+      "providerType": "認證供應商"
     }
   },
   "admin": {
@@ -1118,7 +1125,17 @@
       "featureArea": "功能區",
       "featureAreaDesc": "資料库匯出及自定义進階 SQL 执行终端",
       "enableSQLConsole": "啟用 SQL 控制台入口",
-      "sections": { "tables": "資料表", "cache": "快取", "maintenance": "資料庫維護" },
+      "sections": {
+        "overview": "總覽",
+        "capacity": "容量與連線",
+        "tables": "資料表瀏覽",
+        "cache": "快取",
+        "maintenance": "資料庫維護"
+      },
+      "overviewDescription": "集中查看容量、快取、維護與匯出操作。",
+      "capacityDescription": "顯示伺服器回傳的目前資料庫資訊。",
+      "cacheLazyDescription": "按需載入磁碟快取用量與設定。",
+      "loadCache": "載入快取管理",
       "dbBackupExport": "資料库備份匯出",
       "dbBackupExportDesc": "直接匯出並下載物理資料库镜像檔案（SQLite 匯出 .db，PostgreSQL 匯出為打包的 .sql 文本檔案）",
       "preparing": "正在准備...",
@@ -1212,6 +1229,7 @@
         "title": "資料庫完整維護",
         "description": "清理過期任務記錄與磁碟快取，更新統計、索引並回收資料庫空間。",
         "loading": "正在載入維護預覽...",
+        "loadPreview": "載入／重新整理維護預覽",
         "previewFailed": "載入維護預覽失敗",
         "expiredTasks": "過期任務記錄：{count} 筆",
         "cacheItems": "磁碟快取：{count} 個項目",

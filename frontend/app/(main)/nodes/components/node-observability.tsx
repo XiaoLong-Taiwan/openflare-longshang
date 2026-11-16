@@ -38,6 +38,8 @@ import { DiskIOTrendChart } from './disk-io-trend-chart';
 import { DistributionList } from './distribution-list';
 import { NetworkTrendChart } from './network-trend-chart';
 import { NodeStatusBadge } from './node-status-badge';
+import { ResponsiveSection } from '@/components/common/responsive-section';
+import { TrendPreview } from './trend-preview';
 import {
   formatBytes,
   formatMetricCount,
@@ -604,236 +606,269 @@ export function NodeObservability({
 
   return (
     <div className='space-y-6'>
-      {section === 'overview' ? <>
-      <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-4'>
-        <SummaryStat
-          label={t('obs.diag')}
-          value={
-            activeHealthEvents.length
-              ? t('obs.activeIssues', { count: activeHealthEvents.length })
-              : t('obs.stable')
-          }
-          hint={
-            latestHealthEvent
-              ? getHealthEventLabel(latestHealthEvent)
-              : t('obs.noActiveEvents')
-          }
-        />
-        <SummaryStat
-          label={t('obs.windowRequests')}
-          value={formatMetricCount(trafficSummary?.request_count)}
-          hint={
-            trafficSummary
-              ? t('obs.windowVisitorsHint', {
-                  visitors: formatMetricCount(
-                    trafficSummary.unique_visitor_count,
-                  ),
-                  rate: trafficSummary.error_rate_percent.toFixed(1),
-                })
-              : t('obs.noWindowSummary')
-          }
-        />
-        <SummaryStat
-          label={t('obs.capacityPressure')}
-          value={
-            healthSummary?.has_capacity_risk
-              ? t('obs.needsAttention')
-              : t('obs.normalRange')
-          }
-          hint={
-            latestMetric
-              ? t('obs.cpuStorage', {
-                  cpu: formatPercent(latestMetric.cpu_usage_percent),
-                  storage: formatPercent(storageUsageRatio),
-                })
-              : t('obs.noResourceSnapshot')
-          }
-        />
-        <SummaryStat
-          label={t('obs.sourceSignal')}
-          value={topSourceCountry?.key ?? '—'}
-          hint={
-            topSourceCountry
-              ? t('obs.requestTimes', {
-                  count: topSourceCountry.value.toLocaleString('zh-CN'),
-                })
-              : t('obs.noSourceDist')
-          }
-        />
-      </div>
+      {section === 'overview' ? (
+        <>
+          <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-4'>
+            <SummaryStat
+              label={t('obs.diag')}
+              value={
+                activeHealthEvents.length
+                  ? t('obs.activeIssues', { count: activeHealthEvents.length })
+                  : t('obs.stable')
+              }
+              hint={
+                latestHealthEvent
+                  ? getHealthEventLabel(latestHealthEvent)
+                  : t('obs.noActiveEvents')
+              }
+            />
+            <SummaryStat
+              label={t('obs.windowRequests')}
+              value={formatMetricCount(trafficSummary?.request_count)}
+              hint={
+                trafficSummary
+                  ? t('obs.windowVisitorsHint', {
+                      visitors: formatMetricCount(
+                        trafficSummary.unique_visitor_count,
+                      ),
+                      rate: trafficSummary.error_rate_percent.toFixed(1),
+                    })
+                  : t('obs.noWindowSummary')
+              }
+            />
+            <SummaryStat
+              label={t('obs.capacityPressure')}
+              value={
+                healthSummary?.has_capacity_risk
+                  ? t('obs.needsAttention')
+                  : t('obs.normalRange')
+              }
+              hint={
+                latestMetric
+                  ? t('obs.cpuStorage', {
+                      cpu: formatPercent(latestMetric.cpu_usage_percent),
+                      storage: formatPercent(storageUsageRatio),
+                    })
+                  : t('obs.noResourceSnapshot')
+              }
+            />
+            <SummaryStat
+              label={t('obs.sourceSignal')}
+              value={topSourceCountry?.key ?? '—'}
+              hint={
+                topSourceCountry
+                  ? t('obs.requestTimes', {
+                      count: topSourceCountry.value.toLocaleString('zh-CN'),
+                    })
+                  : t('obs.noSourceDist')
+              }
+            />
+          </div>
 
-      <div className='grid gap-6 xl:grid-cols-3'>
-        <Card className='border-dashed shadow-none'>
-          <CardHeader>
-            <CardTitle className='text-base font-semibold'>
-              {t('obs.systemInfo')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {profile ? (
-              <SystemProfileCard profile={profile} nodeName={nodeName} />
-            ) : (
-              <p className='text-sm text-muted-foreground'>
-                {t('obs.noProfileLong')}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className='border-dashed shadow-none'>
-          <CardHeader>
-            <CardTitle className='text-base font-semibold'>
-              {t('obs.realtimeResources')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {latestMetric ? (
-              <div className='grid gap-3 sm:grid-cols-2'>
-                <MetricBar
-                  label={t('obs.cpu')}
-                  value={formatPercent(latestMetric.cpu_usage_percent)}
-                  progress={latestMetric.cpu_usage_percent}
-                  hint={
-                    isMeaningfulTime(latestMetric.captured_at)
-                      ? t('obs.snapshotAgo', {
-                          time: formatRelativeTime(latestMetric.captured_at, t),
-                        })
-                      : undefined
-                  }
-                />
-                <MetricBar
-                  label={t('obs.memory')}
-                  value={`${formatBytes(latestMetric.memory_used_bytes)} / ${formatBytes(latestMetric.memory_total_bytes)}`}
-                  progress={memoryUsageRatio}
-                />
-                <MetricBar
-                  label={t('obs.storage')}
-                  value={`${formatBytes(latestMetric.storage_used_bytes)} / ${formatBytes(latestMetric.storage_total_bytes)}`}
-                  progress={storageUsageRatio}
-                />
-                <MetricBar
-                  label={t('obs.connections')}
-                  value={formatMetricCount(latestMetric.openresty_connections)}
-                  progress={null}
-                  hint={resolvedConnectionHint}
-                />
-              </div>
-            ) : (
-              <p className='text-sm text-muted-foreground'>
-                {t('obs.noSnapshotLong')}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className='border-dashed shadow-none'>
-          <CardHeader>
-            <CardTitle className='text-base font-semibold'>
-              {t('obs.networkTraffic')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className='space-y-4'>
-            {latestMetric ? (
-              <>
-                {node ? (
-                  <div className='flex flex-wrap gap-2'>
-                    <NodeStatusBadge
-                      label={getNodeStatusLabel(node.status, t)}
-                      tone={getNodeStatusTone(node.status)}
-                    />
-                    <NodeStatusBadge
-                      label={getOpenrestyStatusLabel(node.openresty_status, t)}
-                      tone={getOpenrestyStatusTone(node.openresty_status)}
-                    />
-                    <NodeStatusBadge
-                      label={
-                        activeHealthEvents.length
-                          ? t('obs.activeIssues', {
-                              count: activeHealthEvents.length,
-                            })
-                          : t('obs.noActiveIssue')
-                      }
-                      tone={activeHealthEvents.length ? 'warning' : 'success'}
-                    />
-                  </div>
-                ) : null}
-
-                <div className='grid gap-3 sm:grid-cols-2'>
-                  <div className='rounded-lg border px-3 py-3 sm:col-span-2'>
-                    <p className='text-xs text-muted-foreground uppercase tracking-wide'>
-                      {t('obs.openrestyConn')}
+          <div className='grid grid-cols-2 gap-3 lg:hidden'>
+            <TrendPreview
+              label={t('obs.windowRequests')}
+              values={(trends?.traffic_24h ?? []).map(
+                (point) => point.request_count,
+              )}
+            />
+            <TrendPreview
+              label={t('obs.cpu')}
+              values={(trends?.capacity_24h ?? []).map(
+                (point) => point.average_cpu_usage_percent,
+              )}
+            />
+          </div>
+          <ResponsiveSection title={t('obs.systemInfo')}>
+            <div className='grid min-w-0 gap-6 xl:grid-cols-3 [&>*]:min-w-0 [&_p]:[overflow-wrap:anywhere]'>
+              <Card className='border-dashed shadow-none'>
+                <CardHeader>
+                  <CardTitle className='text-base font-semibold'>
+                    {t('obs.systemInfo')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {profile ? (
+                    <SystemProfileCard profile={profile} nodeName={nodeName} />
+                  ) : (
+                    <p className='text-sm text-muted-foreground'>
+                      {t('obs.noProfileLong')}
                     </p>
-                    <div className='mt-3 space-y-2 text-sm text-muted-foreground'>
-                      <p>
-                        {t('obs.currentConn')}
-                        {latestMetric.openresty_connections ?? 0}
-                      </p>
-                      <p className='text-xs'>{t('obs.throughputHint')}</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className='border-dashed shadow-none'>
+                <CardHeader>
+                  <CardTitle className='text-base font-semibold'>
+                    {t('obs.realtimeResources')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {latestMetric ? (
+                    <div className='grid gap-3 sm:grid-cols-2'>
+                      <MetricBar
+                        label={t('obs.cpu')}
+                        value={formatPercent(latestMetric.cpu_usage_percent)}
+                        progress={latestMetric.cpu_usage_percent}
+                        hint={
+                          isMeaningfulTime(latestMetric.captured_at)
+                            ? t('obs.snapshotAgo', {
+                                time: formatRelativeTime(
+                                  latestMetric.captured_at,
+                                  t,
+                                ),
+                              })
+                            : undefined
+                        }
+                      />
+                      <MetricBar
+                        label={t('obs.memory')}
+                        value={`${formatBytes(latestMetric.memory_used_bytes)} / ${formatBytes(latestMetric.memory_total_bytes)}`}
+                        progress={memoryUsageRatio}
+                      />
+                      <MetricBar
+                        label={t('obs.storage')}
+                        value={`${formatBytes(latestMetric.storage_used_bytes)} / ${formatBytes(latestMetric.storage_total_bytes)}`}
+                        progress={storageUsageRatio}
+                      />
+                      <MetricBar
+                        label={t('obs.connections')}
+                        value={formatMetricCount(
+                          latestMetric.openresty_connections,
+                        )}
+                        progress={null}
+                        hint={resolvedConnectionHint}
+                      />
                     </div>
-                  </div>
-                </div>
+                  ) : (
+                    <p className='text-sm text-muted-foreground'>
+                      {t('obs.noSnapshotLong')}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
 
-                <div className='grid gap-3 sm:grid-cols-2'>
-                  <div className='rounded-lg border px-3 py-3'>
-                    <p className='text-xs text-muted-foreground uppercase tracking-wide'>
-                      {t('obs.windowVisitors')}
-                    </p>
-                    <p className='mt-3 text-2xl font-semibold'>
-                      {formatMetricCount(trafficSummary?.unique_visitor_count)}
-                    </p>
-                    <p className='mt-2 text-sm text-muted-foreground'>
-                      {trafficSummary
-                        ? t('obs.reqQps', {
-                            requests: formatMetricCount(
-                              trafficSummary.request_count,
-                            ),
-                            qps: trafficSummary.estimated_qps.toFixed(2),
-                          })
-                        : t('obs.noTrafficSummary')}
-                    </p>
-                  </div>
-                  <div className='rounded-lg border px-3 py-3'>
-                    <p className='text-xs text-muted-foreground uppercase tracking-wide'>
-                      {t('obs.windowErrors')}
-                    </p>
-                    <p className='mt-3 text-2xl font-semibold'>
-                      {formatMetricCount(trafficSummary?.error_count)}
-                    </p>
-                    <p className='mt-2 text-sm text-muted-foreground'>
-                      {trafficSummary
-                        ? t('obs.errorRate', {
-                            rate: trafficSummary.error_rate_percent.toFixed(1),
-                          })
-                        : t('obs.noErrorSummary')}
-                    </p>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <p className='text-sm text-muted-foreground'>
-                {t('obs.noNetworkSnapshot')}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              <Card className='border-dashed shadow-none'>
+                <CardHeader>
+                  <CardTitle className='text-base font-semibold'>
+                    {t('obs.networkTraffic')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className='space-y-4'>
+                  {latestMetric ? (
+                    <>
+                      {node ? (
+                        <div className='flex flex-wrap gap-2'>
+                          <NodeStatusBadge
+                            label={getNodeStatusLabel(node.status, t)}
+                            tone={getNodeStatusTone(node.status)}
+                          />
+                          <NodeStatusBadge
+                            label={getOpenrestyStatusLabel(
+                              node.openresty_status,
+                              t,
+                            )}
+                            tone={getOpenrestyStatusTone(node.openresty_status)}
+                          />
+                          <NodeStatusBadge
+                            label={
+                              activeHealthEvents.length
+                                ? t('obs.activeIssues', {
+                                    count: activeHealthEvents.length,
+                                  })
+                                : t('obs.noActiveIssue')
+                            }
+                            tone={
+                              activeHealthEvents.length ? 'warning' : 'success'
+                            }
+                          />
+                        </div>
+                      ) : null}
 
-      <div className='grid gap-6 xl:grid-cols-2'>
-        <TrafficTrendChart
-          points={trends?.traffic_24h ?? []}
-          description={t('obs.trafficTrendDesc')}
-        />
-        <CapacityTrendChart
-          points={trends?.capacity_24h ?? []}
-          description={t('obs.capacityTrendDesc')}
-        />
-      </div>
+                      <div className='grid gap-3 sm:grid-cols-2'>
+                        <div className='rounded-lg border px-3 py-3 sm:col-span-2'>
+                          <p className='text-xs text-muted-foreground uppercase tracking-wide'>
+                            {t('obs.openrestyConn')}
+                          </p>
+                          <div className='mt-3 space-y-2 text-sm text-muted-foreground'>
+                            <p>
+                              {t('obs.currentConn')}
+                              {latestMetric.openresty_connections ?? 0}
+                            </p>
+                            <p className='text-xs'>{t('obs.throughputHint')}</p>
+                          </div>
+                        </div>
+                      </div>
 
-      <div className='grid gap-6 xl:grid-cols-2'>
-        <NetworkTrendChart points={trends?.network_24h ?? []} />
-        <DiskIOTrendChart points={trends?.disk_io_24h ?? []} />
-      </div>
-      </> : null}
+                      <div className='grid gap-3 sm:grid-cols-2'>
+                        <div className='rounded-lg border px-3 py-3'>
+                          <p className='text-xs text-muted-foreground uppercase tracking-wide'>
+                            {t('obs.windowVisitors')}
+                          </p>
+                          <p className='mt-3 text-2xl font-semibold'>
+                            {formatMetricCount(
+                              trafficSummary?.unique_visitor_count,
+                            )}
+                          </p>
+                          <p className='mt-2 text-sm text-muted-foreground'>
+                            {trafficSummary
+                              ? t('obs.reqQps', {
+                                  requests: formatMetricCount(
+                                    trafficSummary.request_count,
+                                  ),
+                                  qps: trafficSummary.estimated_qps.toFixed(2),
+                                })
+                              : t('obs.noTrafficSummary')}
+                          </p>
+                        </div>
+                        <div className='rounded-lg border px-3 py-3'>
+                          <p className='text-xs text-muted-foreground uppercase tracking-wide'>
+                            {t('obs.windowErrors')}
+                          </p>
+                          <p className='mt-3 text-2xl font-semibold'>
+                            {formatMetricCount(trafficSummary?.error_count)}
+                          </p>
+                          <p className='mt-2 text-sm text-muted-foreground'>
+                            {trafficSummary
+                              ? t('obs.errorRate', {
+                                  rate: trafficSummary.error_rate_percent.toFixed(
+                                    1,
+                                  ),
+                                })
+                              : t('obs.noErrorSummary')}
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <p className='text-sm text-muted-foreground'>
+                      {t('obs.noNetworkSnapshot')}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </ResponsiveSection>
+          <ResponsiveSection title={t('trendDetails')}>
+            <div className='grid min-w-0 gap-6 xl:grid-cols-2 [&>*]:min-w-0'>
+              <TrafficTrendChart
+                points={trends?.traffic_24h ?? []}
+                description={t('obs.trafficTrendDesc')}
+              />
+              <CapacityTrendChart
+                points={trends?.capacity_24h ?? []}
+                description={t('obs.capacityTrendDesc')}
+              />
+            </div>
+
+            <div className='mt-6 grid min-w-0 gap-6 xl:grid-cols-2 [&>*]:min-w-0'>
+              <NetworkTrendChart points={trends?.network_24h ?? []} />
+              <DiskIOTrendChart points={trends?.disk_io_24h ?? []} />
+            </div>
+          </ResponsiveSection>
+        </>
+      ) : null}
 
       {section === 'requests' ? (
         <Card className='border-dashed shadow-none'>
@@ -919,30 +954,32 @@ export function NodeObservability({
         />
       ) : null}
 
-      {section === 'health' ? <AlertDialog open={cleanupOpen} onOpenChange={setCleanupOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('obs.cleanupTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('obs.cleanupDesc')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={cleanupMutation.isPending}>
-              {tc('cancel')}
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className='bg-destructive text-white hover:bg-destructive/90'
-              disabled={cleanupMutation.isPending}
-              onClick={() => cleanupMutation.mutate()}
-            >
-              {cleanupMutation.isPending
-                ? t('obs.cleaning')
-                : t('obs.confirmCleanup')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog> : null}
+      {section === 'health' ? (
+        <AlertDialog open={cleanupOpen} onOpenChange={setCleanupOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('obs.cleanupTitle')}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t('obs.cleanupDesc')}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={cleanupMutation.isPending}>
+                {tc('cancel')}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className='bg-destructive text-white hover:bg-destructive/90'
+                disabled={cleanupMutation.isPending}
+                onClick={() => cleanupMutation.mutate()}
+              >
+                {cleanupMutation.isPending
+                  ? t('obs.cleaning')
+                  : t('obs.confirmCleanup')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      ) : null}
     </div>
   );
 }

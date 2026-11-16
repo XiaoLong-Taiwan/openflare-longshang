@@ -26,7 +26,7 @@ func registerOpenFlareTasks(ctx *core.Context) {
 	registerOFTask(ctx, cf.SyncGroupTask, &cf.SyncGroupTaskHandler{}, cf.SyncGroupMeta)
 	registerOFTask(ctx, cf.SyncByNodeTask, &cf.SyncByNodeTaskHandler{}, cf.SyncByNodeMeta)
 	registerOFTask(ctx, cf.SyncAllGroupsTask, &cf.SyncAllGroupsTaskHandler{}, cf.SyncAllGroupsMeta)
-	ctx.Schedule().RegisterCron("0 */4 * * *", cf.SyncAllGroupsTask, nil)
+	ctx.Schedule().RegisterCron("0 */4 * * *", cf.SyncAllGroupsTask, nil, extpoints.WithScheduleOption("singleton", true))
 
 	registerOFTask(ctx, pages.PagesSourceScanTask, &pages.SourceScanHandler{}, pages.PagesSourceScanMeta)
 	registerOFTask(ctx, pages.PagesSourceActionTask, &pages.SourceActionHandler{}, pages.PagesSourceActionMeta)
@@ -40,6 +40,9 @@ func registerOFTask(ctx *core.Context, pattern string, handler oftask.TaskHandle
 	}
 	if meta.MaxRetry > 0 {
 		opts = append(opts, extpoints.WithTaskRetry(meta.MaxRetry))
+	}
+	if meta.Singleton {
+		opts = append(opts, extpoints.WithTaskSingleton(true))
 	}
 	ctx.Task().Register(pattern, func(c context.Context, payload []byte) error {
 		_, err := handler.Execute(c, payload)

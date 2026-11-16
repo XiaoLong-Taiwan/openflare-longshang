@@ -140,18 +140,12 @@ export function CacheManager({ refreshTrigger }: CacheManagerProps) {
     }
   };
 
-  // 初始化拉取
   useEffect(() => {
-    fetchCacheStatus();
-  }, [fetchCacheStatus]);
-
-  // 当外部刷新触发器改变时自动刷新
-  useEffect(() => {
-    fetchCacheStatus(true);
+    void fetchCacheStatus();
   }, [refreshTrigger, fetchCacheStatus]);
 
   return (
-    <Card className='border-border/40 bg-card/50 backdrop-blur-sm shadow-sm'>
+    <Card className='min-w-0 gap-4'>
       <CardHeader className='pb-3 border-b border-dashed flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
         <div className='space-y-0.5'>
           <div className='flex items-center gap-2'>
@@ -172,9 +166,7 @@ export function CacheManager({ refreshTrigger }: CacheManagerProps) {
           onClick={() => fetchCacheStatus(true)}
           disabled={loadingCache}
         >
-          <RefreshCw
-            className={`size-3 ${loadingCache ? 'animate-spin' : ''}`}
-          />
+          <RefreshCw data-icon='inline-start' />
           {t('refreshStatus')}
         </Button>
       </CardHeader>
@@ -188,7 +180,7 @@ export function CacheManager({ refreshTrigger }: CacheManagerProps) {
         ) : cacheStatus ? (
           <div className='grid grid-cols-1 lg:grid-cols-5 gap-6'>
             {/* 左边：状态区 (2/5 cols) */}
-            <div className='lg:col-span-2 space-y-4'>
+            <div className='flex min-w-0 flex-col gap-4 lg:col-span-2'>
               <p className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
                 {t('runtimeStatus')}
               </p>
@@ -229,9 +221,9 @@ export function CacheManager({ refreshTrigger }: CacheManagerProps) {
                 </code>
               </div>
               <Button
-                variant='secondary'
+                variant='destructive'
                 size='sm'
-                className='h-8 text-xs font-medium w-full'
+                className='h-auto min-h-9 w-full whitespace-normal'
                 onClick={() => setShowClearConfirm(true)}
               >
                 {t('clearCacheNow')}

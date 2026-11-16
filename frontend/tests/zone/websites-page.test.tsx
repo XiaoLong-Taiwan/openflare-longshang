@@ -103,6 +103,14 @@ describe('WebsitesPage', () => {
     expect(screen.getByText('3')).toBeVisible();
     expect(screen.getAllByText('0')).toHaveLength(3);
     expect(screen.getAllByText('1')).toHaveLength(2);
+    for (const count of screen.getAllByText('1')) {
+      expect(count).toHaveClass(
+        'text-sm',
+        'sm:text-base',
+        'font-medium',
+        'tabular-nums',
+      );
+    }
     expect(screen.getByRole('columnheader', { name: '根域' })).toBeVisible();
     expect(screen.getAllByRole('link', { name: '管理' })[0]).toHaveAttribute(
       'href',

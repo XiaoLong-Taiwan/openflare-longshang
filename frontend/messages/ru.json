@@ -523,6 +523,13 @@
       "retentionClickhouseDesc": "ClickHouse дней хранения журнала"
     },
     "authSourceModal": {
+      "callbackURL": "URL обратного вызова / перенаправления",
+      "callbackURLDesc": "Укажите этот URL у провайдера OAuth. Все источники используют общий путь /login. Используется server_address, а если он не задан — текущий адрес сайта.",
+      "copyCallbackURL": "Копировать URL",
+      "callbackCopied": "URL обратного вызова скопирован",
+      "callbackCopyFailed": "Не удалось скопировать. Выделите URL и скопируйте его вручную.",
+      "callbackLoading": "Загрузка URL обратного вызова…",
+      "callbackLoadFailed": "Не удалось загрузить адрес сервера. Закройте и снова откройте окно для повторной попытки.",
       "authSourceSaved": "Источник аутентификации сохранен.",
       "saveAuthSourceFailed": "Не удалось сохранить источник аутентификации.",
       "editAuthSource": "Изменить источник аутентификации",
@@ -1118,10 +1125,16 @@
       "featureAreaDesc": "Экспорт базы данных и расширенный терминал SQL",
       "enableSQLConsole": "Включить вход в консоль SQL",
       "sections": {
-        "tables": "Таблицы",
+        "overview": "Обзор",
+        "capacity": "Объём и соединения",
+        "tables": "Просмотр таблиц",
         "cache": "Кэш",
         "maintenance": "Обслуживание базы данных"
       },
+      "overviewDescription": "Объём, кэш, обслуживание и экспорт в одном месте.",
+      "capacityDescription": "Текущие сведения о базе данных, полученные от сервера.",
+      "cacheLazyDescription": "Загрузите сведения об использовании и настройках дискового кэша при необходимости.",
+      "loadCache": "Загрузить управление кэшем",
       "dbBackupExport": "Экспорт резервной копии базы данных",
       "dbBackupExportDesc": "Экспортируйте и загрузите физический образ базы данных (SQLite экспортирует .db, PostgreSQL экспортирует упакованный текстовый файл .sql)",
       "preparing": "Подготовка...",
@@ -1215,6 +1228,7 @@
         "title": "Full database maintenance",
         "description": "Clean expired task records and disk cache, refresh statistics and indexes, and reclaim database space.",
         "loading": "Loading maintenance preview...",
+        "loadPreview": "Загрузить / обновить план обслуживания",
         "previewFailed": "Failed to load maintenance preview",
         "expiredTasks": "Expired task records: {count}",
         "cacheItems": "Disk cache: {count} items",
@@ -2325,6 +2339,7 @@
   "nodes": {
     "selectedCount": "Выбрано узлов: {count}",
     "moreActions": "Другие действия",
+    "trendDetails": "Обзор трендов и подробные графики",
     "detailSections": {
       "health": "События здоровья",
       "requests": "Структура запросов",
@@ -2732,7 +2747,8 @@
       "summaryHint": "Последние 24 часа · средняя цена",
       "read": "Чтение диска",
       "write": "Запись на диск"
-    }
+    },
+    "trendEmpty": "Пока недостаточно данных о тренде"
   },
   "performance": {
     "title": "Производительность",

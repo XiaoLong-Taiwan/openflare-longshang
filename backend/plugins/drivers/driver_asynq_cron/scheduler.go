@@ -111,16 +111,23 @@ func ReloadScheduler() error {
 	// 4. 遍历并注册任务
 	taskSvc := getTaskService()
 	for _, s := range schedules {
-		taskName, maxRetry, queue := resolveTaskScheduleMeta(taskSvc, s.TaskType)
+		taskName, maxRetry, queue, singleton := resolveTaskScheduleMeta(taskSvc, s.TaskType)
 
 		// 构造 Asynq 载荷
-		t := asynq.NewTask(taskName, []byte(s.Payload))
+		payload := []byte(s.Payload)
+		if singleton {
+			payload = nil
+		}
+		t := asynq.NewTask(taskName, payload)
+		options := []asynq.Option{asynq.MaxRetry(maxRetry), asynq.Queue(queue)}
+		if singleton {
+			options = append(options, asynq.Unique(24*time.Hour), asynq.TaskID("singleton:"+taskName))
+		}
 
 		if _, err := newScheduler.Register(
 			s.Cron,
 			t,
-			asynq.MaxRetry(maxRetry),
-			asynq.Queue(queue),
+			options...,
 		); err != nil {
 			// 定时任务配置可能有误（如 Cron 格式不被 Asynq 识别），记录日志并跳过
 			logger.ErrorF(context.Background(), "[Scheduler] 注册定时任务失败 id=%d name=%s: %v", s.ID, s.Name, err)
@@ -147,7 +154,7 @@ func waitForStop(done, signals <-chan struct{}) bool {
 	}
 }
 
-func resolveTaskScheduleMeta(taskSvc contracts.TaskService, taskType string) (name string, maxRetry int, queue string) {
+func resolveTaskScheduleMeta(taskSvc contracts.TaskService, taskType string) (name string, maxRetry int, queue string, singleton bool) {
 	name = taskType
 	maxRetry = 3
 	queue = "default"
@@ -158,12 +165,15 @@ func resolveTaskScheduleMeta(taskSvc contracts.TaskService, taskType string) (na
 	if !ok {
 		return
 	}
-	name = meta.Name
+	if meta.AsynqTask != "" {
+		name = meta.AsynqTask
+	}
 	if meta.MaxRetry > 0 {
 		maxRetry = meta.MaxRetry
 	}
 	if meta.Queue != "" {
 		queue = meta.Queue
 	}
+	singleton = meta.Singleton
 	return
 }
