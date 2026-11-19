@@ -4,11 +4,14 @@
 package logstore
 
 import (
-	"Wavelet/core/contracts"
-	analyticsmodel "Wavelet/openflare/plugins/server/kernel/model/analytics"
 	"context"
 	"fmt"
 	"time"
+
+	"Wavelet/core/contracts"
+	analyticsmodel "Wavelet/openflare/plugins/server/kernel/model/analytics"
+	analyticsrepo "Wavelet/openflare/plugins/server/kernel/repository/analytics"
+	"Wavelet/openflare/plugins/server/kernel/runtimeconfig"
 
 	"gorm.io/gorm"
 )
@@ -34,6 +37,14 @@ var logStorageCategories = []struct {
 	{key: "frps", name: "frps", table: analyticsmodel.NodeObsFrps{}.TableName(), description: "FRPS observability records", clearable: true},
 	{key: "frpc", name: "frpc", table: analyticsmodel.NodeObsFrpc{}.TableName(), description: "FRPC observability records", clearable: true},
 	{key: "system", name: "system", table: "", description: "Process ring-buffer logs are memory-only", clearable: false},
+}
+
+// ClickHouseCapacity reports active ClickHouse parts for the configured log database.
+type ClickHouseCapacity = analyticsrepo.ClickHouseCapacity
+
+// GetClickHouseCapacity returns active ClickHouse parts for the configured log database.
+func GetClickHouseCapacity(ctx context.Context) (*ClickHouseCapacity, error) {
+	return analyticsrepo.GetClickHouseCapacity(ctx)
 }
 
 func (logStorageService) Overview(ctx context.Context) (contracts.LogStorageOverview, error) {
@@ -185,7 +196,7 @@ func logStorageTableStats(ctx context.Context, database, table string) (int64, i
 			return 0, 0, err
 		}
 		var rows, bytes uint64
-		err = conn.QueryRow(ctx, "SELECT ifNull(sum(rows), 0), ifNull(sum(bytes_on_disk), 0) FROM system.parts WHERE active AND table = ?", table).Scan(&rows, &bytes)
+		err = conn.QueryRow(ctx, "SELECT ifNull(sum(rows), 0), ifNull(sum(bytes_on_disk), 0) FROM system.parts WHERE active AND database = ? AND table = ?", runtimeconfig.Get().ClickHouse.Database, table).Scan(&rows, &bytes)
 		return int64(rows), int64(bytes), err
 	}
 	db := getGormDB(ctx)

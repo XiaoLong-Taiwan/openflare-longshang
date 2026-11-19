@@ -10,6 +10,7 @@ import (
 	"Wavelet/core"
 	"Wavelet/core/contracts"
 	"Wavelet/openflare/plugins/server/domain/cloudflare"
+	"Wavelet/openflare/plugins/server/domain/observability"
 	"Wavelet/openflare/plugins/server/domain/observability/chwriter"
 	"Wavelet/openflare/plugins/server/domain/pages"
 	ofrouter "Wavelet/openflare/plugins/server/httpapi"
@@ -25,6 +26,7 @@ import (
 	"Wavelet/openflare/plugins/server/migrate"
 	"Wavelet/pkg/logger"
 	"Wavelet/pkg/util"
+	"Wavelet/plugins/infra/cache"
 	"context"
 	"embed"
 	"reflect"
@@ -112,6 +114,7 @@ func (p *Plugin) Apply(ctx *core.Context) error {
 		logger.ErrorF(ctx.GoContext(), "[server] init GeoIP provider failed: %v", err)
 	}
 	chwriter.Init(ctx.GoContext())
+	ctx.OnDispose(observability.StartNodeCacheInvalidation(ctx.GoContext(), cache.Redis))
 	outboxCtx, cancelOutbox := context.WithCancel(ctx.GoContext())
 	util.Go(func() { logstore.RunNodeAccessOutboxWorker(outboxCtx, time.Second*30) })
 	util.Go(func() { cloudflare.RunHealthMonitor(outboxCtx) })

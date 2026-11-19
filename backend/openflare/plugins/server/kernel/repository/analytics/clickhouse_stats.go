@@ -15,6 +15,35 @@ import (
 // and in-process batch writer queue health.
 type ClickHouseOperationalStats = analyticsmodel.ClickHouseOperationalStats
 
+// ClickHouseCapacity summarizes active ClickHouse parts in one database.
+type ClickHouseCapacity struct {
+	ActiveParts int64
+	TotalRows   int64
+	BytesOnDisk int64
+}
+
+// GetClickHouseCapacity returns active-part capacity for the configured database.
+func GetClickHouseCapacity(ctx context.Context) (*ClickHouseCapacity, error) {
+	conn, err := ChConn(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("clickhouse native connection is not initialized: %w", err)
+	}
+	database := runtimeconfig.Get().ClickHouse.Database
+	var activeParts, totalRows, bytesOnDisk uint64
+	err = conn.QueryRow(ctx, `
+SELECT count(), ifNull(sum(rows), 0), ifNull(sum(bytes_on_disk), 0)
+FROM system.parts
+WHERE active AND database = ?`, database).Scan(&activeParts, &totalRows, &bytesOnDisk)
+	if err != nil {
+		return nil, fmt.Errorf("query ClickHouse capacity: %w", err)
+	}
+	return &ClickHouseCapacity{
+		ActiveParts: safeInt64Count(activeParts),
+		TotalRows:   safeInt64Count(totalRows),
+		BytesOnDisk: safeInt64Count(bytesOnDisk),
+	}, nil
+}
+
 // GetClickHouseOperationalStats returns operational metrics for the configured database.
 func GetClickHouseOperationalStats(ctx context.Context) (*ClickHouseOperationalStats, error) {
 	conn, err := ChConn(ctx)

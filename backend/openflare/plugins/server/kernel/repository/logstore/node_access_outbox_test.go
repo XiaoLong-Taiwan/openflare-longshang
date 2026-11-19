@@ -190,6 +190,32 @@ func TestOutboxInvalidPayloadIsRetriedWithoutBlockingQueue(t *testing.T) {
 	}
 }
 
+func TestOutboxHealthReportsOldestPendingRetryState(t *testing.T) {
+	s := newTestGormStore(t)
+	ctx := context.Background()
+	SetDBResolver(func(context.Context) *gorm.DB { return s.db })
+	t.Cleanup(func() { SetDBResolver(nil) })
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	older := analyticsmodel.NodeAccessOutbox{ID: 1, Payload: `{}`, CreatedAt: now.Add(-2 * time.Minute), Attempts: 3, NextAttemptAt: now.Add(time.Minute), LastError: "older failure"}
+	newer := analyticsmodel.NodeAccessOutbox{ID: 2, Payload: `{}`, CreatedAt: now.Add(-time.Minute), Attempts: 7, NextAttemptAt: now.Add(2 * time.Minute), LastError: "newer failure"}
+	if err := s.db.Create(&older).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := s.db.Create(&newer).Error; err != nil {
+		t.Fatal(err)
+	}
+	health, err := GetNodeAccessOutboxHealth(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if health.Pending != 2 || health.LastError != older.LastError || health.Attempts != older.Attempts || !health.NextAttemptAt.Equal(older.NextAttemptAt) {
+		t.Fatalf("GetNodeAccessOutboxHealth() = %+v, want oldest retry state", health)
+	}
+	if health.PendingAgeSeconds < 100 || health.PendingAgeSeconds > 130 {
+		t.Errorf("GetNodeAccessOutboxHealth().PendingAgeSeconds = %d, want about 120", health.PendingAgeSeconds)
+	}
+}
+
 func TestOutboxHealthReportsPendingFailure(t *testing.T) {
 	s := newTestGormStore(t)
 	ctx := context.Background()

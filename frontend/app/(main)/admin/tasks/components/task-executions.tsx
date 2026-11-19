@@ -55,6 +55,7 @@ const STATUS_LABELS_KEYS: Record<TaskExecutionStatus, string> = {
   running: 'statusRunning',
   succeeded: 'statusSucceeded',
   failed: 'statusFailed',
+  canceled: 'statusCanceled',
 };
 
 const TRIGGER_LABELS_KEYS: Record<string, string> = {

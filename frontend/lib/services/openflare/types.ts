@@ -762,6 +762,55 @@ export interface AccessLogOverview {
   status_codes: DistributionItem[];
 }
 
+export type StorageOperationSourceStatus =
+  | 'available'
+  | 'empty'
+  | 'unavailable'
+  | 'error';
+
+export interface StorageOperationSource {
+  status: StorageOperationSourceStatus;
+  oldest?: string;
+  newest?: string;
+  error?: string;
+}
+
+export interface NodeAccessOutboxHealth {
+  pending: number;
+  oldest_at?: string;
+  pending_age_seconds?: number;
+  last_error?: string;
+  last_attempt?: string;
+  last_attempt_outcome?: string;
+  last_success?: string;
+  attempts?: number;
+  next_attempt_at?: string;
+  backend?: string;
+  worker_running: boolean;
+  healthy: boolean;
+}
+
+export interface StorageOperations {
+  backend?: string;
+  backend_status: 'available' | 'error';
+  backend_error?: string;
+  capacity?:
+    | {
+        status: 'available';
+        scope: 'clickhouse_active_parts';
+        bytes_on_disk: number;
+        active_parts: number;
+        total_rows: number;
+      }
+    | { status: 'shared'; scope: 'primary_database' }
+    | { status: 'error'; scope?: 'clickhouse_active_parts' };
+  node_logs: StorageOperationSource;
+  user_logs: StorageOperationSource;
+  outbox?: NodeAccessOutboxHealth;
+  outbox_status: 'available' | 'error' | 'unsupported';
+  outbox_error?: string;
+}
+
 export interface AccessLogItem {
   id: string;
   node_id: string;

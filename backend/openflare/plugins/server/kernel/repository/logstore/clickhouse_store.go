@@ -710,8 +710,12 @@ func (s *clickhouseLogStore) ClickHouseOperationalStats(ctx context.Context) (*a
 		return nil, err
 	}
 	stats.NodeAccessOutbox = &analyticsmodel.NodeAccessOutboxStats{
-		Pending: health.Pending, OldestAt: health.OldestAt, LastError: health.LastError,
-		LastAttempt: health.LastAttempt, Healthy: health.Healthy,
+		Pending: health.Pending, OldestAt: health.OldestAt,
+		PendingAgeSeconds: health.PendingAgeSeconds, LastError: health.LastError,
+		LastAttempt: health.LastAttempt, LastAttemptOutcome: health.LastAttemptOutcome,
+		LastSuccess: health.LastSuccess, Attempts: health.Attempts,
+		NextAttemptAt: health.NextAttemptAt, Backend: health.Backend,
+		WorkerRunning: health.WorkerRunning, Healthy: health.Healthy,
 	}
 	return stats, nil
 }

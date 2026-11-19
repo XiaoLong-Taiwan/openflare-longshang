@@ -13,28 +13,92 @@ import (
 	"time"
 
 	"Wavelet/openflare/plugins/server/kernel/repository"
+	"Wavelet/pkg/cache/ram"
+	"Wavelet/pkg/util"
+	"Wavelet/plugins/infra/cache"
 
 	"Wavelet/openflare/plugins/server/kernel/model"
 
+	"github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric"
 	"gorm.io/gorm"
 )
 
 const (
-	defaultObservabilityWindow      = 24 * time.Hour
-	defaultObservabilityLimit       = 120
-	maxObservabilityLimit           = 500
-	defaultTrafficDistributionLimit = 8
-	nodeObservabilityCacheTTL       = 15 * time.Second
+	defaultObservabilityWindow           = 24 * time.Hour
+	defaultObservabilityLimit            = 120
+	maxObservabilityLimit                = 500
+	defaultTrafficDistributionLimit      = 8
+	nodeObservabilityCacheTTL            = 15 * time.Second
+	nodeObservabilityCacheCapacity       = 1024
+	nodeObservabilityInvalidationChannel = "wavelet:observability:node_invalidation"
 )
 
-var nodeObservabilityCache struct {
-	mu    sync.Mutex
-	views map[string]cachedNodeObservability
+var nodeObservabilityCache = newNodeObservabilityCache()
+
+var (
+	nodeObservabilityMeter       = otel.Meter("wavelet/openflare/observability")
+	nodeObservabilityCacheHits   = mustInt64Counter(nodeObservabilityMeter, "node_observability_cache_hits")
+	nodeObservabilityCacheMisses = mustInt64Counter(nodeObservabilityMeter, "node_observability_cache_misses")
+	nodeObservabilityCacheItems  = mustInt64Gauge(nodeObservabilityMeter, "node_observability_cache_items")
+	nodeObservabilityQueryTime   = mustFloat64Histogram(nodeObservabilityMeter, "node_observability_query_duration_ms")
+)
+
+type nodeObservabilityResponseCache struct {
+	views      *ram.Cache[string, *NodeView]
+	mu         sync.Mutex
+	generation uint64
 }
 
-type cachedNodeObservability struct {
-	view      *NodeView
-	expiresAt time.Time
+func newNodeObservabilityCache() *nodeObservabilityResponseCache {
+	return &nodeObservabilityResponseCache{views: ram.MustNew[string, *NodeView](ram.Options{
+		MaximumSize: nodeObservabilityCacheCapacity,
+		TTL:         nodeObservabilityCacheTTL,
+	})}
+}
+
+func mustInt64Counter(m metric.Meter, name string) metric.Int64Counter {
+	instrument, _ := m.Int64Counter(name)
+	return instrument
+}
+
+func mustInt64Gauge(m metric.Meter, name string) metric.Int64ObservableGauge {
+	instrument, _ := m.Int64ObservableGauge(name, metric.WithInt64Callback(func(_ context.Context, observer metric.Int64Observer) error {
+		observer.Observe(int64(nodeObservabilityCache.views.EstimatedSize()))
+		return nil
+	}))
+	return instrument
+}
+
+// StartNodeCacheInvalidation subscribes to cache invalidations from other processes.
+func StartNodeCacheInvalidation(ctx context.Context, client redis.UniversalClient) func() error {
+	if client == nil {
+		return func() error { return nil }
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	pubsub := client.Subscribe(ctx, nodeObservabilityInvalidationChannel)
+	util.Go(func() {
+		for message := range pubsub.Channel() {
+			nodeObservabilityCache.invalidateNode(message.Payload)
+		}
+	})
+	return func() error {
+		cancel()
+		return pubsub.Close()
+	}
+}
+
+func invalidateNodeObservability(ctx context.Context, nodeID string) {
+	nodeObservabilityCache.invalidateNode(nodeID)
+	if cache.Redis != nil {
+		_ = cache.Redis.Publish(ctx, nodeObservabilityInvalidationChannel, nodeID).Err()
+	}
+}
+
+func mustFloat64Histogram(m metric.Meter, name string) metric.Float64Histogram {
+	instrument, _ := m.Float64Histogram(name)
+	return instrument
 }
 
 // NodeQuery filters node observability data.
@@ -98,7 +162,6 @@ type HealthEventCleanupResult struct {
 
 // GetNodeObservability returns observability details for a node.
 func GetNodeObservability(ctx context.Context, id uint, query NodeQuery) (*NodeView, error) {
-	now := time.Now()
 	node, err := repository.GetOpenFlareNodeByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -108,11 +171,51 @@ func GetNodeObservability(ctx context.Context, id uint, query NodeQuery) (*NodeV
 	}
 	hours := normalizeObservabilityHours(query.Hours)
 	limit := normalizeObservabilityLimit(query.Limit)
-	cacheKey := nodeObservabilityCacheKey(node.NodeID, hours, limit, node.NodeType)
-	if view, ok := getCachedNodeObservability(cacheKey); ok {
+	key := nodeObservabilityCacheKey(node.NodeID, hours, limit, node.NodeType)
+	return nodeObservabilityCache.getOrLoad(ctx, key, func() (*NodeView, error) {
+		return queryNodeObservability(ctx, node, hours, limit)
+	})
+}
+
+func (c *nodeObservabilityResponseCache) getOrLoad(ctx context.Context, key string, loader func() (*NodeView, error)) (*NodeView, error) {
+	c.mu.Lock()
+	if view, ok := c.views.GetIfPresent(key); ok {
+		c.mu.Unlock()
+		nodeObservabilityCacheHits.Add(ctx, 1)
 		return view, nil
 	}
+	generation := c.generation
+	c.mu.Unlock()
+	nodeObservabilityCacheMisses.Add(ctx, 1)
+	started := time.Now()
+	view, err := loader()
+	nodeObservabilityQueryTime.Record(ctx, float64(time.Since(started).Microseconds())/1000)
+	if err != nil {
+		return nil, err
+	}
+	c.mu.Lock()
+	if generation == c.generation {
+		c.views.Set(key, view)
+	}
+	c.mu.Unlock()
+	return view, nil
+}
 
+func (c *nodeObservabilityResponseCache) invalidateNode(nodeID string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.generation++
+	prefix := nodeID + ":"
+	for key := range c.views.Keys() {
+		if strings.HasPrefix(key, prefix) {
+			c.views.Invalidate(key)
+		}
+	}
+	c.views.CleanUp()
+}
+
+func queryNodeObservability(ctx context.Context, node *model.OpenFlareNode, hours, limit int) (*NodeView, error) {
+	now := time.Now()
 	since := now.Add(-time.Duration(hours) * time.Hour)
 
 	profile, err := repository.GetOpenFlareNodeSystemProfile(ctx, node.NodeID)
@@ -166,37 +269,7 @@ func GetNodeObservability(ctx context.Context, id uint, query NodeQuery) (*NodeV
 		}
 		view.RelayDashboard = buildRelayDashboardSnapshot(node, latestFrps)
 	}
-	setCachedNodeObservability(cacheKey, view)
 	return view, nil
-}
-
-func nodeObservabilityCacheKey(nodeID string, hours, limit int, nodeType string) string {
-	return nodeID + ":" + nodeType + ":" + strconv.Itoa(hours) + ":" + strconv.Itoa(limit)
-}
-
-func getCachedNodeObservability(nodeID string) (*NodeView, bool) {
-	nodeObservabilityCache.mu.Lock()
-	defer nodeObservabilityCache.mu.Unlock()
-	if nodeObservabilityCache.views == nil {
-		return nil, false
-	}
-	entry, ok := nodeObservabilityCache.views[nodeID]
-	if !ok || time.Now().After(entry.expiresAt) {
-		return nil, false
-	}
-	return entry.view, true
-}
-
-func setCachedNodeObservability(nodeID string, view *NodeView) {
-	nodeObservabilityCache.mu.Lock()
-	defer nodeObservabilityCache.mu.Unlock()
-	if nodeObservabilityCache.views == nil {
-		nodeObservabilityCache.views = make(map[string]cachedNodeObservability)
-	}
-	nodeObservabilityCache.views[nodeID] = cachedNodeObservability{
-		view:      view,
-		expiresAt: time.Now().Add(nodeObservabilityCacheTTL),
-	}
 }
 
 // CleanupHealthEvents removes all health events for a node.
@@ -209,6 +282,7 @@ func CleanupHealthEvents(ctx context.Context, id uint) (*HealthEventCleanupResul
 	if err != nil {
 		return nil, err
 	}
+	invalidateNodeObservability(ctx, node.NodeID)
 	return &HealthEventCleanupResult{
 		NodeID:       node.NodeID,
 		DeletedCount: deletedCount,
@@ -266,6 +340,10 @@ func maxInt(a int, b int) int {
 		return a
 	}
 	return b
+}
+
+func nodeObservabilityCacheKey(nodeID string, hours, limit int, nodeType string) string {
+	return nodeID + ":" + nodeType + ":" + strconv.Itoa(hours) + ":" + strconv.Itoa(limit)
 }
 
 func normalizeObservabilityLimit(limit int) int {

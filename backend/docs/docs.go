@@ -6168,6 +6168,55 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/d/access-logs/storage-operations": {
+            "get": {
+                "security": [
+                    {
+                        "SessionCookie": []
+                    }
+                ],
+                "description": "返回当前日志后端、保留数据范围及节点日志 Outbox 状态，不执行清理或导出操作",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openflare-observability"
+                ],
+                "summary": "获取存储运维状态",
+                "responses": {
+                    "200": {
+                        "description": "存储运维状态",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.Any"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/observability.StorageOperations"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    },
+                    "404": {
+                        "description": "无权限或不存在",
+                        "schema": {
+                            "$ref": "#/definitions/response.Any"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/d/acme-accounts/default": {
             "get": {
                 "security": [
@@ -17107,6 +17156,9 @@ const docTemplate = `{
                 "schedule": {
                     "type": "string"
                 },
+                "singleton": {
+                    "type": "boolean"
+                },
                 "supports_time": {
                     "type": "boolean"
                 },
@@ -18168,6 +18220,47 @@ const docTemplate = `{
                 }
             }
         },
+        "logstore.NodeAccessOutboxHealth": {
+            "type": "object",
+            "properties": {
+                "attempts": {
+                    "type": "integer"
+                },
+                "backend": {
+                    "type": "string"
+                },
+                "healthy": {
+                    "type": "boolean"
+                },
+                "last_attempt": {
+                    "type": "string"
+                },
+                "last_attempt_outcome": {
+                    "type": "string"
+                },
+                "last_error": {
+                    "type": "string"
+                },
+                "last_success": {
+                    "type": "string"
+                },
+                "next_attempt_at": {
+                    "type": "string"
+                },
+                "oldest_at": {
+                    "type": "string"
+                },
+                "pending": {
+                    "type": "integer"
+                },
+                "pending_age_seconds": {
+                    "type": "integer"
+                },
+                "worker_running": {
+                    "type": "boolean"
+                }
+            }
+        },
         "model.AccessLogItem": {
             "type": "object",
             "properties": {
@@ -18452,11 +18545,23 @@ const docTemplate = `{
                 "connections": {
                     "type": "integer"
                 },
+                "export_prerequisite": {
+                    "type": "string",
+                    "enum": [
+                        "sqlite_builtin",
+                        "pg_dump_found",
+                        "pg_dump_missing"
+                    ]
+                },
                 "name": {
                     "type": "string"
                 },
                 "size": {
                     "type": "string"
+                },
+                "size_bytes": {
+                    "type": "integer",
+                    "x-nullable": true
                 },
                 "table_count": {
                     "type": "integer"
@@ -20668,6 +20773,99 @@ const docTemplate = `{
                 },
                 "type": {
                     "type": "string"
+                }
+            }
+        },
+        "observability.StorageOperationCapacity": {
+            "type": "object",
+            "properties": {
+                "active_parts": {
+                    "type": "integer"
+                },
+                "bytes_on_disk": {
+                    "type": "integer"
+                },
+                "scope": {
+                    "type": "string",
+                    "enum": [
+                        "clickhouse_active_parts",
+                        "primary_database"
+                    ]
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "available",
+                        "shared",
+                        "error"
+                    ]
+                },
+                "total_rows": {
+                    "type": "integer"
+                }
+            }
+        },
+        "observability.StorageOperationSource": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "newest": {
+                    "type": "string"
+                },
+                "oldest": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "available",
+                        "empty",
+                        "unavailable",
+                        "error"
+                    ]
+                }
+            }
+        },
+        "observability.StorageOperations": {
+            "type": "object",
+            "properties": {
+                "backend": {
+                    "type": "string"
+                },
+                "backend_error": {
+                    "type": "string"
+                },
+                "backend_status": {
+                    "type": "string",
+                    "enum": [
+                        "available",
+                        "error"
+                    ]
+                },
+                "capacity": {
+                    "$ref": "#/definitions/observability.StorageOperationCapacity"
+                },
+                "node_logs": {
+                    "$ref": "#/definitions/observability.StorageOperationSource"
+                },
+                "outbox": {
+                    "$ref": "#/definitions/logstore.NodeAccessOutboxHealth"
+                },
+                "outbox_error": {
+                    "type": "string"
+                },
+                "outbox_status": {
+                    "type": "string",
+                    "enum": [
+                        "available",
+                        "error",
+                        "unsupported"
+                    ]
+                },
+                "user_logs": {
+                    "$ref": "#/definitions/observability.StorageOperationSource"
                 }
             }
         },

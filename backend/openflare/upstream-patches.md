@@ -26,4 +26,6 @@
 - `backend/plugins/domain/auth/`、`backend/plugins/domain/admin/`：補齊快取契約測試替身、OAuth provider 識別碼精度與缺失檢查、可選維護範圍驗證及舊版請求相容；保留管理員 SQL API 既有契約。均屬通用能力，待回流 Wavelet。
 - `backend/core/contracts/task.go`、`backend/core/extpoints/task.go`、`backend/plugins/drivers/driver_asynq_{worker,cron}/`：新增任務 singleton metadata，讓指定排程任務使用 Asynq Redis Unique 鎖跨控制面去重；本次補上固定 TaskID、pending/running/retry 保護及可重用終態記錄；屬通用背景任務能力，待回流 Wavelet。
 
+- `backend/plugins/domain/admin/{model/dto.go,repository/db.go}`：管理總覽加回可空的容量位元組及唯讀的主庫匯出前置條件；既有 `size` 保持相容。此通用能力待回流 Wavelet。
+
 以上为本地待回流补丁，尚未同步至 Wavelet；回流并合并上游后确认修复仍在，再移除此登记。

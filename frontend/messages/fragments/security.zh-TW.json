@@ -904,6 +904,7 @@
       "running": "执行中",
       "succeeded": "成功",
       "failed": "失敗",
+      "canceled": "已取消",
       "system": "系統",
       "manual": "手動",
       "retry": "重試",

@@ -832,6 +832,8 @@ definitions:
         type: boolean
       schedule:
         type: string
+      singleton:
+        type: boolean
       supports_time:
         type: boolean
       timeout:
@@ -1532,6 +1534,33 @@ definitions:
         description: 全局递增序号
         type: integer
     type: object
+  logstore.NodeAccessOutboxHealth:
+    properties:
+      attempts:
+        type: integer
+      backend:
+        type: string
+      healthy:
+        type: boolean
+      last_attempt:
+        type: string
+      last_attempt_outcome:
+        type: string
+      last_error:
+        type: string
+      last_success:
+        type: string
+      next_attempt_at:
+        type: string
+      oldest_at:
+        type: string
+      pending:
+        type: integer
+      pending_age_seconds:
+        type: integer
+      worker_running:
+        type: boolean
+    type: object
   model.AccessLogItem:
     properties:
       created_at:
@@ -1727,10 +1756,19 @@ definitions:
     properties:
       connections:
         type: integer
+      export_prerequisite:
+        enum:
+        - sqlite_builtin
+        - pg_dump_found
+        - pg_dump_missing
+        type: string
       name:
         type: string
       size:
         type: string
+      size_bytes:
+        type: integer
+        x-nullable: true
       table_count:
         type: integer
       type:
@@ -3197,6 +3235,70 @@ definitions:
         type: string
       type:
         type: string
+    type: object
+  observability.StorageOperationCapacity:
+    properties:
+      active_parts:
+        type: integer
+      bytes_on_disk:
+        type: integer
+      scope:
+        enum:
+        - clickhouse_active_parts
+        - primary_database
+        type: string
+      status:
+        enum:
+        - available
+        - shared
+        - error
+        type: string
+      total_rows:
+        type: integer
+    type: object
+  observability.StorageOperationSource:
+    properties:
+      error:
+        type: string
+      newest:
+        type: string
+      oldest:
+        type: string
+      status:
+        enum:
+        - available
+        - empty
+        - unavailable
+        - error
+        type: string
+    type: object
+  observability.StorageOperations:
+    properties:
+      backend:
+        type: string
+      backend_error:
+        type: string
+      backend_status:
+        enum:
+        - available
+        - error
+        type: string
+      capacity:
+        $ref: '#/definitions/observability.StorageOperationCapacity'
+      node_logs:
+        $ref: '#/definitions/observability.StorageOperationSource'
+      outbox:
+        $ref: '#/definitions/logstore.NodeAccessOutboxHealth'
+      outbox_error:
+        type: string
+      outbox_status:
+        enum:
+        - available
+        - error
+        - unsupported
+        type: string
+      user_logs:
+        $ref: '#/definitions/observability.StorageOperationSource'
     type: object
   observability.TrafficDistributions:
     properties:
@@ -8363,6 +8465,34 @@ paths:
       security:
       - SessionCookie: []
       summary: 获取访问日志概览
+      tags:
+      - openflare-observability
+  /api/v1/d/access-logs/storage-operations:
+    get:
+      description: 返回当前日志后端、保留数据范围及节点日志 Outbox 状态，不执行清理或导出操作
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 存储运维状态
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Any'
+            - properties:
+                data:
+                  $ref: '#/definitions/observability.StorageOperations'
+              type: object
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/response.Any'
+        "404":
+          description: 无权限或不存在
+          schema:
+            $ref: '#/definitions/response.Any'
+      security:
+      - SessionCookie: []
+      summary: 获取存储运维状态
       tags:
       - openflare-observability
   /api/v1/d/acme-accounts/default:

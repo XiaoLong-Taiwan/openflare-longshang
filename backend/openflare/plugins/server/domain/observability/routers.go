@@ -14,6 +14,21 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GetStorageOperationsHandler 获取只读存储运维状态。
+// @Summary 获取存储运维状态
+// @Description 返回当前日志后端、保留数据范围及节点日志 Outbox 状态，不执行清理或导出操作
+// @Tags openflare-observability
+// @Produce json
+// @Security SessionCookie
+// @Success 200 {object} response.Any{data=observability.StorageOperations} "存储运维状态"
+// @Failure 401 {object} response.Any "未登录"
+// @Failure 404 {object} response.Any "无权限或不存在"
+// @Router /api/v1/d/access-logs/storage-operations [get]
+func GetStorageOperationsHandler(c *gin.Context) {
+	result := GetStorageOperations(c.Request.Context())
+	c.JSON(http.StatusOK, response.OK(result))
+}
+
 // GetAccessLogOverviewHandler 获取访问日志概览。
 // @Summary 获取访问日志概览
 // @Description 返回访问日志汇总指标、趋势与 Top 排行，需要管理员权限

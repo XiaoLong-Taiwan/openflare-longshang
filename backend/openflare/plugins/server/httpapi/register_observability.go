@@ -16,6 +16,7 @@ func registerObservabilityRoutes(apiGroup core.RouterExtension, auth contracts.A
 	{
 		apiutil.RegisterCollection(accessLogRoute, "GET", observability.GetAccessLogsHandler)
 		accessLogRoute.GET("/overview", observability.GetAccessLogOverviewHandler)
+		accessLogRoute.GET("/storage-operations", observability.GetStorageOperationsHandler)
 		accessLogRoute.GET("/folds", observability.GetFoldedAccessLogsHandler)
 		accessLogRoute.GET("/folds/ip-summary", observability.GetFoldedAccessLogIPsHandler)
 		accessLogRoute.GET("/ip-summary", observability.GetAccessLogIPSummariesHandler)

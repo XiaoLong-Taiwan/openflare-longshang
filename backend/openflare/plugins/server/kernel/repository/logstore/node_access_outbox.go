@@ -19,23 +19,27 @@ var nodeOutboxGate = make(chan struct{}, 1)
 
 // NodeAccessOutboxHealth summarizes pending ClickHouse delivery and recent worker status.
 type NodeAccessOutboxHealth struct {
-	Pending     int64     `json:"pending"`
-	OldestAt    time.Time `json:"oldest_at,omitempty"`
-	LastError   string    `json:"last_error,omitempty"`
-	LastAttempt time.Time `json:"last_attempt,omitempty"`
-	Healthy     bool      `json:"healthy"`
-}
-
-type nodeOutboxDBHealth struct {
-	Pending int64
-	Oldest  *time.Time
-	Error   string
+	Pending            int64     `json:"pending"`
+	OldestAt           time.Time `json:"oldest_at,omitempty"`
+	PendingAgeSeconds  int64     `json:"pending_age_seconds,omitempty"`
+	LastError          string    `json:"last_error,omitempty"`
+	LastAttempt        time.Time `json:"last_attempt,omitempty"`
+	LastAttemptOutcome string    `json:"last_attempt_outcome,omitempty"`
+	LastSuccess        time.Time `json:"last_success,omitempty"`
+	Attempts           int       `json:"attempts,omitempty"`
+	NextAttemptAt      time.Time `json:"next_attempt_at,omitempty"`
+	Backend            string    `json:"backend,omitempty"`
+	WorkerRunning      bool      `json:"worker_running"`
+	Healthy            bool      `json:"healthy"`
 }
 
 var nodeOutboxHealth struct {
 	sync.RWMutex
-	lastAttempt time.Time
-	lastError   string
+	lastAttempt        time.Time
+	lastAttemptOutcome string
+	lastSuccess        time.Time
+	lastError          string
+	workerRunning      bool
 }
 
 // GetNodeAccessOutboxHealth returns durable queue depth and the latest retry failure.
@@ -45,35 +49,52 @@ func GetNodeAccessOutboxHealth(ctx context.Context) (NodeAccessOutboxHealth, err
 		return NodeAccessOutboxHealth{}, fmt.Errorf("node outbox database is not initialized")
 	}
 	var health NodeAccessOutboxHealth
-	var row nodeOutboxDBHealth
-	var oldest sql.NullString
-	var lastError sql.NullString
+	var pending struct {
+		Pending       int64
+		CreatedAt     time.Time
+		LastError     string
+		Attempts      int
+		NextAttemptAt time.Time
+	}
 	if err := db.WithContext(ctx).Model(&analyticsmodel.NodeAccessOutbox{}).
-		Select("COUNT(*) AS pending, MIN(created_at) AS oldest, COALESCE(MAX(last_error), '') AS error").
-		Row().Scan(&row.Pending, &oldest, &lastError); err != nil {
+		Select("COUNT(*) OVER () AS pending, created_at, last_error, attempts, next_attempt_at").
+		Order("created_at ASC, id ASC").Limit(1).Scan(&pending).Error; err != nil {
 		return health, err
 	}
-	health.Pending = row.Pending
-	if oldest.Valid {
-		parsed, err := parseOutboxTime(oldest.String)
-		if err != nil {
-			return health, err
-		}
-		health.OldestAt = parsed
+	health.Pending = pending.Pending
+	if pending.Pending > 0 {
+		health.OldestAt = pending.CreatedAt
+		health.PendingAgeSeconds = max(0, int64(time.Since(pending.CreatedAt).Seconds()))
+		health.LastError = pending.LastError
+		health.Attempts = pending.Attempts
+		health.NextAttemptAt = pending.NextAttemptAt
 	}
-	health.LastError = lastError.String
 	nodeOutboxHealth.RLock()
 	health.LastAttempt = nodeOutboxHealth.lastAttempt
+	health.LastAttemptOutcome = nodeOutboxHealth.lastAttemptOutcome
+	health.LastSuccess = nodeOutboxHealth.lastSuccess
+	health.WorkerRunning = nodeOutboxHealth.workerRunning
 	if health.LastError == "" {
 		health.LastError = nodeOutboxHealth.lastError
 	}
 	nodeOutboxHealth.RUnlock()
-	health.Healthy = health.LastError == ""
+	if backend, err := ActiveDatabase(ctx); err == nil {
+		health.Backend = backend
+	}
+	health.Healthy = health.Pending == 0 && health.LastError == "" && health.WorkerRunning
 	return health, nil
 }
 
 // RunNodeAccessOutboxWorker retries due ClickHouse deliveries until ctx is canceled.
 func RunNodeAccessOutboxWorker(ctx context.Context, interval time.Duration) {
+	nodeOutboxHealth.Lock()
+	nodeOutboxHealth.workerRunning = true
+	nodeOutboxHealth.Unlock()
+	defer func() {
+		nodeOutboxHealth.Lock()
+		nodeOutboxHealth.workerRunning = false
+		nodeOutboxHealth.Unlock()
+	}()
 	if interval <= 0 {
 		interval = time.Second * 30
 	}
@@ -90,6 +111,7 @@ func RunNodeAccessOutboxWorker(ctx context.Context, interval time.Duration) {
 		} else {
 			nodeOutboxHealth.Lock()
 			nodeOutboxHealth.lastAttempt = time.Now().UTC()
+			nodeOutboxHealth.lastAttemptOutcome = "error"
 			nodeOutboxHealth.lastError = err.Error()
 			nodeOutboxHealth.Unlock()
 		}
@@ -140,17 +162,25 @@ func deliverNodeChanges(ctx context.Context, delivery nodeDelivery) error {
 }
 
 func flushNodeOutbox(ctx context.Context, db *gorm.DB, deliver func(context.Context, nodeDelivery) error) (result error) {
-	nodeOutboxHealth.Lock()
-	nodeOutboxHealth.lastAttempt = time.Now().UTC()
-	nodeOutboxHealth.Unlock()
+	var attemptedAt time.Time
+	var deliveryErr error
 	defer func() {
+		if attemptedAt.IsZero() && result == nil {
+			return
+		}
 		nodeOutboxHealth.Lock()
-		if result != nil {
-			nodeOutboxHealth.lastError = result.Error()
+		defer nodeOutboxHealth.Unlock()
+		if attemptedAt.IsZero() {
+			attemptedAt = time.Now().UTC()
+		}
+		nodeOutboxHealth.lastAttempt = attemptedAt
+		if err := errors.Join(result, deliveryErr); err != nil {
+			nodeOutboxHealth.lastAttemptOutcome = "error"
+			nodeOutboxHealth.lastError = err.Error()
 		} else {
+			nodeOutboxHealth.lastAttemptOutcome = "success"
 			nodeOutboxHealth.lastError = ""
 		}
-		nodeOutboxHealth.Unlock()
 	}()
 	select {
 	case nodeOutboxGate <- struct{}{}:
@@ -209,8 +239,10 @@ func flushNodeOutbox(ctx context.Context, db *gorm.DB, deliver func(context.Cont
 		if len(page) == 0 {
 			return nil
 		}
+		attemptedAt = time.Now().UTC()
 		var delivery nodeDelivery
 		if err := json.Unmarshal([]byte(page[0].Payload), &delivery); err != nil {
+			deliveryErr = err
 			attempts := page[0].Attempts + 1
 			next := time.Now().UTC().Add(outboxRetryDelay(attempts))
 			if updateErr := db.WithContext(ctx).Model(&analyticsmodel.NodeAccessOutbox{}).Where("id = ?", page[0].ID).Updates(map[string]any{
@@ -233,6 +265,10 @@ func flushNodeOutbox(ctx context.Context, db *gorm.DB, deliver func(context.Cont
 		if err := db.WithContext(ctx).Where("id = ?", page[0].ID).Delete(&analyticsmodel.NodeAccessOutbox{}).Error; err != nil {
 			return err
 		}
+		deliveryErr = nil
+		nodeOutboxHealth.Lock()
+		nodeOutboxHealth.lastSuccess = time.Now().UTC()
+		nodeOutboxHealth.Unlock()
 	}
 	return fmt.Errorf("node outbox drain exceeded per-run page budget at %s", time.Now().UTC().Format(time.RFC3339))
 }
@@ -245,18 +281,4 @@ func outboxRetryDelay(attempts int) time.Duration {
 		attempts = 8
 	}
 	return time.Second * time.Duration(1<<(attempts-1))
-}
-
-func parseOutboxTime(value string) (time.Time, error) {
-	for _, layout := range []string{
-		time.RFC3339Nano,
-		"2006-01-02 15:04:05.999999999-07:00",
-		"2006-01-02 15:04:05.999999999",
-		"2006-01-02 15:04:05",
-	} {
-		if parsed, err := time.Parse(layout, value); err == nil {
-			return parsed.UTC(), nil
-		}
-	}
-	return time.Time{}, fmt.Errorf("parse outbox time %q", value)
 }

@@ -73,15 +73,12 @@ func GetSQLiteOverview(ctx context.Context) (model.DBOverviewResponse, error) {
 		version = "SQLite"
 	}
 
-	var sizeStr string
-	if fi, err := os.Stat(name); err == nil {
+	sizeStr := "0 B"
+	var sizeBytes *int64
+	if fi, err := os.Stat(name); err == nil && fi.Mode().IsRegular() && fi.Size() >= 0 {
 		size := fi.Size()
-		if size < 0 {
-			size = 0
-		}
+		sizeBytes = &size
 		sizeStr = model.FormatBytes(uint64(size))
-	} else {
-		sizeStr = "0 B"
 	}
 
 	var tableCount int64
@@ -97,12 +94,14 @@ func GetSQLiteOverview(ctx context.Context) (model.DBOverviewResponse, error) {
 	}
 
 	return model.DBOverviewResponse{
-		Type:        logDBNameSQLite,
-		Version:     version,
-		Name:        name,
-		Size:        sizeStr,
-		TableCount:  tableCount,
-		Connections: connCount,
+		Type:               logDBNameSQLite,
+		Version:            version,
+		Name:               name,
+		Size:               sizeStr,
+		SizeBytes:          sizeBytes,
+		ExportPrerequisite: "sqlite_builtin",
+		TableCount:         tableCount,
+		Connections:       connCount,
 	}, nil
 }
 
@@ -123,16 +122,17 @@ func GetPostgresOverview(ctx context.Context) (model.DBOverviewResponse, error) 
 		version = "PostgreSQL"
 	}
 
-	var sizeStr string
-	var sizeBytes sql.NullInt64
-	if err := gormDB.Raw("SELECT pg_database_size(current_database())").Scan(&sizeBytes).Error; err == nil && sizeBytes.Valid {
-		size := sizeBytes.Int64
-		if size < 0 {
-			size = 0
-		}
-		sizeStr = model.FormatBytes(uint64(size))
-	} else {
-		sizeStr = "0 B"
+	sizeStr := "0 B"
+	var sizeBytes *int64
+	var measuredSize sql.NullInt64
+	if err := gormDB.Raw("SELECT pg_database_size(current_database())").Scan(&measuredSize).Error; err == nil && measuredSize.Valid && measuredSize.Int64 >= 0 {
+		sizeBytes = &measuredSize.Int64
+		sizeStr = model.FormatBytes(uint64(measuredSize.Int64))
+	}
+
+	exportPrerequisite := "pg_dump_missing"
+	if _, err := exec.LookPath("pg_dump"); err == nil {
+		exportPrerequisite = "pg_dump_found"
 	}
 
 	var tableCount int64
@@ -153,12 +153,14 @@ func GetPostgresOverview(ctx context.Context) (model.DBOverviewResponse, error) 
 	}
 
 	return model.DBOverviewResponse{
-		Type:        "postgres",
-		Version:     version,
-		Name:        name,
-		Size:        sizeStr,
-		TableCount:  tableCount,
-		Connections: connCount,
+		Type:               "postgres",
+		Version:            version,
+		Name:               name,
+		Size:               sizeStr,
+		SizeBytes:          sizeBytes,
+		ExportPrerequisite: exportPrerequisite,
+		TableCount:         tableCount,
+		Connections:       connCount,
 	}, nil
 }
 

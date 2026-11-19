@@ -180,7 +180,8 @@ export type TaskExecutionStatus =
   | 'pending'
   | 'running'
   | 'succeeded'
-  | 'failed';
+  | 'failed'
+  | 'canceled';
 
 /**
  * 任务执行记录

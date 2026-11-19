@@ -190,6 +190,7 @@ export function SyncTasksPanel() {
     running: t('running'),
     succeeded: t('succeeded'),
     failed: t('failed'),
+    canceled: t('canceled'),
   };
   const triggerLabels: Record<string, string> = {
     system: t('system'),

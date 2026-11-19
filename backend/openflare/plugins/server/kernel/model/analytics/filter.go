@@ -118,9 +118,16 @@ type ClickHouseOperationalStats struct {
 
 // NodeAccessOutboxStats reports durable outbox delivery status.
 type NodeAccessOutboxStats struct {
-	Pending     int64     `json:"pending"`
-	OldestAt    time.Time `json:"oldest_at,omitempty"`
-	LastError   string    `json:"last_error,omitempty"`
-	LastAttempt time.Time `json:"last_attempt,omitempty"`
-	Healthy     bool      `json:"healthy"`
+	Pending            int64     `json:"pending"`
+	OldestAt           time.Time `json:"oldest_at,omitempty"`
+	PendingAgeSeconds  int64     `json:"pending_age_seconds,omitempty"`
+	LastError          string    `json:"last_error,omitempty"`
+	LastAttempt        time.Time `json:"last_attempt,omitempty"`
+	LastAttemptOutcome string    `json:"last_attempt_outcome,omitempty"`
+	LastSuccess        time.Time `json:"last_success,omitempty"`
+	Attempts           int       `json:"attempts,omitempty"`
+	NextAttemptAt      time.Time `json:"next_attempt_at,omitempty"`
+	Backend            string    `json:"backend,omitempty"`
+	WorkerRunning      bool      `json:"worker_running"`
+	Healthy            bool      `json:"healthy"`
 }

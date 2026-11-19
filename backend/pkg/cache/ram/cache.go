@@ -5,6 +5,9 @@
 package ram
 
 import (
+	"iter"
+	"time"
+
 	"github.com/maypok86/otter/v2"
 )
 
@@ -14,6 +17,8 @@ const defaultMaximumSize = 256
 type Options struct {
 	// MaximumSize bounds the number of entries. Zero uses a small default.
 	MaximumSize int
+	// TTL expires entries after their most recent write. Zero disables expiry.
+	TTL time.Duration
 }
 
 // Cache is a concurrency-safe in-memory cache backed by Otter.
@@ -28,9 +33,11 @@ func New[K comparable, V any](opts Options) (*Cache[K, V], error) {
 		maximumSize = defaultMaximumSize
 	}
 
-	inner, err := otter.New(&otter.Options[K, V]{
-		MaximumSize: maximumSize,
-	})
+	options := &otter.Options[K, V]{MaximumSize: maximumSize}
+	if opts.TTL > 0 {
+		options.ExpiryCalculator = otter.ExpiryWriting[K, V](opts.TTL)
+	}
+	inner, err := otter.New(options)
 	if err != nil {
 		return nil, err
 	}
@@ -65,6 +72,16 @@ func (c *Cache[K, V]) Invalidate(key K) {
 // InvalidateAll removes every entry from the cache.
 func (c *Cache[K, V]) InvalidateAll() {
 	c.inner.InvalidateAll()
+}
+
+// Keys iterates over the keys of live entries in no particular order.
+func (c *Cache[K, V]) Keys() iter.Seq[K] {
+	return c.inner.Keys()
+}
+
+// CleanUp removes expired entries and runs pending eviction maintenance.
+func (c *Cache[K, V]) CleanUp() {
+	c.inner.CleanUp()
 }
 
 // EstimatedSize returns the approximate number of cached entries.

@@ -6,6 +6,8 @@ export interface DBOverview {
   version: string;
   name: string;
   size: string;
+  size_bytes: number | null;
+  export_prerequisite: 'sqlite_builtin' | 'pg_dump_found' | 'pg_dump_missing';
   table_count: number;
   connections: number;
 }

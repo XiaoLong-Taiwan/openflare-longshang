@@ -62,12 +62,14 @@ func TruncateDisplayValue(value string) string {
 
 // DBOverviewResponse 数据库运行概览响应结构体
 type DBOverviewResponse struct {
-	Type        string `json:"type"`
-	Version     string `json:"version"`
-	Name        string `json:"name"`
-	Size        string `json:"size"`
-	TableCount  int64  `json:"table_count"`
-	Connections int64  `json:"connections"`
+	Type               string `json:"type"`
+	Version            string `json:"version"`
+	Name               string `json:"name"`
+	Size               string `json:"size"`
+	SizeBytes          *int64 `json:"size_bytes" extensions:"x-nullable"`
+	ExportPrerequisite string `json:"export_prerequisite" enums:"sqlite_builtin,pg_dump_found,pg_dump_missing"`
+	TableCount         int64  `json:"table_count"`
+	Connections        int64  `json:"connections"`
 }
 
 // GetTableDataRequest 分页拉取表数据请求结构体

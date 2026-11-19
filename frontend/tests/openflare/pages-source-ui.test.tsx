@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -341,6 +341,7 @@ describe('Pages source UI', () => {
   });
 
   it('polls the initial check receipt and represents the queued window locally', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     const user = userEvent.setup();
     const idleGitHubSource: PagesGitHubReleaseSource = {
       ...githubLatestSource,
@@ -560,6 +561,7 @@ describe('Pages source UI', () => {
   });
 
   it('polls the existing task execution detail after sync dispatch', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     const user = userEvent.setup();
     vi.mocked(PagesService.getSource).mockResolvedValue(remoteSource);
     vi.mocked(PagesService.syncSource).mockResolvedValue({
@@ -581,12 +583,12 @@ describe('Pages source UI', () => {
     });
     expect(screen.getByRole('button', { name: /同步并发布/ })).toBeDisabled();
 
-    await waitFor(
-      () => {
-        expect(AdminTaskService.getTaskExecution).toHaveBeenCalledTimes(2);
-      },
-      { timeout: 3_500 },
-    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_000);
+    });
+    await waitFor(() => {
+      expect(AdminTaskService.getTaskExecution).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('shows the actual project entry and no one-off URL upload tab', () => {
