@@ -53,7 +53,7 @@ func TestRollingTrafficAndNetworkBoundaries(t *testing.T) {
 	cleanup := setupDashboardTestDB(t)
 	t.Cleanup(cleanup)
 	ctx := t.Context()
-	now := time.Date(2026, 11, 13, 12, 30, 0, 0, time.UTC)
+	now := time.Now().UTC().Truncate(time.Hour).Add(-30 * time.Minute)
 	since := now.Add(-24 * time.Hour)
 	logs := []*model.OpenFlareAccessLog{
 		{NodeID: "edge", LoggedAt: since.Add(-time.Second), StatusCode: 500, BytesSent: 1000},
